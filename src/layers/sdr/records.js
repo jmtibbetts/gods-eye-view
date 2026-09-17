@@ -3,8 +3,11 @@ import { SDR_COLORS } from './policy.js';
 /** Every KiwiSDR is a 0–30 MHz receiver by hardware; the directory rarely says so. */
 const KIWISDR_BANDS = Object.freeze([0, 30_000_000]);
 
+/** Receiver names are operator-authored; a few carry HTML. Keep the words only. */
 const text = (value, max = 90) => {
   const t = String(value ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[\uFFFD\u0000-\u001F]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;

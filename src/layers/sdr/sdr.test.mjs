@@ -69,6 +69,19 @@ test('directory normalization drops bad rows and dedupes ids', () => {
     'KiwiSDR hardware range is assumed when the directory omits it',
   );
   assert.equal(normalizeSdrDirectory({}), null);
+  const html = normalizeSdrDirectory({
+    receivers: [
+      {
+        id: 'h',
+        name: '<font color=white>P2000 WebSDR Ulft </font><font color=red>MOVED</font>\uFFFD',
+        url: 'http://h.example/',
+        lat: 1,
+        lon: 1,
+        type: 'openwebrx',
+      },
+    ],
+  });
+  assert.equal(html[0].name, 'P2000 WebSDR Ulft MOVED');
 });
 
 test('tuned URLs follow each software family syntax', () => {
