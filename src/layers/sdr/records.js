@@ -1,5 +1,8 @@
 import { SDR_COLORS } from './policy.js';
 
+/** Every KiwiSDR is a 0–30 MHz receiver by hardware; the directory rarely says so. */
+const KIWISDR_BANDS = Object.freeze([0, 30_000_000]);
+
 const text = (value, max = 90) => {
   const t = String(value ?? '')
     .replace(/\s+/g, ' ')
@@ -60,7 +63,9 @@ export function normalizeSdrDirectory(payload) {
       Number.isFinite(row.bands[0]) &&
       Number.isFinite(row.bands[1])
         ? [Math.max(0, row.bands[0]), Math.max(0, row.bands[1])]
-        : null;
+        : type === 'kiwisdr'
+          ? KIWISDR_BANDS
+          : null;
     out.push({
       id,
       name: text(row.name, 90) || id,

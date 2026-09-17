@@ -50,6 +50,24 @@ test('directory normalization drops bad rows and dedupes ids', () => {
   assert.equal(rows.length, 2);
   assert.equal(rows[0].type, 'kiwisdr');
   assert.equal(rows[1].type, 'sdr');
+  assert.equal(rows[1].bands, null);
+  const kiwi = normalizeSdrDirectory({
+    receivers: [
+      {
+        id: 'k',
+        name: 'k',
+        url: 'http://k.example/',
+        lat: 1,
+        lon: 1,
+        type: 'kiwisdr',
+      },
+    ],
+  });
+  assert.deepEqual(
+    kiwi[0].bands,
+    [0, 30_000_000],
+    'KiwiSDR hardware range is assumed when the directory omits it',
+  );
   assert.equal(normalizeSdrDirectory({}), null);
 });
 
