@@ -54,6 +54,12 @@ export class LayerBindings {
   get _radioControls() {
     return this.readControls()._radioControls;
   }
+  get _scannerPanel() {
+    return this.readControls()._scannerPanel;
+  }
+  get _sdrPanel() {
+    return this.readControls()._sdrPanel;
+  }
   observeCamera() {
     this._cctvRequestFocusHandler = (event) =>
       routeCctvFocusRequest(
@@ -211,6 +217,8 @@ export class LayerBindings {
     this._syncContextModeButtons();
     this._cctvControls.connect();
     this._radioControls.connect();
+    this._scannerPanel?.connect();
+    this._sdrPanel?.connect();
     this._connectDirectionsCamera();
     if (!this._awarenessSelectedHandler) {
       this._awarenessSelectedHandler = (event) =>

@@ -401,7 +401,9 @@
       "src/ui/radioControls.js",
       "src/ui/radioBindings.js",
       "src/ui/radioPresentation.js",
-      "src/ui/radioTunerModel.js"
+      "src/ui/radioTunerModel.js",
+      "src/ui/audioPanels.js",
+      "src/data/iconOrientation.js"
     ],
     "external": []
   },
@@ -580,7 +582,9 @@
       "src/ui/aircraftDisplay.js",
       "src/ui/layerBindings.js",
       "src/ui/displayBindings.js",
-      "src/ui/shellFacade.js"
+      "src/ui/shellFacade.js",
+      "src/ui/audioPanels.js",
+      "src/data/iconOrientation.js"
     ],
     "external": ["cesium"]
   },
@@ -608,7 +612,8 @@
       "src/ui/styles/command-dock-sliding.css",
       "src/ui/styles/voice-cost.css",
       "src/ui/styles/first-run.css",
-      "src/ui/styles/provider-settings.css"
+      "src/ui/styles/provider-settings.css",
+      "src/ui/styles/audio.css"
     ],
     "external": []
   },
@@ -1854,7 +1859,8 @@
       "src/layers/sdr/model.js",
       "src/app/layers/scanner.js",
       "src/app/layers/sdr.js",
-      "src/data/markerField.js"
+      "src/data/markerField.js",
+      "src/ui/audioPanels.js"
     ],
     "external": [
       "@mapbox/vector-tile",

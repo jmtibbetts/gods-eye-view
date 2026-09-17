@@ -15,6 +15,7 @@ import { CockpitCoordinator } from './cockpitCoordinator.js';
 import { ContextControls } from './context.js';
 import { CctvControls } from './cctv.js';
 import { RadioControls } from './radio.js';
+import { ScannerPanel, SdrPanel } from './audioPanels.js';
 import { LocationNavigation } from './locationNavigation.js';
 import { bindClearLayersControl } from './layers.js';
 import { bindCameraOrientationControls } from './cameraOrientationControls.js';
@@ -239,6 +240,8 @@ export class StyleManager extends ShellFacade {
         _contextControls: this._contextControls,
         _cctvControls: this._cctvControls,
         _radioControls: this._radioControls,
+        _scannerPanel: this._scannerPanel,
+        _sdrPanel: this._sdrPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -535,6 +538,7 @@ export class StyleManager extends ShellFacade {
     this._initLeftPanelAdaptiveLayout();
     this._initRightPanelAdaptiveLayout();
     this._initRadioPanel();
+    this._initAudioPanels();
     this._initCctvPanel();
     this._initGlobalContextPanel();
     this._initLocationBar();
@@ -784,6 +788,61 @@ export class StyleManager extends ShellFacade {
   }
 
   /** Wire the independent Radio companion controls. */
+  _initAudioPanels() {
+    const { scannerLayer, sdrLayer } = this.services;
+    const actionsFor = (id) => ({
+      isRegistered: () => this._dataManager?.layers?.has(id),
+      isEnabled: () => this._dataManager?.isEnabled(id),
+      setEnabled: (enabled, options) =>
+        this._dataManager.setEnabled(id, enabled, options),
+      getLifecycle: () => this._dataManager?.getLayerLifecycleState?.(id),
+      runUserAction: (...args) => this._runUserFacingContextAction(...args),
+    });
+    this._scannerPanel?.destroy();
+    this._scannerPanel = new ScannerPanel({
+      elements: {
+        layerState: this._scannerLayerState,
+        enableBtn: this._scannerEnableBtn,
+        search: this._scannerSearch,
+        list: this._scannerList,
+        listCount: this._scannerListCount,
+        nowName: this._scannerNowName,
+        nowMeta: this._scannerNowMeta,
+        nowCalls: this._scannerNowCalls,
+        pauseBtn: this._scannerPauseBtn,
+        stopBtn: this._scannerStopBtn,
+        flyBtn: this._scannerFlyBtn,
+        volume: this._scannerVolume,
+        volumeValue: this._scannerVolumeValue,
+        playbackState: this._scannerPlaybackState,
+      },
+      layer: scannerLayer,
+      actions: actionsFor('scanner'),
+      viewer: this.viewer,
+    });
+    this._sdrPanel?.destroy();
+    this._sdrPanel = new SdrPanel({
+      elements: {
+        layerState: this._sdrLayerState,
+        enableBtn: this._sdrEnableBtn,
+        search: this._sdrSearch,
+        freq: this._sdrFreq,
+        mode: this._sdrMode,
+        list: this._sdrList,
+        listCount: this._sdrListCount,
+        nowName: this._sdrNowName,
+        nowMeta: this._sdrNowMeta,
+        openBtn: this._sdrOpenBtn,
+        flyBtn: this._sdrFlyBtn,
+        clearBtn: this._sdrClearBtn,
+        playbackState: this._sdrPlaybackState,
+      },
+      layer: sdrLayer,
+      actions: actionsFor('sdr'),
+      viewer: this.viewer,
+    });
+  }
+
   _initRadioPanel() {
     const { radioLayer } = this.services;
     this._radioControls?.destroy();
@@ -1472,6 +1531,8 @@ export class StyleManager extends ShellFacade {
     this._clearLayersControl?.destroy();
     this._cctvControls?.destroy();
     this._radioControls?.destroy();
+    this._scannerPanel?.destroy();
+    this._sdrPanel?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();
     this.shareLinkManager?.destroy();

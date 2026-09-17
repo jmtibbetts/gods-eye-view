@@ -24,6 +24,7 @@ import {
   createScannerOverlayEntry,
   createScannerSelectedOverlayEntry,
   mapScannerAnalystRecord,
+  scannerCallLine,
   scannerColor,
   scannerPixelSize,
   scannerPlace,
@@ -95,6 +96,24 @@ export function createScannerLayer({
   const _overlayEntries = new Map();
   let _viewTimer = null;
   let _viewTicks = 0;
+  /** @type {Set<(state: object) => void>} */
+  const _listeners = new Set();
+  let _notifyTimer = null;
+
+  function notify() {
+    if (_notifyTimer != null || !_listeners.size) return;
+    _notifyTimer = setTimeout(() => {
+      _notifyTimer = null;
+      const state = layer.getScannerUIState();
+      for (const listener of _listeners) {
+        try {
+          listener(state);
+        } catch (error) {
+          console.warn('[Data:Scanner] listener failed:', error);
+        }
+      }
+    }, 0);
+  }
 
   // ---- live session (selected system) ----
   let _selectedId = null;
@@ -241,6 +260,7 @@ export function createScannerLayer({
   }
 
   function publishCard() {
+    notify();
     if (!_selectedId || !_enabled) return;
     const system = _systems.get(_selectedId);
     const entity = _entities.get(_selectedId);
@@ -318,6 +338,7 @@ export function createScannerLayer({
     _selectedId = null;
     _field.setHidden(null);
     refreshView({ force: true });
+    notify();
     if (_selectedEntity && _viewer) _viewer.entities.remove(_selectedEntity);
     _selectedEntity = null;
     overlayHost.clearSource(SCANNER_SELECTED_OVERLAY_SOURCE_ID);
@@ -506,6 +527,7 @@ export function createScannerLayer({
       installInput(viewer || _viewer);
       if (!_viewTimer) _viewTimer = setInterval(() => refreshView(), 250);
       refreshView({ force: true });
+      notify();
     },
 
     disable() {
@@ -520,6 +542,7 @@ export function createScannerLayer({
       overlayHost.clearSource(SCANNER_OVERLAY_SOURCE_ID);
       overlayHost.setVisible(SCANNER_OVERLAY_SOURCE_ID, false);
       overlayHost.setVisible(SCANNER_SELECTED_OVERLAY_SOURCE_ID, false);
+      notify();
     },
 
     async update() {
@@ -536,6 +559,7 @@ export function createScannerLayer({
         if (seed) mergeSeed(seed);
         rebuildEntities();
         _lastUpdate = now();
+        notify();
         if (
           _liveCatalogAt === 0 ||
           now() - _liveCatalogAt >= SCANNER_CATALOG_REFRESH_MS
@@ -568,6 +592,9 @@ export function createScannerLayer({
 
     destroy(viewer = _viewer) {
       this.disable();
+      _listeners.clear();
+      if (_notifyTimer != null) clearTimeout(_notifyTimer);
+      _notifyTimer = null;
       _player?.destroy();
       _player = null;
       _playerState = null;
@@ -635,15 +662,78 @@ export function createScannerLayer({
         .map(([, s]) => ({ ...s }));
     },
     getScannerUIState() {
+      const selected = _selectedId ? _systems.get(_selectedId) : null;
+      const session = _session;
+      const t = now();
       return Object.freeze({
         enabled: _enabled,
         systems: _systems.size,
+        active: [..._systems.values()].filter((s) => s.callAvg > 0).length,
         selected: _selectedId,
-        session: _session
-          ? { status: _session.status, calls: _session.calls.length }
+        selectedName: selected?.name ?? null,
+        selectedPlace: selected ? scannerPlace(selected) : null,
+        selectedRate: selected?.callAvg ?? null,
+        session: session
+          ? { status: session.status, calls: session.calls.length }
           : null,
+        recentLines: session
+          ? session.calls.slice(0, SCANNER_HISTORY_LIMIT).map((call) =>
+              scannerCallLine(call, session.labels, {
+                now: t,
+                playing: _playerState?.current?.id === call.id,
+              }),
+            )
+          : [],
         player: _playerState,
+        error: _lastError,
       });
+    },
+    /** Change notifications for panels; returns an unsubscribe function. */
+    subscribeScanner(listener) {
+      if (typeof listener !== 'function') return () => {};
+      _listeners.add(listener);
+      try {
+        listener(layer.getScannerUIState());
+      } catch {
+        /* listener's problem */
+      }
+      return () => _listeners.delete(listener);
+    },
+    /**
+     * Systems nearest a point, optionally text-filtered ("police", "king county").
+     * @param {{lat:number, lon:number, query?:string, limit?:number}} options
+     */
+    nearestScannerSystems({ lat, lon, query = '', limit = 12 } = {}) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+      const q = String(query || '')
+        .toLowerCase()
+        .trim();
+      const terms = q ? q.split(/\s+/) : [];
+      const toRad = Math.PI / 180;
+      const out = [];
+      for (const s of _systems.values()) {
+        if (terms.length) {
+          const hay =
+            `${s.name} ${scannerPlace(s)} ${s.desc || ''}`.toLowerCase();
+          if (!terms.every((term) => hay.includes(term))) continue;
+        }
+        const dLat = (s.lat - lat) * toRad;
+        const dLon = (s.lon - lon) * toRad;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(lat * toRad) *
+            Math.cos(s.lat * toRad) *
+            Math.sin(dLon / 2) ** 2;
+        out.push([6371 * 2 * Math.asin(Math.sqrt(a)), s]);
+      }
+      return out
+        .sort((a, b) => a[0] - b[0])
+        .slice(0, Math.max(1, limit))
+        .map(([km, s]) => ({
+          ...s,
+          place: scannerPlace(s),
+          distanceKm: Math.round(km),
+        }));
     },
     getAnalystRecords(maxCount = 2000) {
       if (!_enabled) return [];

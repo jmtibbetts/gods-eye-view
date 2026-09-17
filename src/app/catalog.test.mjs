@@ -93,6 +93,8 @@ test('controls bind catalog instances rather than similarly named defaults', () 
     'military-awareness',
     'military-installations',
     'rocket-launches',
+    'scanner',
+    'sdr',
   ];
   const layers = ids.map((id) => ({ id }));
   const catalog = createLayerCatalog(layers, metadata(layers));

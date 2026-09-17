@@ -92,6 +92,24 @@ export function createSdrLayer({
   const _overlayEntries = new Map();
   let _viewTimer = null;
   let _viewTicks = 0;
+  /** @type {Set<(state: object) => void>} */
+  const _listeners = new Set();
+  let _notifyTimer = null;
+
+  function notify() {
+    if (_notifyTimer != null || !_listeners.size) return;
+    _notifyTimer = setTimeout(() => {
+      _notifyTimer = null;
+      const state = layer.getSdrUIState();
+      for (const listener of _listeners) {
+        try {
+          listener(state);
+        } catch (error) {
+          console.warn('[Data:SDR] listener failed:', error);
+        }
+      }
+    }, 0);
+  }
 
   function rebuildEntities() {
     if (!_dataSource) return;
@@ -157,6 +175,7 @@ export function createSdrLayer({
   }
 
   function publishCard() {
+    notify();
     if (!_selectedId || !_enabled) return;
     const receiver = _receivers.get(_selectedId);
     const entity = _entities.get(_selectedId);
@@ -229,6 +248,7 @@ export function createSdrLayer({
     _selectedId = null;
     _field.setHidden(null);
     refreshView({ force: true });
+    notify();
     if (_selectedEntity && _viewer) _viewer.entities.remove(_selectedEntity);
     _selectedEntity = null;
     overlayHost.clearSource(SDR_SELECTED_OVERLAY_SOURCE_ID);
@@ -316,6 +336,7 @@ export function createSdrLayer({
       installInput(viewer || _viewer);
       if (!_viewTimer) _viewTimer = setInterval(() => refreshView(), 250);
       refreshView({ force: true });
+      notify();
     },
 
     disable() {
@@ -330,6 +351,7 @@ export function createSdrLayer({
       overlayHost.clearSource(SDR_OVERLAY_SOURCE_ID);
       overlayHost.setVisible(SDR_OVERLAY_SOURCE_ID, false);
       overlayHost.setVisible(SDR_SELECTED_OVERLAY_SOURCE_ID, false);
+      notify();
     },
 
     async update() {
@@ -351,6 +373,7 @@ export function createSdrLayer({
         rebuildEntities();
         _lastUpdate = Date.now();
         _lastError = null;
+        notify();
         console.log(`[Data:SDR] ${_receivers.size} receivers`);
         return true;
       } catch (error) {
@@ -368,6 +391,9 @@ export function createSdrLayer({
       this.disable();
       if (_dataSource && viewer) viewer.dataSources.remove(_dataSource, true);
       _dataSource = null;
+      _listeners.clear();
+      if (_notifyTimer != null) clearTimeout(_notifyTimer);
+      _notifyTimer = null;
       _entities.clear();
       _field.clear();
       _overlayEntries.clear();
@@ -444,12 +470,27 @@ export function createSdrLayer({
         .map(([km, r]) => ({ ...r, distanceKm: Math.round(km) }));
     },
     getSdrUIState() {
+      const selected = _selectedId ? _receivers.get(_selectedId) : null;
       return Object.freeze({
         enabled: _enabled,
         receivers: _receivers.size,
         selected: _selectedId,
+        selectedReceiver: selected ? { ...selected } : null,
         tune: _tune,
+        tunedUrl: selected ? sdrTunedUrl(selected, _tune || {}) : null,
+        error: _lastError,
       });
+    },
+    /** Change notifications for panels; returns an unsubscribe function. */
+    subscribeSdr(listener) {
+      if (typeof listener !== 'function') return () => {};
+      _listeners.add(listener);
+      try {
+        listener(layer.getSdrUIState());
+      } catch {
+        /* listener's problem */
+      }
+      return () => _listeners.delete(listener);
     },
     getAnalystRecords(maxCount = 2000) {
       if (!_enabled) return [];

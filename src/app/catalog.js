@@ -11,6 +11,8 @@ const CONTROL_LAYER_IDS = Object.freeze({
   militaryAwarenessLayer: 'military-awareness',
   militaryInstallationsLayer: 'military-installations',
   rocketLaunchesLayer: 'rocket-launches',
+  scannerLayer: 'scanner',
+  sdrLayer: 'sdr',
 });
 
 /** Capture the ordered application instances and their serialization metadata. */

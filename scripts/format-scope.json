@@ -270,6 +270,8 @@
   "src/ui/styles/command-dock-sliding.css",
   "src/ui/styles/provider-settings.css",
   "src/ui/styles/radio.css",
+  "src/ui/styles/audio.css",
+  "src/ui/audioPanels.js",
   "src/ui/styles/responsive.css",
   "src/ui/styles/voice-cost.css",
   "src/ui/styles/cockpit.css",

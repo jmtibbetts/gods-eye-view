@@ -140,6 +140,89 @@
             <p class="radio-privacy">Audio connects directly to the broadcaster after you press play. Your IP is visible to that broadcaster.</p>
           </div>
         </section>
+        <section id="scanner-panel" class="panel-collapsible collapsed" data-panel-id="scanner-panel" aria-label="Police, fire and EMS scanners">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">SCANNERS</span>
+              <span id="scanner-layer-state" class="audio-layer-state">OFF</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="scanner-panel" title="Expand Scanners" aria-label="Expand Scanners section">+</button>
+            </div>
+            <div class="audio-directory-row">
+              <button id="scanner-enable-btn" class="panel-layer-toggle" type="button" aria-pressed="false">ENABLE</button>
+              <label class="audio-filter-label" for="scanner-search">FIND A SYSTEM</label>
+              <input id="scanner-search" type="search" placeholder="city, county, police, fire…" aria-label="Filter scanner systems by name or place" autocomplete="off" disabled />
+            </div>
+            <div class="audio-list-heading"><span>NEAREST TO VIEW</span><span id="scanner-list-count"></span></div>
+            <ul id="scanner-list" class="audio-list" role="listbox" aria-label="Public-safety radio systems nearest the current view"></ul>
+            <div id="scanner-now" class="audio-now-card" aria-live="polite">
+              <strong id="scanner-now-name">NO SYSTEM SELECTED</strong>
+              <span id="scanner-now-meta">Enable Scanners, then pick a system from the list or a globe marker.</span>
+              <ol id="scanner-now-calls" class="audio-call-list"></ol>
+            </div>
+            <div class="audio-transport" role="group" aria-label="Scanner playback">
+              <button id="scanner-pause-btn" type="button" aria-label="Pause or resume scanner playback" disabled>PAUSE</button>
+              <button id="scanner-stop-btn" type="button" aria-label="Stop scanning" disabled>STOP</button>
+              <button id="scanner-fly-btn" type="button" aria-label="Fly the camera to the selected system" disabled>FLY TO</button>
+            </div>
+            <label class="audio-volume-row" for="scanner-volume">
+              <span>VOLUME</span>
+              <input id="scanner-volume" class="gev-quantitative-slider" type="range" min="0" max="100" value="90" aria-label="Scanner volume" />
+              <output id="scanner-volume-value" class="gev-slider-value" for="scanner-volume">90%</output>
+            </label>
+            <div id="scanner-playback-state" class="audio-playback-state" role="status" aria-live="polite">Scanners off</div>
+            <div class="audio-links">
+              <a href="https://openmhz.com/" target="_blank" rel="noopener noreferrer">SOURCE: OPENMHZ</a>
+              <a href="https://www.broadcastify.com/listen/" target="_blank" rel="noopener noreferrer">MORE FEEDS: BROADCASTIFY ↗</a>
+            </div>
+            <p class="audio-privacy">Recorded transmissions stream directly from OpenMHz after you pick a system. Your IP is visible to OpenMHz.</p>
+          </div>
+        </section>
+        <section id="sdr-panel" class="panel-collapsible collapsed" data-panel-id="sdr-panel" aria-label="Web SDR and ham radio receivers">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">SDR / HAM</span>
+              <span id="sdr-layer-state" class="audio-layer-state">OFF</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="sdr-panel" title="Expand SDR" aria-label="Expand SDR section">+</button>
+            </div>
+            <div class="audio-directory-row">
+              <button id="sdr-enable-btn" class="panel-layer-toggle" type="button" aria-pressed="false">ENABLE</button>
+              <label class="audio-filter-label" for="sdr-search">FIND A RECEIVER</label>
+              <input id="sdr-search" type="search" placeholder="callsign, city, kiwi, websdr…" aria-label="Filter receivers by name or software" autocomplete="off" disabled />
+            </div>
+            <div class="audio-tune-row">
+              <label for="sdr-freq"><span>TUNE MHz</span><input id="sdr-freq" type="number" inputmode="decimal" step="0.001" min="0" max="6000" placeholder="7.074" aria-label="Frequency in megahertz" disabled /></label>
+              <label for="sdr-mode"><span>MODE</span>
+                <select id="sdr-mode" aria-label="Demodulation mode" disabled>
+                  <option value="am">AM</option>
+                  <option value="usb">USB</option>
+                  <option value="lsb">LSB</option>
+                  <option value="cw">CW</option>
+                  <option value="nbfm">FM</option>
+                  <option value="sam">SAM</option>
+                </select>
+              </label>
+            </div>
+            <div class="audio-list-heading"><span>NEAREST TO VIEW</span><span id="sdr-list-count"></span></div>
+            <ul id="sdr-list" class="audio-list" role="listbox" aria-label="Web SDR receivers nearest the current view"></ul>
+            <div id="sdr-now" class="audio-now-card" aria-live="polite">
+              <strong id="sdr-now-name">NO RECEIVER SELECTED</strong>
+              <span id="sdr-now-meta">Enable SDR, then pick a receiver from the list or a globe marker.</span>
+            </div>
+            <div class="audio-transport" role="group" aria-label="Receiver actions">
+              <button id="sdr-open-btn" type="button" aria-label="Open the selected receiver in a new tab" disabled>OPEN RECEIVER ↗</button>
+              <button id="sdr-fly-btn" type="button" aria-label="Fly the camera to the selected receiver" disabled>FLY TO</button>
+              <button id="sdr-clear-btn" type="button" aria-label="Clear the selected receiver" disabled>CLEAR</button>
+            </div>
+            <div id="sdr-playback-state" class="audio-playback-state" role="status" aria-live="polite">SDR off</div>
+            <div class="audio-links">
+              <a href="https://www.receiverbook.de/map" target="_blank" rel="noopener noreferrer">DIRECTORY: RECEIVERBOOK</a>
+              <a href="https://www.remotehamradio.com/" target="_blank" rel="noopener noreferrer">TRANSMIT: REMOTE HAM RADIO ↗</a>
+            </div>
+            <p class="audio-privacy">Receivers open in their own tab and stream from the operator's own hardware. Volunteer-run: most allow only a few listeners at a time.</p>
+          </div>
+        </section>
       </div>
     </div>
   </aside>
