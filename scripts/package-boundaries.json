@@ -1883,6 +1883,7 @@
       "src/app/layers/imageryOverlays.js",
       "src/app/layers/weatherAlerts.js",
       "src/app/layers/stormReports.js",
+      "src/app/layers/volcanoes.js",
       "src/data/markerField.js",
       "src/ui/audioPanels.js",
       "src/ui/audioDock.js",
@@ -1895,10 +1896,20 @@
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
       "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
       "src/layers/stormReports/index.js",
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
       "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
+      "src/layers/volcanoes/index.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
       "src/ui/monitorPanel.js",
       "src/ui/monitorEngine.js",
       "src/ui/watchlistPanel.js",
@@ -2303,6 +2314,7 @@
       "src/app/layers/imageryOverlays.js",
       "src/app/layers/weatherAlerts.js",
       "src/app/layers/stormReports.js",
+      "src/app/layers/volcanoes.js",
       "src/layers/scanner/index.js",
       "src/layers/scanner/model.js",
       "src/layers/scanner/player.js",
@@ -2329,10 +2341,20 @@
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
       "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
       "src/layers/stormReports/index.js",
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
-      "src/layers/stormReports/source.js"
+      "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
+      "src/layers/volcanoes/index.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js"
     ],
     "external": [
       "cesium",
@@ -2618,7 +2640,10 @@
       "src/layers/weatherAlerts/source.js",
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
-      "src/layers/stormReports/source.js"
+      "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js"
     ],
     "external": ["cesium"]
   },
@@ -2633,7 +2658,10 @@
       "src/layers/weatherAlerts/source.js",
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
-      "src/layers/stormReports/source.js"
+      "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js"
     ],
     "external": []
   },
@@ -2645,6 +2673,27 @@
     ],
     "external": ["cesium"]
   },
+  "volcanoes-layer": {
+    "exports": ["./layers/volcanoes"],
+    "modules": [
+      "src/layers/volcanoes/index.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
+      "src/data/inputOwnership.js",
+      "src/data/pickRegistry.js"
+    ],
+    "external": ["cesium"]
+  },
+  "volcanoes-source": {
+    "exports": ["./layers/volcanoes/source"],
+    "modules": [
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js"
+    ],
+    "external": []
+  },
   "storm-reports-layer": {
     "exports": ["./layers/stormReports"],
     "modules": [
@@ -2652,6 +2701,13 @@
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
       "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
+      "src/layers/volcanoes/index.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
       "src/data/inputOwnership.js",
       "src/data/pickRegistry.js"
     ],
@@ -2662,7 +2718,10 @@
     "modules": [
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
-      "src/layers/stormReports/source.js"
+      "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js"
     ],
     "external": []
   },
@@ -2676,10 +2735,20 @@
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
       "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
       "src/layers/stormReports/index.js",
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
       "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
+      "src/layers/volcanoes/index.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js",
       "src/data/inputOwnership.js",
       "src/data/pickRegistry.js"
     ],
@@ -2693,7 +2762,10 @@
       "src/layers/weatherAlerts/source.js",
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
-      "src/layers/stormReports/source.js"
+      "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js"
     ],
     "external": []
   },
@@ -2757,7 +2829,10 @@
       "src/layers/weatherAlerts/source.js",
       "src/layers/stormReports/policy.js",
       "src/layers/stormReports/records.js",
-      "src/layers/stormReports/source.js"
+      "src/layers/stormReports/source.js",
+      "src/layers/volcanoes/policy.js",
+      "src/layers/volcanoes/records.js",
+      "src/layers/volcanoes/source.js"
     ],
     "external": []
   },

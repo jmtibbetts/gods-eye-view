@@ -47,7 +47,7 @@ const PANEL_GROUPS = [
   },
   {
     label: 'Events',
-    ids: ['rocket-launches', 'earthquakes', 'local-firms'],
+    ids: ['rocket-launches', 'earthquakes', 'volcanoes', 'local-firms'],
   },
   {
     label: 'Imagery & Weather',
@@ -85,6 +85,7 @@ const PANEL_LABELS = {
   'imagery-radar': 'Weather Radar',
   'weather-alerts': 'NWS Weather Alerts',
   'storm-reports': 'SPC Storm Reports',
+  volcanoes: 'USGS Volcano Alerts',
 };
 
 function panelLabel(layer) {

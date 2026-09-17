@@ -20,6 +20,7 @@ test('reference factories retain compatibility without starting acquisition or s
     'atc',
     'weatherAlerts',
     'stormReports',
+    'volcanoes',
   ]);
   assert.notEqual(first.scanner, second.scanner);
   assert.notEqual(first.sdr, second.sdr);
@@ -31,6 +32,8 @@ test('reference factories retain compatibility without starting acquisition or s
   assert.equal(typeof first.weatherAlerts.getSnapshot, 'function');
   assert.notEqual(first.stormReports, second.stormReports);
   assert.equal(typeof first.stormReports.getSnapshot, 'function');
+  assert.notEqual(first.volcanoes, second.volcanoes);
+  assert.equal(typeof first.volcanoes.getSnapshot, 'function');
   assert.notEqual(first.earthquakes, second.earthquakes);
   assert.notEqual(first.cables, second.cables);
   assert.equal(typeof first.earthquakes.getSnapshot, 'function');

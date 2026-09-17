@@ -1,0 +1,18 @@
+{
+  "id": "volcano-coordinates",
+  "name": "Volcano coordinates by Global Volcanism Program number",
+  "category": "events",
+  "description": "A lookup from Smithsonian Global Volcanism Program volcano number (vnum) to position, used to place USGS volcanic alert notices on the globe. The USGS elevated-volcano feed reports vnum, name and alert level but carries no coordinates, so only position is taken from here; the volcano's name and alert level always come from the live USGS notice.",
+  "downloaded_at": "2026-09-17",
+  "license_note": "Wikidata is released under CC0 1.1 (public domain dedication). Volcano numbers are the Smithsonian Institution Global Volcanism Program's identifiers (property P1886).",
+  "build": "SPARQL against query.wikidata.org for every item with a GVP volcano number (P1886) and coordinates (P625), keeping one row per vnum and preferring rows that carry a name and an elevation. Where several Wikidata items share a vnum the chosen point can be a named vent rather than the summit (vnum 332010 resolves to a Kilauea vent about 10 km from the caldera), which is within tolerance for placing an alert marker at globe scale.",
+  "files": [
+    {
+      "path": "volcanoes.json",
+      "url": "https://query.wikidata.org/sparql",
+      "format": "JSON",
+      "record_count": 1604,
+      "sha256": "0ab80998dad3006c84db7f276b3e3dd1ebc191460512568e6bd92363833b85d5"
+    }
+  ]
+}
