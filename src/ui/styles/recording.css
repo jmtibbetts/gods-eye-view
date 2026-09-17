@@ -16,6 +16,7 @@ body.recording-mode #radio-panel,
 body.recording-mode #scanner-panel,
 body.recording-mode #sdr-panel,
 body.recording-mode #atc-panel,
+body.recording-mode #monitor-panel,
 body.recording-mode #global-context-panel,
 body.recording-mode #gev-voice-control,
 body.recording-mode #scene-panel {

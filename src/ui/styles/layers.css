@@ -1239,7 +1239,8 @@
 }
 #right-context-rail #global-context-panel:not(.collapsed) #scanner-panel,
 #right-context-rail #global-context-panel:not(.collapsed) #sdr-panel,
-#right-context-rail #global-context-panel:not(.collapsed) #atc-panel {
+#right-context-rail #global-context-panel:not(.collapsed) #atc-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #monitor-panel {
   /* These sections share the Context panel's existing scroller. Keep their
      natural heights so flexbox cannot compress one section and let its
      contents paint through the next section. */

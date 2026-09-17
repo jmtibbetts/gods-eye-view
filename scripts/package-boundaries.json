@@ -404,7 +404,9 @@
       "src/ui/radioTunerModel.js",
       "src/ui/audioPanels.js",
       "src/ui/audioDock.js",
-      "src/data/iconOrientation.js"
+      "src/data/iconOrientation.js",
+      "src/ui/monitorPanel.js",
+      "src/ui/monitorEngine.js"
     ],
     "external": []
   },
@@ -586,7 +588,9 @@
       "src/ui/shellFacade.js",
       "src/ui/audioPanels.js",
       "src/ui/audioDock.js",
-      "src/data/iconOrientation.js"
+      "src/data/iconOrientation.js",
+      "src/ui/monitorPanel.js",
+      "src/ui/monitorEngine.js"
     ],
     "external": ["cesium"]
   },
@@ -1877,7 +1881,9 @@
       "src/layers/weatherAlerts/index.js",
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
-      "src/layers/weatherAlerts/source.js"
+      "src/layers/weatherAlerts/source.js",
+      "src/ui/monitorPanel.js",
+      "src/ui/monitorEngine.js"
     ],
     "external": [
       "@mapbox/vector-tile",

@@ -281,6 +281,26 @@
             <p class="audio-privacy">Frequencies come from the FAA's current 28-day data (US) and OurAirports (world). Audio plays from an airband web SDR in range (in a window on the map) or from LiveATC's own page (in its own tab — LiveATC does not allow embedding) — never relayed by this app.</p>
           </div>
         </section>
+        <section id="monitor-panel" class="panel-collapsible collapsed" data-panel-id="monitor-panel" aria-label="Region monitor">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">MONITOR</span>
+              <span id="monitor-layer-state" class="audio-layer-state">IDLE</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="monitor-panel" title="Expand Monitor" aria-label="Expand Monitor section">+</button>
+            </div>
+            <div class="monitor-controls">
+              <button id="monitor-add-btn" class="panel-layer-toggle" type="button" aria-label="Watch the current view for new events">WATCH THIS VIEW</button>
+              <label class="monitor-radius-label" for="monitor-radius"><span>RADIUS</span><select id="monitor-radius" aria-label="Watch radius"></select></label>
+            </div>
+            <ul id="monitor-list" class="monitor-list" aria-label="Watch areas"></ul>
+            <div id="monitor-empty" class="monitor-empty">No watch areas yet. Aim the globe at a place, choose a radius, and press WATCH THIS VIEW — it flags new fires, quakes, aircraft, alerts and more that enter the circle.</div>
+            <div class="audio-transport" role="group" aria-label="Monitor actions">
+              <button id="monitor-clear-btn" type="button" aria-label="Remove all watch areas" disabled>CLEAR ALL</button>
+            </div>
+            <p class="audio-privacy">Watches whatever layers you have enabled and flags new arrivals inside the circle. Runs entirely in your browser; nothing is sent anywhere.</p>
+          </div>
+        </section>
       </div>
     </div>
   </aside>

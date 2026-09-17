@@ -17,6 +17,7 @@ import { CctvControls } from './cctv.js';
 import { RadioControls } from './radio.js';
 import { AtcPanel, ScannerPanel, SdrPanel } from './audioPanels.js';
 import { AudioDock } from './audioDock.js';
+import { MonitorPanel } from './monitorPanel.js';
 import { LocationNavigation } from './locationNavigation.js';
 import { bindClearLayersControl } from './layers.js';
 import { bindCameraOrientationControls } from './cameraOrientationControls.js';
@@ -244,6 +245,7 @@ export class StyleManager extends ShellFacade {
         _scannerPanel: this._scannerPanel,
         _sdrPanel: this._sdrPanel,
         _atcPanel: this._atcPanel,
+        _monitorPanel: this._monitorPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -917,6 +919,29 @@ export class StyleManager extends ShellFacade {
       actions: actionsFor('atc'),
       viewer: this.viewer,
       dock: this._audioDock,
+    });
+    this._monitorPanel?.destroy();
+    this._monitorPanel = new MonitorPanel({
+      elements: {
+        layerState: this._monitorLayerState,
+        addBtn: this._monitorAddBtn,
+        radius: this._monitorRadius,
+        list: this._monitorList,
+        empty: this._monitorEmpty,
+        clearBtn: this._monitorClearBtn,
+      },
+      dataManager: this._dataManager,
+      viewer: this.viewer,
+      storage: (() => {
+        try {
+          return globalThis.localStorage ?? null;
+        } catch {
+          return null;
+        }
+      })(),
+      onToast: (message) => {
+        if (!this._disposed) this._showToast(message);
+      },
     });
   }
 
@@ -1611,6 +1636,7 @@ export class StyleManager extends ShellFacade {
     this._scannerPanel?.destroy();
     this._sdrPanel?.destroy();
     this._atcPanel?.destroy();
+    this._monitorPanel?.destroy();
     this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();
