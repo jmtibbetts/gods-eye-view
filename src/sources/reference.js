@@ -3,6 +3,7 @@ import { createBundledCableSource } from '../layers/submarineCables/bundledSourc
 import { createOpenMhzSource } from '../layers/scanner/source.js';
 import { createBundledSdrSource } from '../layers/sdr/source.js';
 import { createBundledAtcSource } from '../layers/atc/source.js';
+import { createNwsAlertsSource } from '../layers/weatherAlerts/source.js';
 
 /** Construct the existing reference feeds independently of application setup. */
 export function createReferenceSources() {
@@ -12,5 +13,6 @@ export function createReferenceSources() {
     scanner: createOpenMhzSource(),
     sdr: createBundledSdrSource(),
     atc: createBundledAtcSource(),
+    weatherAlerts: createNwsAlertsSource(),
   };
 }

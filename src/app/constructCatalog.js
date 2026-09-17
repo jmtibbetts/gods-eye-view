@@ -22,6 +22,7 @@ import { createApplicationScanner } from './layers/scanner.js';
 import { createApplicationSdr } from './layers/sdr.js';
 import { createApplicationAtc } from './layers/atc.js';
 import { createApplicationImageryOverlays } from './layers/imageryOverlays.js';
+import { createApplicationWeatherAlerts } from './layers/weatherAlerts.js';
 import { createInfrastructureLayers } from '../data/infrastructure.js';
 import { localGeoJsonServices } from './localGeojsonServices.js';
 import { createBhoteKoshiEventLayer } from '../data/bhoteKoshiEvent.js';
@@ -51,6 +52,7 @@ const SOURCE_METHODS = Object.freeze({
   scanner: ['getSeed', 'getSystems', 'getRecentCalls', 'getNewerCalls'],
   sdr: ['getSnapshot'],
   atc: ['getSnapshot'],
+  weatherAlerts: ['getSnapshot'],
 });
 
 /** Construct the current catalog without choosing any source provider.
@@ -123,6 +125,7 @@ export function createApplicationCatalog({
         sdr,
         createApplicationAtc({ surface, source: sources.atc, sdr }),
         ...createApplicationImageryOverlays(),
+        createApplicationWeatherAlerts({ source: sources.weatherAlerts }),
         createApplicationAlpr({ surface, source: sources.alpr }),
         satellites,
         createApplicationLaunches({ source: sources.launches, satellites }),

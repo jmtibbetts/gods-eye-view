@@ -45,7 +45,7 @@ const PANEL_GROUPS = [
   },
   {
     label: 'Imagery & Weather',
-    ids: ['imagery-viirs', 'imagery-goes', 'imagery-radar'],
+    ids: ['weather-alerts', 'imagery-radar', 'imagery-goes', 'imagery-viirs'],
   },
   {
     label: 'Utilities',
@@ -71,6 +71,7 @@ const PANEL_LABELS = {
   'imagery-viirs': 'Satellite Imagery (VIIRS)',
   'imagery-goes': 'GOES Live Weather',
   'imagery-radar': 'Weather Radar',
+  'weather-alerts': 'NWS Weather Alerts',
 };
 
 function panelLabel(layer) {

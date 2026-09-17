@@ -1868,11 +1868,16 @@
       "src/app/layers/sdr.js",
       "src/app/layers/atc.js",
       "src/app/layers/imageryOverlays.js",
+      "src/app/layers/weatherAlerts.js",
       "src/data/markerField.js",
       "src/ui/audioPanels.js",
       "src/ui/audioDock.js",
       "src/layers/imageryOverlays/index.js",
-      "src/layers/imageryOverlays/policy.js"
+      "src/layers/imageryOverlays/policy.js",
+      "src/layers/weatherAlerts/index.js",
+      "src/layers/weatherAlerts/policy.js",
+      "src/layers/weatherAlerts/records.js",
+      "src/layers/weatherAlerts/source.js"
     ],
     "external": [
       "@mapbox/vector-tile",
@@ -2271,6 +2276,7 @@
       "src/app/layers/sdr.js",
       "src/app/layers/atc.js",
       "src/app/layers/imageryOverlays.js",
+      "src/app/layers/weatherAlerts.js",
       "src/layers/scanner/index.js",
       "src/layers/scanner/model.js",
       "src/layers/scanner/player.js",
@@ -2289,7 +2295,11 @@
       "src/layers/atc/source.js",
       "src/data/markerField.js",
       "src/layers/imageryOverlays/index.js",
-      "src/layers/imageryOverlays/policy.js"
+      "src/layers/imageryOverlays/policy.js",
+      "src/layers/weatherAlerts/index.js",
+      "src/layers/weatherAlerts/policy.js",
+      "src/layers/weatherAlerts/records.js",
+      "src/layers/weatherAlerts/source.js"
     ],
     "external": [
       "cesium",
@@ -2569,7 +2579,10 @@
       "src/data/inputOwnership.js",
       "src/data/pickRegistry.js",
       "src/data/markerField.js",
-      "src/data/iconOrientation.js"
+      "src/data/iconOrientation.js",
+      "src/layers/weatherAlerts/policy.js",
+      "src/layers/weatherAlerts/records.js",
+      "src/layers/weatherAlerts/source.js"
     ],
     "external": ["cesium"]
   },
@@ -2578,7 +2591,10 @@
     "modules": [
       "src/layers/atc/policy.js",
       "src/layers/atc/records.js",
-      "src/layers/atc/source.js"
+      "src/layers/atc/source.js",
+      "src/layers/weatherAlerts/policy.js",
+      "src/layers/weatherAlerts/records.js",
+      "src/layers/weatherAlerts/source.js"
     ],
     "external": []
   },
@@ -2589,6 +2605,27 @@
       "src/layers/imageryOverlays/policy.js"
     ],
     "external": ["cesium"]
+  },
+  "weather-alerts-layer": {
+    "exports": ["./layers/weatherAlerts"],
+    "modules": [
+      "src/layers/weatherAlerts/index.js",
+      "src/layers/weatherAlerts/policy.js",
+      "src/layers/weatherAlerts/records.js",
+      "src/layers/weatherAlerts/source.js",
+      "src/data/inputOwnership.js",
+      "src/data/pickRegistry.js"
+    ],
+    "external": ["cesium"]
+  },
+  "weather-alerts-source": {
+    "exports": ["./layers/weatherAlerts/source"],
+    "modules": [
+      "src/layers/weatherAlerts/policy.js",
+      "src/layers/weatherAlerts/records.js",
+      "src/layers/weatherAlerts/source.js"
+    ],
+    "external": []
   },
   "firms-source": {
     "exports": ["./layers/firms/source"],
@@ -2644,7 +2681,10 @@
       "src/layers/atc/records.js",
       "src/layers/atc/source.js",
       "src/layers/sdr/records.js",
-      "src/layers/sdr/policy.js"
+      "src/layers/sdr/policy.js",
+      "src/layers/weatherAlerts/policy.js",
+      "src/layers/weatherAlerts/records.js",
+      "src/layers/weatherAlerts/source.js"
     ],
     "external": []
   },

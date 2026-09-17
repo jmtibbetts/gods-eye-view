@@ -263,6 +263,7 @@ export function getActiveTrackedReadoutId() {
 const READOUT_CONTEXT_LAYERS = new Set([
   'military-installations',
   'alpr-cameras',
+  'weather-alerts',
 ]);
 
 /**

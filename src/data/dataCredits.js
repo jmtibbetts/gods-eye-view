@@ -71,6 +71,10 @@ export const DATA_CREDITS = [
     html: 'Web SDR receivers: directory snapshot from <a href="https://www.receiverbook.de/" target="_blank" rel="noopener noreferrer">receiverbook.de</a> and curated WebSDR lists; audio delivered directly by each receiver operator',
   },
   {
+    key: 'nws-alerts',
+    html: 'Weather alerts: <a href="https://www.weather.gov/documentation/services-web-api" target="_blank" rel="noopener noreferrer">US National Weather Service</a> (api.weather.gov active alerts)',
+  },
+  {
     key: 'nasa-gibs',
     html: 'Satellite imagery: <a href="https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api" target="_blank" rel="noopener noreferrer">NASA EOSDIS GIBS</a> (VIIRS true-color; GOES-East ABI GeoColor)',
   },
