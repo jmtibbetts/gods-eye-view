@@ -360,6 +360,7 @@
   "src/layers/atc/atc.test.mjs",
   "src/ui/audioDock.js",
   "src/ui/audioDock.test.mjs",
+  "src/ui/audioPanels.test.mjs",
   "src/data/markerField.test.mjs",
   "src/data/markerField.js",
   "src/data/firmsHeatmap.js",

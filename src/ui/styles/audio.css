@@ -697,3 +697,8 @@ body.recording-mode .audio-dock {
 .audio-dock-body {
   overflow: hidden;
 }
+
+.audio-links a.audio-link-hot {
+  color: #ffb27a;
+  text-decoration: underline;
+}

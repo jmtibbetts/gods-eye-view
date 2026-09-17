@@ -60,6 +60,9 @@ export function readShellElements(document = globalThis.document) {
     _scannerVolume: document.getElementById('scanner-volume'),
     _scannerVolumeValue: document.getElementById('scanner-volume-value'),
     _scannerPlaybackState: document.getElementById('scanner-playback-state'),
+    _scannerBroadcastifyLink: document.getElementById(
+      'scanner-broadcastify-link',
+    ),
     _sdrPanelSection: document.getElementById('sdr-panel'),
     _sdrLayerState: document.getElementById('sdr-layer-state'),
     _sdrEnableBtn: document.getElementById('sdr-enable-btn'),

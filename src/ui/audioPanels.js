@@ -31,6 +31,136 @@ const VHF_FLOOR_HZ = 30_000_000;
 const VHF_MAX_KM = 250;
 
 /**
+ * OpenMHz only carries systems a volunteer feeds. Beyond this distance the
+ * nearest one is somebody else's city, and the panel says so and points at
+ * Broadcastify's listing for the state instead.
+ */
+const SCANNER_COVERAGE_KM = 150;
+
+/** Broadcastify's state pages are keyed by FIPS state code. */
+const US_STATE_FIPS = Object.freeze({
+  AL: 1,
+  AK: 2,
+  AZ: 4,
+  AR: 5,
+  CA: 6,
+  CO: 8,
+  CT: 9,
+  DE: 10,
+  DC: 11,
+  FL: 12,
+  GA: 13,
+  HI: 15,
+  ID: 16,
+  IL: 17,
+  IN: 18,
+  IA: 19,
+  KS: 20,
+  KY: 21,
+  LA: 22,
+  ME: 23,
+  MD: 24,
+  MA: 25,
+  MI: 26,
+  MN: 27,
+  MS: 28,
+  MO: 29,
+  MT: 30,
+  NE: 31,
+  NV: 32,
+  NH: 33,
+  NJ: 34,
+  NM: 35,
+  NY: 36,
+  NC: 37,
+  ND: 38,
+  OH: 39,
+  OK: 40,
+  OR: 41,
+  PA: 42,
+  RI: 44,
+  SC: 45,
+  SD: 46,
+  TN: 47,
+  TX: 48,
+  UT: 49,
+  VT: 50,
+  VA: 51,
+  WA: 53,
+  WV: 54,
+  WI: 55,
+  WY: 56,
+  PR: 72,
+});
+const US_STATE_NAMES = Object.freeze({
+  AL: 'Alabama',
+  AK: 'Alaska',
+  AZ: 'Arizona',
+  AR: 'Arkansas',
+  CA: 'California',
+  CO: 'Colorado',
+  CT: 'Connecticut',
+  DE: 'Delaware',
+  DC: 'DC',
+  FL: 'Florida',
+  GA: 'Georgia',
+  HI: 'Hawaii',
+  ID: 'Idaho',
+  IL: 'Illinois',
+  IN: 'Indiana',
+  IA: 'Iowa',
+  KS: 'Kansas',
+  KY: 'Kentucky',
+  LA: 'Louisiana',
+  ME: 'Maine',
+  MD: 'Maryland',
+  MA: 'Massachusetts',
+  MI: 'Michigan',
+  MN: 'Minnesota',
+  MS: 'Mississippi',
+  MO: 'Missouri',
+  MT: 'Montana',
+  NE: 'Nebraska',
+  NV: 'Nevada',
+  NH: 'New Hampshire',
+  NJ: 'New Jersey',
+  NM: 'New Mexico',
+  NY: 'New York',
+  NC: 'North Carolina',
+  ND: 'North Dakota',
+  OH: 'Ohio',
+  OK: 'Oklahoma',
+  OR: 'Oregon',
+  PA: 'Pennsylvania',
+  RI: 'Rhode Island',
+  SC: 'South Carolina',
+  SD: 'South Dakota',
+  TN: 'Tennessee',
+  TX: 'Texas',
+  UT: 'Utah',
+  VT: 'Vermont',
+  VA: 'Virginia',
+  WA: 'Washington',
+  WV: 'West Virginia',
+  WI: 'Wisconsin',
+  WY: 'Wyoming',
+  PR: 'Puerto Rico',
+});
+
+/** Broadcastify listing for the place under the view: the state's page in the US, the front page elsewhere. */
+export function broadcastifyListingFor(region) {
+  if (region?.country === 'US' && US_STATE_FIPS[region.code])
+    return {
+      url: `https://www.broadcastify.com/listen/stid/${US_STATE_FIPS[region.code]}`,
+      label: `MORE FEEDS: BROADCASTIFY · ${US_STATE_NAMES[region.code].toUpperCase()} ↗`,
+    };
+  return {
+    url: 'https://www.broadcastify.com/listen/',
+    label: 'MORE FEEDS: BROADCASTIFY ↗',
+  };
+}
+
+/**
  * Beginner presets: what people actually want to hear, with a frequency
  * that is busy or always on, the right mode, and a one-line explanation.
  * Airband resolves to the nearest tower frequency when the ATC directory
@@ -206,11 +336,13 @@ function renderList({ list, rows, selectedId, render, onPick }) {
 
 /** SCANNERS panel. */
 export class ScannerPanel {
-  constructor({ elements, layer, actions, viewer }) {
+  constructor({ elements, layer, actions, viewer, atc = null }) {
     this.elements = elements;
     this.layer = layer;
     this.actions = actions;
     this.viewer = viewer;
+    /** Optional ATC layer: its airport directory names the state under the view. */
+    this.atc = atc;
     this.label = 'Scanners';
     this.destroyed = false;
     this._abort = new AbortController();
@@ -219,6 +351,36 @@ export class ScannerPanel {
     this._pose = null;
     this._state = null;
     this._rows = [];
+    /** @type {{code:string, country:string}|null} State/country under the view. */
+    this._region = null;
+    this._regionAnchor = null;
+  }
+
+  /** Name the state under the view from the nearest airport (cheap, offline). */
+  async _resolveRegion(anchor) {
+    if (!anchor || !this.atc?.ensureAtcDirectory) return;
+    const prev = this._regionAnchor;
+    if (
+      prev &&
+      Math.abs(prev.lat - anchor.lat) < 0.25 &&
+      Math.abs(prev.lon - anchor.lon) < 0.25
+    )
+      return;
+    this._regionAnchor = anchor;
+    try {
+      await this.atc.ensureAtcDirectory();
+      const [airport] =
+        this.atc.findAtcAirports?.({ ...anchor, limit: 1 }) ?? [];
+      const next = airport
+        ? { code: airport.region, country: airport.country }
+        : null;
+      if (next?.code !== this._region?.code) {
+        this._region = next;
+        if (!this.destroyed) this.render();
+      }
+    } catch {
+      /* the link falls back to Broadcastify's front page */
+    }
   }
 
   connect() {
@@ -293,6 +455,15 @@ export class ScannerPanel {
         limit: 14,
       }) ?? [];
     this.renderList();
+    this._resolveRegion(anchor);
+  }
+
+  /** The nearest system when it is too far to count as local coverage. */
+  _coverageGap() {
+    const nearest = this._rows[0];
+    if (!nearest || String(this.elements.search?.value ?? '').trim())
+      return null;
+    return nearest.distanceKm > SCANNER_COVERAGE_KM ? nearest : null;
   }
 
   renderList() {
@@ -405,6 +576,7 @@ export class ScannerPanel {
         e.nowCalls.append(li);
       }
     }
+    const gap = enabled && !hasSelection ? this._coverageGap() : null;
     if (e.playbackState) {
       const error = s?.error || s?.player?.error;
       setText(
@@ -419,9 +591,17 @@ export class ScannerPanel {
                 : s.player?.paused
                   ? 'Paused — click RESUME to continue'
                   : 'Waiting for traffic…'
-              : `${s?.active ?? 0} systems with live traffic`,
+              : gap
+                ? `No OpenMHz system within ${SCANNER_COVERAGE_KM} km of the view — nearest is ${gap.name} (${kmText(gap.distanceKm)}). OpenMHz only carries systems a volunteer records, and many police departments encrypt dispatch. Try the Broadcastify link below for local fire, EMS and unencrypted police feeds.`
+                : `${s?.active ?? 0} systems with live traffic`,
       );
-      e.playbackState.classList.toggle('error', Boolean(error));
+      e.playbackState.classList.toggle('error', Boolean(error || gap));
+    }
+    if (e.broadcastifyLink) {
+      const listing = broadcastifyListingFor(this._region);
+      e.broadcastifyLink.href = listing.url;
+      setText(e.broadcastifyLink, listing.label);
+      e.broadcastifyLink.classList.toggle('audio-link-hot', Boolean(gap));
     }
     if (e.volume && s?.player && Number.isFinite(s.player.volume)) {
       const pct = Math.round(s.player.volume * 100);

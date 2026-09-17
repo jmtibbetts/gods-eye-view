@@ -857,10 +857,12 @@ export class StyleManager extends ShellFacade {
         volume: this._scannerVolume,
         volumeValue: this._scannerVolumeValue,
         playbackState: this._scannerPlaybackState,
+        broadcastifyLink: this._scannerBroadcastifyLink,
       },
       layer: scannerLayer,
       actions: actionsFor('scanner'),
       viewer: this.viewer,
+      atc: atcLayer,
     });
     this._sdrPanel?.destroy();
     this._sdrPanel = new SdrPanel({
