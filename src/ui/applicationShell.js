@@ -18,6 +18,7 @@ import { RadioControls } from './radio.js';
 import { AtcPanel, ScannerPanel, SdrPanel } from './audioPanels.js';
 import { AudioDock } from './audioDock.js';
 import { MonitorPanel } from './monitorPanel.js';
+import { captureSnapshot } from './snapshotExport.js';
 import { LocationNavigation } from './locationNavigation.js';
 import { bindClearLayersControl } from './layers.js';
 import { bindCameraOrientationControls } from './cameraOrientationControls.js';
@@ -547,6 +548,7 @@ export class StyleManager extends ShellFacade {
     this._initGlobalContextPanel();
     this._initLocationBar();
     this._initShareButton();
+    this._initSnapshotButton();
     this._initCameraOrientationControls();
     this._initClearSelectedLayersButton();
     this._initHUDToggle();
@@ -1533,6 +1535,76 @@ export class StyleManager extends ShellFacade {
       const success = await this.shareLinkManager.copyLink();
       if (!this._disposed)
         this._showToast(success ? 'Link copied!' : 'Copy failed');
+    });
+  }
+
+  // ── Snapshot Button ──────────────────────────
+
+  /** Camera aim point on the globe, or the sub-camera point, in degrees. */
+  _viewCenterDegrees() {
+    const camera = this.viewer?.camera;
+    const scene = this.viewer?.scene;
+    if (!camera) return null;
+    let carto = null;
+    const canvas = scene?.canvas;
+    if (canvas && typeof camera.pickEllipsoid === 'function') {
+      const point = new Cesium.Cartesian2(
+        canvas.clientWidth / 2,
+        canvas.clientHeight / 2,
+      );
+      const hit = camera.pickEllipsoid(
+        point,
+        scene.globe?.ellipsoid || Cesium.Ellipsoid.WGS84,
+      );
+      if (hit) carto = Cesium.Cartographic.fromCartesian(hit);
+    }
+    carto ||= camera.positionCartographic || null;
+    if (!carto) return null;
+    return {
+      lat: Cesium.Math.toDegrees(carto.latitude),
+      lon: Cesium.Math.toDegrees(carto.longitude),
+    };
+  }
+
+  /** A short caption from the location mini-status, landmark preferred. */
+  _snapshotCaption() {
+    const strip = (el, prefix) => {
+      const raw = (el?.textContent || '').replace(/^[^A-Za-z0-9]+/, '').trim();
+      if (!raw) return '';
+      const cut = raw
+        .replace(new RegExp(`^${prefix}\\s*:?\\s*`, 'i'), '')
+        .trim();
+      if (!cut || cut === '--') return '';
+      return cut;
+    };
+    return (
+      strip(this._locationMiniPoi, 'Landmark') ||
+      strip(this._locationMiniCity, 'Location') ||
+      ''
+    );
+  }
+
+  /**
+   * Wires the snapshot button to save a PNG of the current globe view (Cesium
+   * scene plus overlay labels) with a caption and footer stamp.
+   * @returns {void}
+   */
+  _initSnapshotButton() {
+    if (!this._snapshotBtn) return;
+    this._lifetime.listen(this._snapshotBtn, 'click', async () => {
+      let ok = false;
+      try {
+        ok = await captureSnapshot({
+          viewer: this.viewer,
+          overlayCanvas: this._worldOverlayCanvas || null,
+          center: this._viewCenterDegrees(),
+          caption: this._snapshotCaption(),
+        });
+      } catch {
+        ok = false;
+      }
+      if (!this._disposed)
+        this._showToast(ok ? 'Snapshot saved' : 'Snapshot failed');
     });
   }
 

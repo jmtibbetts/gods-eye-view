@@ -372,6 +372,8 @@
   "src/ui/monitorPanel.js",
   "src/ui/monitorEngine.js",
   "src/ui/monitorEngine.test.mjs",
+  "src/ui/snapshotExport.js",
+  "src/ui/snapshotExport.test.mjs",
   "src/ui/audioDock.test.mjs",
   "src/ui/audioPanels.test.mjs",
   "src/data/markerField.test.mjs",
