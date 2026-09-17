@@ -4,6 +4,7 @@ import { createOpenMhzSource } from '../layers/scanner/source.js';
 import { createBundledSdrSource } from '../layers/sdr/source.js';
 import { createBundledAtcSource } from '../layers/atc/source.js';
 import { createNwsAlertsSource } from '../layers/weatherAlerts/source.js';
+import { createSpcStormReportsSource } from '../layers/stormReports/source.js';
 
 /** Construct the existing reference feeds independently of application setup. */
 export function createReferenceSources() {
@@ -14,5 +15,6 @@ export function createReferenceSources() {
     sdr: createBundledSdrSource(),
     atc: createBundledAtcSource(),
     weatherAlerts: createNwsAlertsSource(),
+    stormReports: createSpcStormReportsSource(),
   };
 }

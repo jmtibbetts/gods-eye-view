@@ -1875,6 +1875,7 @@
       "src/app/layers/atc.js",
       "src/app/layers/imageryOverlays.js",
       "src/app/layers/weatherAlerts.js",
+      "src/app/layers/stormReports.js",
       "src/data/markerField.js",
       "src/ui/audioPanels.js",
       "src/ui/audioDock.js",
@@ -1884,6 +1885,13 @@
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
       "src/layers/weatherAlerts/source.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js",
+      "src/layers/stormReports/index.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js",
       "src/ui/monitorPanel.js",
       "src/ui/monitorEngine.js"
     ],
@@ -2285,6 +2293,7 @@
       "src/app/layers/atc.js",
       "src/app/layers/imageryOverlays.js",
       "src/app/layers/weatherAlerts.js",
+      "src/app/layers/stormReports.js",
       "src/layers/scanner/index.js",
       "src/layers/scanner/model.js",
       "src/layers/scanner/player.js",
@@ -2307,7 +2316,14 @@
       "src/layers/weatherAlerts/index.js",
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
-      "src/layers/weatherAlerts/source.js"
+      "src/layers/weatherAlerts/source.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js",
+      "src/layers/stormReports/index.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js"
     ],
     "external": [
       "cesium",
@@ -2590,7 +2606,10 @@
       "src/data/iconOrientation.js",
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
-      "src/layers/weatherAlerts/source.js"
+      "src/layers/weatherAlerts/source.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js"
     ],
     "external": ["cesium"]
   },
@@ -2602,7 +2621,10 @@
       "src/layers/atc/source.js",
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
-      "src/layers/weatherAlerts/source.js"
+      "src/layers/weatherAlerts/source.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js"
     ],
     "external": []
   },
@@ -2614,6 +2636,27 @@
     ],
     "external": ["cesium"]
   },
+  "storm-reports-layer": {
+    "exports": ["./layers/stormReports"],
+    "modules": [
+      "src/layers/stormReports/index.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js",
+      "src/data/inputOwnership.js",
+      "src/data/pickRegistry.js"
+    ],
+    "external": ["cesium"]
+  },
+  "storm-reports-source": {
+    "exports": ["./layers/stormReports/source"],
+    "modules": [
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js"
+    ],
+    "external": []
+  },
   "weather-alerts-layer": {
     "exports": ["./layers/weatherAlerts"],
     "modules": [
@@ -2621,6 +2664,13 @@
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
       "src/layers/weatherAlerts/source.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js",
+      "src/layers/stormReports/index.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js",
       "src/data/inputOwnership.js",
       "src/data/pickRegistry.js"
     ],
@@ -2631,7 +2681,10 @@
     "modules": [
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
-      "src/layers/weatherAlerts/source.js"
+      "src/layers/weatherAlerts/source.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js"
     ],
     "external": []
   },
@@ -2692,7 +2745,10 @@
       "src/layers/sdr/policy.js",
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
-      "src/layers/weatherAlerts/source.js"
+      "src/layers/weatherAlerts/source.js",
+      "src/layers/stormReports/policy.js",
+      "src/layers/stormReports/records.js",
+      "src/layers/stormReports/source.js"
     ],
     "external": []
   },

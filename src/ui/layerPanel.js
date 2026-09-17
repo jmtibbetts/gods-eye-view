@@ -45,7 +45,13 @@ const PANEL_GROUPS = [
   },
   {
     label: 'Imagery & Weather',
-    ids: ['weather-alerts', 'imagery-radar', 'imagery-goes', 'imagery-viirs'],
+    ids: [
+      'weather-alerts',
+      'storm-reports',
+      'imagery-radar',
+      'imagery-goes',
+      'imagery-viirs',
+    ],
   },
   {
     label: 'Utilities',
@@ -72,6 +78,7 @@ const PANEL_LABELS = {
   'imagery-goes': 'GOES Live Weather',
   'imagery-radar': 'Weather Radar',
   'weather-alerts': 'NWS Weather Alerts',
+  'storm-reports': 'SPC Storm Reports',
 };
 
 function panelLabel(layer) {

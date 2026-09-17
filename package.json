@@ -228,6 +228,8 @@
     "./layers/atc": "./src/layers/atc/index.js",
     "./layers/atc/source": "./src/layers/atc/source.js",
     "./layers/imageryOverlays": "./src/layers/imageryOverlays/index.js",
+    "./layers/stormReports": "./src/layers/stormReports/index.js",
+    "./layers/stormReports/source": "./src/layers/stormReports/source.js",
     "./layers/weatherAlerts": "./src/layers/weatherAlerts/index.js",
     "./layers/weatherAlerts/source": "./src/layers/weatherAlerts/source.js",
     "./layers/firms/source": "./src/layers/firms/source.js",
