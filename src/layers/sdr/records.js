@@ -8,9 +8,15 @@ const text = (value, max = 90) => {
   const t = String(value ?? '')
     .replace(/<[^>]*>/g, ' ')
     .replace(/[\uFFFD\u0000-\u001F]/g, '')
+    // A lone surrogate half (an emoji cut in two upstream) renders as �.
+    .replace(
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+      '',
+    )
     .replace(/\s+/g, ' ')
     .trim();
-  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+  const points = Array.from(t);
+  return points.length > max ? `${points.slice(0, max - 1).join('')}…` : t;
 };
 
 /**

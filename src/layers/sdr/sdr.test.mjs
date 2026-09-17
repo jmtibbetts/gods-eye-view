@@ -82,6 +82,18 @@ test('directory normalization drops bad rows and dedupes ids', () => {
     ],
   });
   assert.equal(html[0].name, 'P2000 WebSDR Ulft MOVED');
+  const cut = normalizeSdrDirectory({
+    receivers: [
+      {
+        id: 's',
+        name: 'Emoji cut \uD83D',
+        url: 'http://s.example/',
+        lat: 1,
+        lon: 1,
+      },
+    ],
+  });
+  assert.equal(cut[0].name, 'Emoji cut');
 });
 
 test('tuned URLs follow each software family syntax', () => {
