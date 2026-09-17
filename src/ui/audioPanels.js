@@ -22,6 +22,15 @@ import { cameraPoseSignature } from '../data/iconOrientation.js';
 const LIST_REFRESH_MS = 1500;
 
 /**
+ * Above 30 MHz radio is line-of-sight: a receiver 1,600 km away hears
+ * nothing on a tower frequency, however well it covers the band. HF
+ * (shortwave, 20 m / 40 m ham, WWV) bounces off the ionosphere, so any
+ * receiver in the world will do.
+ */
+const VHF_FLOOR_HZ = 30_000_000;
+const VHF_MAX_KM = 250;
+
+/**
  * Beginner presets: what people actually want to hear, with a frequency
  * that is busy or always on, the right mode, and a one-line explanation.
  * Airband resolves to the nearest tower frequency when the ATC directory
@@ -439,13 +448,15 @@ export class ScannerPanel {
 
 /** SDR / HAM panel. */
 export class SdrPanel {
-  constructor({ elements, layer, actions, viewer, atc = null }) {
+  constructor({ elements, layer, actions, viewer, atc = null, dock = null }) {
     this.elements = elements;
     this.layer = layer;
     this.actions = actions;
     this.viewer = viewer;
     /** Optional ATC layer: turns the Airband preset into the nearest tower frequency. */
     this.atc = atc;
+    /** The in-map receiver dock (LiveATC fallback when no airband SDR is in range). */
+    this.dock = dock;
     this.label = 'SDR';
     this.destroyed = false;
     this._abort = new AbortController();
@@ -588,6 +599,7 @@ export class SdrPanel {
             freqHz: Math.round(tower.mhz * 1e6),
             mode: 'am',
             label: `${airport.call || airport.id} Tower ${tower.mhz.toFixed(3)}`,
+            liveAtcCode: airport.id,
           };
       } catch {
         /* fall through to the preset frequency */
@@ -626,11 +638,50 @@ export class SdrPanel {
           url: this.layer.openSelectedSdrReceiver?.(),
         };
       } else {
+        const vhf = tune.freqHz > VHF_FLOOR_HZ;
         result = await this.layer.listenSdr?.({
           ...tune,
           lat: anchor?.lat ?? 0,
           lon: anchor?.lon ?? 0,
+          maxKm: vhf ? VHF_MAX_KM : Infinity,
         });
+        if (!result && vhf) {
+          // Say how far the nearest covering receiver really is, and for
+          // the airband hand the tower to LiveATC's page instead.
+          const [nearest] =
+            this.layer.findSdrReceivers?.({
+              lat: anchor?.lat ?? 0,
+              lon: anchor?.lon ?? 0,
+              freqHz: tune.freqHz,
+              coveredOnly: true,
+              limit: 1,
+            }) ?? [];
+          const why = nearest
+            ? `The nearest public receiver that covers ${(tune.freqHz / 1e6).toFixed(3)} MHz is ${kmText(nearest.distanceKm)} away — too far to hear anything above 30 MHz (line-of-sight).`
+            : `No public receiver in the directory covers ${(tune.freqHz / 1e6).toFixed(3)} MHz.`;
+          if (tune.liveAtcCode && this.dock?.open) {
+            this.dock.open(
+              `https://www.liveatc.net/search/?icao=${tune.liveAtcCode}`,
+              {
+                kind: 'liveatc',
+                layerId: 'sdr',
+                title: tune.label || `${tune.liveAtcCode} Tower`,
+                subtitle: `${(tune.freqHz / 1e6).toFixed(3)} MHz AM`,
+                note: `Press LISTEN on LiveATC's page for ${(tune.freqHz / 1e6).toFixed(3)} MHz.`,
+              },
+            );
+            this._notice = {
+              text: `${why} LiveATC's page for ${tune.liveAtcCode} opened in its own tab instead (LiveATC refuses to load inside other sites) — press LISTEN there.`,
+              error: false,
+            };
+            return;
+          }
+          this._notice = {
+            text: `${why} Move the map closer to a receiver, or pick a receiver from the list.`,
+            error: true,
+          };
+          return;
+        }
       }
       this._notice = {
         text: result
@@ -640,6 +691,7 @@ export class SdrPanel {
       };
     } finally {
       this._busy = false;
+      this.refreshList({ force: true });
       this.render();
     }
   }
@@ -1164,7 +1216,7 @@ export class AtcPanel {
             : listening
               ? listening.via === 'sdr'
                 ? `Tuned ${listening.facility} ${listening.frequency?.mhz.toFixed(3)} MHz on ${listening.receiver?.name || 'a web SDR'} — audio in the window on the map`
-                : `${listening.facility} ${listening.frequency?.mhz.toFixed(3) ?? ''} MHz — no airband SDR in range, so LiveATC's page is in the window: press its LISTEN for that frequency`
+                : `${listening.facility} ${listening.frequency?.mhz.toFixed(3) ?? ''} MHz — no airband SDR within 90 km, so LiveATC's page for ${listening.airport?.id || 'the airport'} is open in its own tab (LiveATC blocks embedding): press LISTEN there for that frequency`
               : airport
                 ? 'Tap a frequency, or press LISTEN for the tower'
                 : `${s?.towered ?? 0} towered airports · ${s?.airports ?? 0} with published frequencies`,

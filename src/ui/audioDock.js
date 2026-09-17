@@ -16,6 +16,8 @@ const MIN_WIDTH = 360;
 const MIN_HEIGHT = 240;
 const EDGE_MARGIN = 8;
 const STORAGE_KEY = 'gev.audioDock.v1';
+/** Named tab reused for pages that refuse to be framed (LiveATC). */
+export const EXTERNAL_TAB_NAME = 'gev-receiver';
 
 /** Assign text without naming string literals in the assignment itself. */
 function setText(el, value) {
@@ -39,16 +41,16 @@ export class AudioDock {
    * @param {object} options
    * @param {object} options.elements root, bar, kind, title, subtitle, note, frame, reloadBtn, sizeBtn, popoutBtn, closeBtn
    * @param {Storage|null} [options.storage] Per-viewer position memory (optional).
-   * @param {(url: string) => void} [options.openTab] Pop-out hand-off.
+   * @param {(url: string, target?: string) => void} [options.openTab] Pop-out hand-off.
    */
   constructor({ elements, storage = null, openTab } = {}) {
     this.elements = elements || {};
     this.storage = storage;
     this.openTab =
       openTab ||
-      ((url) => {
+      ((url, target = '_blank') => {
         if (typeof window === 'undefined') return;
-        const tab = window.open(url, '_blank', 'noopener,noreferrer');
+        const tab = window.open(url, target, 'noopener,noreferrer');
         if (tab) tab.opener = null;
       });
     this.destroyed = false;
@@ -61,6 +63,7 @@ export class AudioDock {
       title: '',
       subtitle: '',
       note: '',
+      external: false,
       size: 'normal',
       openedAt: null,
     };
@@ -76,13 +79,15 @@ export class AudioDock {
     const e = this.elements;
     const { signal } = this._abort;
     e.closeBtn?.addEventListener('click', () => this.close(), { signal });
-    e.popoutBtn?.addEventListener(
-      'click',
-      () => {
-        if (this._state.url) this.openTab(this._state.url);
-      },
-      { signal },
-    );
+    const popOut = () => {
+      if (!this._state.url) return;
+      this.openTab(
+        this._state.url,
+        this._state.external ? EXTERNAL_TAB_NAME : '_blank',
+      );
+    };
+    e.popoutBtn?.addEventListener('click', popOut, { signal });
+    e.externalBtn?.addEventListener('click', popOut, { signal });
     e.reloadBtn?.addEventListener('click', () => this.reload(), { signal });
     e.sizeBtn?.addEventListener('click', () => this.toggleSize(), { signal });
     e.bar?.addEventListener(
@@ -220,9 +225,11 @@ export class AudioDock {
   }
 
   /**
-   * Show a page in the dock.
+   * Show a page in the dock — framed, or, for `external` pages that refuse
+   * framing, in one named tab that later opens retarget, with the dock
+   * describing what that tab is pointed at.
    * @param {string} url
-   * @param {{kind?:string, layerId?:string, title?:string, subtitle?:string, note?:string}} [meta]
+   * @param {{kind?:string, layerId?:string, title?:string, subtitle?:string, note?:string, external?:boolean}} [meta]
    * @returns {boolean} False when the URL was refused.
    */
   open(url, meta = {}) {
@@ -231,6 +238,7 @@ export class AudioDock {
     if (!safe) return false;
     const e = this.elements;
     const changed = safe !== this._state.url;
+    const external = Boolean(meta.external);
     this._state = {
       ...this._state,
       open: true,
@@ -239,16 +247,23 @@ export class AudioDock {
       layerId: meta.layerId || null,
       title: meta.title || '',
       subtitle: meta.subtitle || '',
-      note: meta.note || '',
+      note: external ? '' : meta.note || '',
+      external,
       openedAt: Date.now(),
     };
     if (e.root) {
       e.root.hidden = false;
       e.root.dataset.kind = this._state.kind;
+      e.root.dataset.external = external ? 'true' : 'false';
       this._applyBox();
     }
-    if (e.frame && (changed || e.frame.getAttribute('src') !== safe))
+    if (external) {
+      if (e.frame && e.frame.getAttribute('src') !== 'about:blank')
+        e.frame.setAttribute('src', 'about:blank');
+      if (changed) this.openTab(safe, EXTERNAL_TAB_NAME);
+    } else if (e.frame && (changed || e.frame.getAttribute('src') !== safe)) {
       e.frame.setAttribute('src', safe);
+    }
     this._render();
     this._emit();
     return true;
@@ -256,7 +271,12 @@ export class AudioDock {
 
   reload() {
     const e = this.elements;
-    if (!this._state.open || !e.frame) return;
+    if (!this._state.open) return;
+    if (this._state.external) {
+      this.openTab(this._state.url, EXTERNAL_TAB_NAME);
+      return;
+    }
+    if (!e.frame) return;
     // Setting src again reloads a cross-origin frame without reading it.
     e.frame.setAttribute('src', this._state.url);
   }
@@ -275,6 +295,7 @@ export class AudioDock {
       title: '',
       subtitle: '',
       note: '',
+      external: false,
     };
     this._render();
     this._emit();
@@ -331,6 +352,17 @@ export class AudioDock {
       setText(e.note, s.note);
       e.note.hidden = !s.note;
     }
+    if (e.external) {
+      e.external.hidden = !(s.open && s.external);
+      setText(e.externalTitle, s.title);
+      setText(
+        e.externalText,
+        s.external
+          ? `${s.subtitle ? s.subtitle + ' · ' : ''}LiveATC does not allow its pages inside other sites, so this one is open in its own tab (look for the "${EXTERNAL_TAB_NAME}" tab). Press LISTEN there for the frequency shown. As the target changes, that same tab is pointed at the new airport.`
+          : '',
+      );
+    }
+    if (e.frame) e.frame.hidden = Boolean(s.external);
     if (e.sizeBtn)
       e.sizeBtn.setAttribute(
         'aria-pressed',

@@ -102,6 +102,12 @@ export function readShellElements(document = globalThis.document) {
     _audioDockTitle: document.getElementById('audio-dock-title'),
     _audioDockSubtitle: document.getElementById('audio-dock-subtitle'),
     _audioDockNote: document.getElementById('audio-dock-note'),
+    _audioDockExternal: document.getElementById('audio-dock-external'),
+    _audioDockExternalTitle: document.getElementById(
+      'audio-dock-external-title',
+    ),
+    _audioDockExternalText: document.getElementById('audio-dock-external-text'),
+    _audioDockExternalBtn: document.getElementById('audio-dock-external-btn'),
     _audioDockFrame: document.getElementById('audio-dock-frame'),
     _audioDockReloadBtn: document.getElementById('audio-dock-reload-btn'),
     _audioDockSizeBtn: document.getElementById('audio-dock-size-btn'),

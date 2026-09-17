@@ -801,6 +801,10 @@ export class StyleManager extends ShellFacade {
         title: this._audioDockTitle,
         subtitle: this._audioDockSubtitle,
         note: this._audioDockNote,
+        external: this._audioDockExternal,
+        externalTitle: this._audioDockExternalTitle,
+        externalText: this._audioDockExternalText,
+        externalBtn: this._audioDockExternalBtn,
         frame: this._audioDockFrame,
         reloadBtn: this._audioDockReloadBtn,
         sizeBtn: this._audioDockSizeBtn,
@@ -816,7 +820,11 @@ export class StyleManager extends ShellFacade {
       })(),
     });
     const openInDock = (url, meta) => {
-      if (!this._audioDock?.open(url, meta || {})) {
+      // LiveATC refuses to load inside another site (X-Frame-Options), so
+      // its page goes to one named tab the follow engine keeps retargeting,
+      // and the dock shows what it is pointed at.
+      const external = meta?.kind === 'liveatc';
+      if (!this._audioDock?.open(url, { ...(meta || {}), external })) {
         const tab = window.open(url, '_blank', 'noopener,noreferrer');
         if (tab) tab.opener = null;
       }
@@ -879,6 +887,7 @@ export class StyleManager extends ShellFacade {
       actions: actionsFor('sdr'),
       viewer: this.viewer,
       atc: atcLayer,
+      dock: this._audioDock,
     });
     this._atcPanel?.destroy();
     this._atcPanel = new AtcPanel({

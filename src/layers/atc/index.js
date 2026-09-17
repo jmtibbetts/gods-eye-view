@@ -393,7 +393,7 @@ export function createAtcLayer({
         note:
           via === 'liveatc'
             ? `Press LISTEN on LiveATC's page for ${atcMhzText(mhz)} MHz.`
-            : 'Audio starts on the receiver; click its page if it stays silent.',
+            : 'Audio starts on the receiver; click inside its page if it stays silent.',
       });
     }
     notify();
