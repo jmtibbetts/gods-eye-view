@@ -44,6 +44,10 @@ const PANEL_GROUPS = [
     ids: ['rocket-launches', 'earthquakes', 'local-firms'],
   },
   {
+    label: 'Imagery & Weather',
+    ids: ['imagery-viirs', 'imagery-goes', 'imagery-radar'],
+  },
+  {
     label: 'Utilities',
     ids: ['directions', 'radio', 'scanner', 'sdr', 'atc'],
   },
@@ -64,6 +68,9 @@ const PANEL_LABELS = {
   scanner: 'Police / Fire / EMS Scanners',
   sdr: 'Web SDR Receivers',
   atc: 'ATC — Airports & Frequencies',
+  'imagery-viirs': 'Satellite Imagery (VIIRS)',
+  'imagery-goes': 'GOES Live Weather',
+  'imagery-radar': 'Weather Radar',
 };
 
 function panelLabel(layer) {

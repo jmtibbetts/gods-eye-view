@@ -21,6 +21,7 @@ import { createApplicationCables } from './layers/submarineCables.js';
 import { createApplicationScanner } from './layers/scanner.js';
 import { createApplicationSdr } from './layers/sdr.js';
 import { createApplicationAtc } from './layers/atc.js';
+import { createApplicationImageryOverlays } from './layers/imageryOverlays.js';
 import { createInfrastructureLayers } from '../data/infrastructure.js';
 import { localGeoJsonServices } from './localGeojsonServices.js';
 import { createBhoteKoshiEventLayer } from '../data/bhoteKoshiEvent.js';
@@ -121,6 +122,7 @@ export function createApplicationCatalog({
         createApplicationScanner({ surface, source: sources.scanner }),
         sdr,
         createApplicationAtc({ surface, source: sources.atc, sdr }),
+        ...createApplicationImageryOverlays(),
         createApplicationAlpr({ surface, source: sources.alpr }),
         satellites,
         createApplicationLaunches({ source: sources.launches, satellites }),

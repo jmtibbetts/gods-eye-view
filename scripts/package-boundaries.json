@@ -1867,9 +1867,12 @@
       "src/app/layers/scanner.js",
       "src/app/layers/sdr.js",
       "src/app/layers/atc.js",
+      "src/app/layers/imageryOverlays.js",
       "src/data/markerField.js",
       "src/ui/audioPanels.js",
-      "src/ui/audioDock.js"
+      "src/ui/audioDock.js",
+      "src/layers/imageryOverlays/index.js",
+      "src/layers/imageryOverlays/policy.js"
     ],
     "external": [
       "@mapbox/vector-tile",
@@ -2267,6 +2270,7 @@
       "src/app/layers/scanner.js",
       "src/app/layers/sdr.js",
       "src/app/layers/atc.js",
+      "src/app/layers/imageryOverlays.js",
       "src/layers/scanner/index.js",
       "src/layers/scanner/model.js",
       "src/layers/scanner/player.js",
@@ -2283,7 +2287,9 @@
       "src/layers/atc/policy.js",
       "src/layers/atc/records.js",
       "src/layers/atc/source.js",
-      "src/data/markerField.js"
+      "src/data/markerField.js",
+      "src/layers/imageryOverlays/index.js",
+      "src/layers/imageryOverlays/policy.js"
     ],
     "external": [
       "cesium",
@@ -2575,6 +2581,14 @@
       "src/layers/atc/source.js"
     ],
     "external": []
+  },
+  "imagery-overlays-layer": {
+    "exports": ["./layers/imageryOverlays"],
+    "modules": [
+      "src/layers/imageryOverlays/index.js",
+      "src/layers/imageryOverlays/policy.js"
+    ],
+    "external": ["cesium"]
   },
   "firms-source": {
     "exports": ["./layers/firms/source"],
