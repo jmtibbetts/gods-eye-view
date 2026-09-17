@@ -133,6 +133,7 @@ test('traffic timing pairs real ordering to the scheduling change and guards re-
   const originalClearInterval = globalThis.clearInterval;
   const originalLog = console.log;
   const originalWarn = console.warn;
+  const originalNodeEnv = process.env.NODE_ENV;
   const timeouts = new Map();
   let timerId = 0;
   let server;
@@ -153,6 +154,13 @@ test('traffic timing pairs real ordering to the scheduling change and guards re-
   };
 
   try {
+    // The instrumentation under test is DEV-only, and Vite reads DEV from
+    // NODE_ENV rather than from `mode`. An ambient NODE_ENV=production —
+    // which plenty of shells and tool wrappers export — would otherwise
+    // switch the whole feature off and fail this test for a reason that
+    // has nothing to do with the code. Pin it like every other ambient
+    // input this test stubs.
+    process.env.NODE_ENV = 'development';
     globalThis.window = {
       location: { search: '?trafficDebug=1' },
       addEventListener() {},
@@ -326,6 +334,8 @@ test('traffic timing pairs real ordering to the scheduling change and guards re-
     globalThis.clearInterval = originalClearInterval;
     console.log = originalLog;
     console.warn = originalWarn;
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
     performance.clearMarks();
     performance.clearMeasures();
   }
