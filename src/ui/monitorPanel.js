@@ -60,7 +60,10 @@ function flyTo(viewer, lat, lon, heightM) {
 export class MonitorPanel {
   constructor({ elements, dataManager, viewer, storage = null, onToast } = {}) {
     this.elements = elements || {};
-    this.dataManager = dataManager;
+    // Accept the manager itself or a resolver — the shell may not have assigned
+    // it yet when this panel is constructed, so resolve it lazily at scan time.
+    this._resolveDataManager =
+      typeof dataManager === 'function' ? dataManager : () => dataManager;
     this.viewer = viewer;
     this.storage = storage;
     this.onToast = typeof onToast === 'function' ? onToast : () => {};
@@ -182,7 +185,7 @@ export class MonitorPanel {
 
   /** Enabled layers that expose point records, as {layerId, name, records}. */
   _layerRecords() {
-    const dm = this.dataManager;
+    const dm = this._resolveDataManager();
     const layers = [];
     if (!dm?.layers) return layers;
     for (const [id, entry] of dm.layers) {

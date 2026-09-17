@@ -930,7 +930,7 @@ export class StyleManager extends ShellFacade {
         empty: this._monitorEmpty,
         clearBtn: this._monitorClearBtn,
       },
-      dataManager: this._dataManager,
+      dataManager: () => this._dataManager,
       viewer: this.viewer,
       storage: (() => {
         try {
