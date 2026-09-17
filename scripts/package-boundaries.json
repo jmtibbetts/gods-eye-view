@@ -406,7 +406,9 @@
       "src/ui/audioDock.js",
       "src/data/iconOrientation.js",
       "src/ui/monitorPanel.js",
-      "src/ui/monitorEngine.js"
+      "src/ui/monitorEngine.js",
+      "src/ui/watchlistPanel.js",
+      "src/ui/watchlistEngine.js"
     ],
     "external": []
   },
@@ -591,7 +593,9 @@
       "src/ui/audioDock.js",
       "src/data/iconOrientation.js",
       "src/ui/monitorPanel.js",
-      "src/ui/monitorEngine.js"
+      "src/ui/monitorEngine.js",
+      "src/ui/watchlistPanel.js",
+      "src/ui/watchlistEngine.js"
     ],
     "external": ["cesium"]
   },
@@ -1893,7 +1897,9 @@
       "src/layers/stormReports/records.js",
       "src/layers/stormReports/source.js",
       "src/ui/monitorPanel.js",
-      "src/ui/monitorEngine.js"
+      "src/ui/monitorEngine.js",
+      "src/ui/watchlistPanel.js",
+      "src/ui/watchlistEngine.js"
     ],
     "external": [
       "@mapbox/vector-tile",

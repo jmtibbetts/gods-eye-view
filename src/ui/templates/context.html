@@ -301,6 +301,26 @@
             <p class="audio-privacy">Watches whatever layers you have enabled and flags new arrivals inside the circle. Runs entirely in your browser; nothing is sent anywhere.</p>
           </div>
         </section>
+        <section id="watchlist-panel" class="panel-collapsible collapsed" data-panel-id="watchlist-panel" aria-label="Contact watchlist">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">WATCHLIST</span>
+              <span id="watchlist-layer-state" class="audio-layer-state">IDLE</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="watchlist-panel" title="Expand Watchlist" aria-label="Expand Watchlist section">+</button>
+            </div>
+            <div class="watchlist-controls">
+              <input id="watchlist-input" class="watchlist-input" type="text" maxlength="24" placeholder="Callsign, ICAO24 or MMSI" aria-label="Identifier to watch" />
+              <button id="watchlist-add-btn" class="panel-layer-toggle" type="button" aria-label="Add this identifier to the watchlist">PIN</button>
+            </div>
+            <ul id="watchlist-list" class="watchlist-list" aria-label="Watched contacts"></ul>
+            <div id="watchlist-empty" class="watchlist-empty">Nothing pinned yet. Type an aircraft callsign or ICAO24 address, or a vessel MMSI or name, and press PIN — it turns green the moment that contact shows up on any enabled layer.</div>
+            <div class="audio-transport" role="group" aria-label="Watchlist actions">
+              <button id="watchlist-clear-btn" type="button" aria-label="Remove all watched contacts" disabled>CLEAR ALL</button>
+            </div>
+            <p class="audio-privacy">Matches against whatever layers you have enabled. Your pinned identifiers stay in this browser; nothing is sent anywhere.</p>
+          </div>
+        </section>
       </div>
     </div>
   </aside>

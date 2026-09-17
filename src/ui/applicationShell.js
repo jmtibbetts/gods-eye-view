@@ -18,6 +18,7 @@ import { RadioControls } from './radio.js';
 import { AtcPanel, ScannerPanel, SdrPanel } from './audioPanels.js';
 import { AudioDock } from './audioDock.js';
 import { MonitorPanel } from './monitorPanel.js';
+import { WatchlistPanel } from './watchlistPanel.js';
 import { captureSnapshot } from './snapshotExport.js';
 import { LocationNavigation } from './locationNavigation.js';
 import { bindClearLayersControl } from './layers.js';
@@ -247,6 +248,7 @@ export class StyleManager extends ShellFacade {
         _sdrPanel: this._sdrPanel,
         _atcPanel: this._atcPanel,
         _monitorPanel: this._monitorPanel,
+        _watchlistPanel: this._watchlistPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -931,6 +933,30 @@ export class StyleManager extends ShellFacade {
         list: this._monitorList,
         empty: this._monitorEmpty,
         clearBtn: this._monitorClearBtn,
+      },
+      dataManager: () => this._dataManager,
+      viewer: this.viewer,
+      storage: (() => {
+        try {
+          return globalThis.localStorage ?? null;
+        } catch {
+          return null;
+        }
+      })(),
+      onToast: (message) => {
+        if (!this._disposed) this._showToast(message);
+      },
+    });
+
+    this._watchlistPanel?.destroy();
+    this._watchlistPanel = new WatchlistPanel({
+      elements: {
+        layerState: this._watchlistLayerState,
+        input: this._watchlistInput,
+        addBtn: this._watchlistAddBtn,
+        list: this._watchlistList,
+        empty: this._watchlistEmpty,
+        clearBtn: this._watchlistClearBtn,
       },
       dataManager: () => this._dataManager,
       viewer: this.viewer,
@@ -1709,6 +1735,7 @@ export class StyleManager extends ShellFacade {
     this._sdrPanel?.destroy();
     this._atcPanel?.destroy();
     this._monitorPanel?.destroy();
+    this._watchlistPanel?.destroy();
     this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();
