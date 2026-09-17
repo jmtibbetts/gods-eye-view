@@ -838,7 +838,9 @@
       "src/layers/scanner/records.js",
       "src/layers/scanner/source.js",
       "src/data/inputOwnership.js",
-      "src/data/pickRegistry.js"
+      "src/data/pickRegistry.js",
+      "src/data/markerField.js",
+      "src/data/iconOrientation.js"
     ],
     "external": ["cesium"]
   },
@@ -851,7 +853,9 @@
       "src/layers/sdr/records.js",
       "src/layers/sdr/source.js",
       "src/data/inputOwnership.js",
-      "src/data/pickRegistry.js"
+      "src/data/pickRegistry.js",
+      "src/data/markerField.js",
+      "src/data/iconOrientation.js"
     ],
     "external": ["cesium"]
   },
@@ -1849,7 +1853,8 @@
       "src/layers/sdr/index.js",
       "src/layers/sdr/model.js",
       "src/app/layers/scanner.js",
-      "src/app/layers/sdr.js"
+      "src/app/layers/sdr.js",
+      "src/data/markerField.js"
     ],
     "external": [
       "@mapbox/vector-tile",
@@ -2256,7 +2261,8 @@
       "src/layers/sdr/model.js",
       "src/layers/sdr/policy.js",
       "src/layers/sdr/records.js",
-      "src/layers/sdr/source.js"
+      "src/layers/sdr/source.js",
+      "src/data/markerField.js"
     ],
     "external": [
       "cesium",

@@ -349,6 +349,8 @@
   "src/layers/sdr/source.js",
   "src/layers/scanner/scanner.test.mjs",
   "src/layers/sdr/sdr.test.mjs",
+  "src/data/markerField.test.mjs",
+  "src/data/markerField.js",
   "src/data/firmsHeatmap.js",
   "src/data/fireAnchors.js",
   "src/layers/firms/anchors.js",

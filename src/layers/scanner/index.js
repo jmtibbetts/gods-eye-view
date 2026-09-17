@@ -27,9 +27,9 @@ import {
   scannerColor,
   scannerPixelSize,
   scannerPlace,
-  selectScannerOverlayCohort,
 } from './model.js';
 import { createScannerPlayer } from './player.js';
+import { createMarkerField } from '../../data/markerField.js';
 
 export * from './model.js';
 export * from './policy.js';
@@ -54,6 +54,7 @@ const systemIdFromEntityId = (id) =>
  * @param {() => HTMLAudioElement} [options.createAudio]
  * @param {() => number} [options.now]
  * @param {(viewer: any) => Cesium.ScreenSpaceEventHandler} [options.screenSpaceEventHandlerFactory]
+ * @param {{cachedGroundFloor?: Function, warmGroundFloor?: Function}|null} [options.ground]
  */
 export function createScannerLayer({
   source,
@@ -63,6 +64,7 @@ export function createScannerLayer({
   now = () => Date.now(),
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+  ground = null,
 } = {}) {
   for (const method of [
     'getSeed',
@@ -88,6 +90,11 @@ export function createScannerLayer({
   let _lastError = null;
   let _clickHandler = null;
   let _keyHandler = null;
+  const _field = createMarkerField({ ground });
+  /** @type {Map<string, object>} id → ambient overlay entry (rebuilt per catalog) */
+  const _overlayEntries = new Map();
+  let _viewTimer = null;
+  let _viewTicks = 0;
 
   // ---- live session (selected system) ----
   let _selectedId = null;
@@ -151,13 +158,13 @@ export function createScannerLayer({
 
   function rebuildEntities() {
     if (!_dataSource) return;
-    const overlayEntries = [];
+    _overlayEntries.clear();
     for (const system of _systems.values()) {
       const id = entityId(system.id);
-      const position = Cesium.Cartesian3.fromDegrees(system.lon, system.lat);
       const color = Cesium.Color.fromCssColorString(scannerColor(system));
       let entity = _entities.get(system.id);
       if (!entity) {
+        const position = _field.positionFor(system.lat, system.lon);
         entity = _dataSource.entities.add({
           id,
           position,
@@ -167,28 +174,57 @@ export function createScannerLayer({
             outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
             outlineWidth: 1.5,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scaleByDistance: new Cesium.NearFarScalar(
+              100_000,
+              1.15,
+              12_000_000,
+              1,
+            ),
           },
           properties: { systemId: system.id },
         });
         _entities.set(system.id, entity);
+        _field.track(system.id, entity, system.lat, system.lon);
       } else {
         entity.point.pixelSize = scannerPixelSize(system);
         entity.point.color = color.withAlpha(0.9);
       }
-      if (_selectedId === system.id) entity.show = false;
-      overlayEntries.push(createScannerOverlayEntry({ id, position, system }));
-    }
-    if (_enabled) {
-      overlayHost.setEntries(
-        SCANNER_OVERLAY_SOURCE_ID,
-        selectScannerOverlayCohort(overlayEntries),
-        {
-          cohortLimit: SCANNER_OVERLAY_COHORT_LIMIT,
-          collisionCapacity: SCANNER_OVERLAY_COLLISION_CAPACITY,
-          moving: false,
-        },
+      _overlayEntries.set(
+        system.id,
+        createScannerOverlayEntry({
+          id,
+          position: () => entity.position.getValue(Cesium.JulianDate.now()),
+          system,
+        }),
       );
     }
+    _field.setHidden(_selectedId);
+    _field.warm([..._systems.values()]);
+    refreshView({ force: true });
+  }
+
+  /**
+   * Horizon-cull the dots and label the visible systems nearest the camera.
+   * Runs on a short timer while enabled; does nothing when the camera is
+   * still, so an idle globe costs no overlay churn.
+   */
+  function refreshView({ force = false } = {}) {
+    if (!_enabled || !_viewer?.camera) return;
+    _viewTicks++;
+    if (_viewTicks % 8 === 0 && _field.reposition() > 0) force = true;
+    const visible = _field.cull(_viewer.camera, { force });
+    if (!visible) return;
+    const cohort = [];
+    for (const id of visible) {
+      const entry = _overlayEntries.get(id);
+      if (entry) cohort.push(entry);
+      if (cohort.length >= SCANNER_OVERLAY_COHORT_LIMIT) break;
+    }
+    overlayHost.setEntries(SCANNER_OVERLAY_SOURCE_ID, cohort, {
+      cohortLimit: SCANNER_OVERLAY_COHORT_LIMIT,
+      collisionCapacity: SCANNER_OVERLAY_COLLISION_CAPACITY,
+      moving: false,
+    });
   }
 
   // ---- selection + live session ----
@@ -257,9 +293,9 @@ export function createScannerLayer({
     const system = _systems.get(systemId);
     const entity = _entities.get(systemId);
     if (!system || !entity || !_viewer) return false;
-    clearSelection({ keepPlayerSeen: false });
+    clearSelection();
     _selectedId = systemId;
-    entity.show = false;
+    _field.setHidden(systemId);
     const position = entity.position.getValue(Cesium.JulianDate.now());
     _selectedEntity = _viewer.entities.add({
       position,
@@ -279,13 +315,11 @@ export function createScannerLayer({
 
   function clearSelection() {
     stopSession();
-    if (_selectedId) {
-      const entity = _entities.get(_selectedId);
-      if (entity) entity.show = true;
-    }
+    _selectedId = null;
+    _field.setHidden(null);
+    refreshView({ force: true });
     if (_selectedEntity && _viewer) _viewer.entities.remove(_selectedEntity);
     _selectedEntity = null;
-    _selectedId = null;
     overlayHost.clearSource(SCANNER_SELECTED_OVERLAY_SOURCE_ID);
     try {
       context?.clearSelectedEntityContextForLayer?.(SCANNER_LAYER_ID);
@@ -470,12 +504,16 @@ export function createScannerLayer({
       if (_dataSource) _dataSource.show = true;
       overlayHost.setVisible(SCANNER_OVERLAY_SOURCE_ID, true);
       installInput(viewer || _viewer);
+      if (!_viewTimer) _viewTimer = setInterval(() => refreshView(), 250);
+      refreshView({ force: true });
     },
 
     disable() {
       _request?.abort();
       _request = null;
       _enabled = false;
+      if (_viewTimer) clearInterval(_viewTimer);
+      _viewTimer = null;
       clearSelection();
       removeInput();
       if (_dataSource) _dataSource.show = false;
@@ -536,6 +574,8 @@ export function createScannerLayer({
       if (_dataSource && viewer) viewer.dataSources.remove(_dataSource, true);
       _dataSource = null;
       _entities.clear();
+      _field.clear();
+      _overlayEntries.clear();
       _systems.clear();
       _seedLoaded = false;
       _liveCatalogAt = 0;

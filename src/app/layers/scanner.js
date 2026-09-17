@@ -3,6 +3,11 @@ import * as context from '../../data/contextStore.js';
 import { overlayHost } from './overlayHost.js';
 
 /** Wire the OpenMHz scanner display to the application overlay host and context store. */
-export function createApplicationScanner(options) {
-  return createScannerLayer({ overlayHost, context, ...options });
+export function createApplicationScanner({ surface, ...options }) {
+  return createScannerLayer({
+    overlayHost,
+    context,
+    ground: surface?.groundFloor ?? null,
+    ...options,
+  });
 }

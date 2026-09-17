@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as Cesium from 'cesium';
 import { normalizeSdrDirectory, sdrReceiverUrl } from './records.js';
 import { sdrBandText, sdrCoversFrequency, sdrTunedUrl } from './model.js';
 import { createBundledSdrSource } from './source.js';
@@ -158,6 +159,12 @@ function harness(rows, opened) {
     },
     entities: { add: (e) => e, remove() {} },
     scene: { canvas: {} },
+    camera: {
+      positionWC: Cesium.Cartesian3.fromDegrees(-77, 38.9, 2_000_000),
+      heading: 0,
+      pitch: -1.2,
+      roll: 0,
+    },
   };
   const layer = createSdrLayer({
     source: { getSnapshot: async () => ({ rows, builtAt: '2026-09-17' }) },

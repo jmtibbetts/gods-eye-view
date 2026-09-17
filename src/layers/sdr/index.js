@@ -23,8 +23,8 @@ import {
   sdrCoversFrequency,
   sdrTunedUrl,
   sdrTypeLabel,
-  selectSdrOverlayCohort,
 } from './model.js';
+import { createMarkerField } from '../../data/markerField.js';
 
 export * from './model.js';
 export * from './policy.js';
@@ -47,6 +47,7 @@ const receiverIdFromEntityId = (id) =>
  * @param {{registerEntityContext?:Function,selectEntityContext?:Function,clearSelectedEntityContextForLayer?:Function}} [options.context]
  * @param {(url: string) => void} [options.openUrl] Receiver hand-off (defaults to a new tab).
  * @param {(viewer: any) => Cesium.ScreenSpaceEventHandler} [options.screenSpaceEventHandlerFactory]
+ * @param {{cachedGroundFloor?: Function, warmGroundFloor?: Function}|null} [options.ground]
  */
 export function createSdrLayer({
   source,
@@ -55,6 +56,7 @@ export function createSdrLayer({
   openUrl,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+  ground = null,
 } = {}) {
   if (typeof source?.getSnapshot !== 'function')
     throw new TypeError('SDR layer requires a snapshot source');
@@ -86,45 +88,72 @@ export function createSdrLayer({
   let _selectedEntity = null;
   /** @type {{freqHz:number, mode:string}|null} Pending tune applied on hand-off. */
   let _tune = null;
+  const _field = createMarkerField({ ground });
+  const _overlayEntries = new Map();
+  let _viewTimer = null;
+  let _viewTicks = 0;
 
   function rebuildEntities() {
     if (!_dataSource) return;
-    const overlayEntries = [];
+    _overlayEntries.clear();
     for (const receiver of _receivers.values()) {
       const id = entityId(receiver.id);
-      const position = Cesium.Cartesian3.fromDegrees(
-        receiver.lon,
-        receiver.lat,
-      );
-      if (!_entities.has(receiver.id)) {
+      let entity = _entities.get(receiver.id);
+      if (!entity) {
         const color = Cesium.Color.fromCssColorString(sdrColor(receiver));
-        const entity = _dataSource.entities.add({
+        entity = _dataSource.entities.add({
           id,
-          position,
+          position: _field.positionFor(receiver.lat, receiver.lon),
           point: {
             pixelSize: receiver.bands ? 8 : 7,
             color: color.withAlpha(0.88),
             outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
             outlineWidth: 1.5,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scaleByDistance: new Cesium.NearFarScalar(
+              100_000,
+              1.15,
+              12_000_000,
+              1,
+            ),
           },
           properties: { receiverId: receiver.id },
         });
         _entities.set(receiver.id, entity);
+        _field.track(receiver.id, entity, receiver.lat, receiver.lon);
       }
-      overlayEntries.push(createSdrOverlayEntry({ id, position, receiver }));
-    }
-    if (_enabled) {
-      overlayHost.setEntries(
-        SDR_OVERLAY_SOURCE_ID,
-        selectSdrOverlayCohort(overlayEntries),
-        {
-          cohortLimit: SDR_OVERLAY_COHORT_LIMIT,
-          collisionCapacity: SDR_OVERLAY_COLLISION_CAPACITY,
-          moving: false,
-        },
+      _overlayEntries.set(
+        receiver.id,
+        createSdrOverlayEntry({
+          id,
+          position: () => entity.position.getValue(Cesium.JulianDate.now()),
+          receiver,
+        }),
       );
     }
+    _field.setHidden(_selectedId);
+    _field.warm([..._receivers.values()]);
+    refreshView({ force: true });
+  }
+
+  /** Horizon-cull the dots and label the visible receivers nearest the camera. */
+  function refreshView({ force = false } = {}) {
+    if (!_enabled || !_viewer?.camera) return;
+    _viewTicks++;
+    if (_viewTicks % 8 === 0 && _field.reposition() > 0) force = true;
+    const visible = _field.cull(_viewer.camera, { force });
+    if (!visible) return;
+    const cohort = [];
+    for (const id of visible) {
+      const entry = _overlayEntries.get(id);
+      if (entry) cohort.push(entry);
+      if (cohort.length >= SDR_OVERLAY_COHORT_LIMIT) break;
+    }
+    overlayHost.setEntries(SDR_OVERLAY_SOURCE_ID, cohort, {
+      cohortLimit: SDR_OVERLAY_COHORT_LIMIT,
+      collisionCapacity: SDR_OVERLAY_COLLISION_CAPACITY,
+      moving: false,
+    });
   }
 
   function publishCard() {
@@ -180,7 +209,7 @@ export function createSdrLayer({
     if (!receiver || !entity || !_viewer) return false;
     clearSelection();
     _selectedId = receiverId;
-    entity.show = false;
+    _field.setHidden(receiverId);
     _selectedEntity = _viewer.entities.add({
       position: entity.position.getValue(Cesium.JulianDate.now()),
       point: {
@@ -197,13 +226,11 @@ export function createSdrLayer({
   }
 
   function clearSelection() {
-    if (_selectedId) {
-      const entity = _entities.get(_selectedId);
-      if (entity) entity.show = true;
-    }
+    _selectedId = null;
+    _field.setHidden(null);
+    refreshView({ force: true });
     if (_selectedEntity && _viewer) _viewer.entities.remove(_selectedEntity);
     _selectedEntity = null;
-    _selectedId = null;
     overlayHost.clearSource(SDR_SELECTED_OVERLAY_SOURCE_ID);
     try {
       context?.clearSelectedEntityContextForLayer?.(SDR_LAYER_ID);
@@ -287,12 +314,16 @@ export function createSdrLayer({
       if (_dataSource) _dataSource.show = true;
       overlayHost.setVisible(SDR_OVERLAY_SOURCE_ID, true);
       installInput(viewer || _viewer);
+      if (!_viewTimer) _viewTimer = setInterval(() => refreshView(), 250);
+      refreshView({ force: true });
     },
 
     disable() {
       _request?.abort();
       _request = null;
       _enabled = false;
+      if (_viewTimer) clearInterval(_viewTimer);
+      _viewTimer = null;
       clearSelection();
       removeInput();
       if (_dataSource) _dataSource.show = false;
@@ -338,6 +369,8 @@ export function createSdrLayer({
       if (_dataSource && viewer) viewer.dataSources.remove(_dataSource, true);
       _dataSource = null;
       _entities.clear();
+      _field.clear();
+      _overlayEntries.clear();
       _receivers.clear();
       _loaded = false;
       _viewer = null;
