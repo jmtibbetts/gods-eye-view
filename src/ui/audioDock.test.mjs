@@ -53,6 +53,7 @@ test('the dock opens, retargets in place, records state and closes to about:blan
     note: fakeElement(),
     frame: fakeElement(),
     reloadBtn: fakeElement(),
+    zoomBtn: fakeElement(),
     sizeBtn: fakeElement(),
     popoutBtn: fakeElement(),
     closeBtn: fakeElement(),
@@ -105,6 +106,24 @@ test('the dock opens, retargets in place, records state and closes to about:blan
   dock.toggleSize();
   assert.equal(dock.getState().size, 'large');
   assert.match(stored.get('gev.audioDock.v1'), /"size":"large"/);
+  dock.toggleSize();
+  assert.equal(dock.getState().size, 'fit');
+  assert.equal(elements.root.style.left, '8px', 'fit hugs the viewport corner');
+  dock.toggleSize();
+  assert.equal(dock.getState().size, 'normal');
+  assert.equal(
+    dock.getState().zoom,
+    0.8,
+    'receiver pages open at 80% by default',
+  );
+  assert.equal(elements.frame.style.transform, 'scale(0.8)');
+  assert.equal(elements.frame.style.width, '125.0000%');
+  dock.cycleZoom();
+  assert.equal(dock.getState().zoom, 0.65);
+  assert.equal(elements.zoomBtn.textContent, '65%');
+  assert.equal(dock.setZoom(1), 1);
+  assert.equal(elements.frame.style.transform, '');
+  assert.match(stored.get('gev.audioDock.v1'), /"zoom":1/);
   dock.close();
   assert.equal(elements.frame.getAttribute('src'), 'about:blank');
   assert.equal(elements.root.hidden, true);

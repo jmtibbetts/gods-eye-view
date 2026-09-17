@@ -110,6 +110,7 @@ export function readShellElements(document = globalThis.document) {
     _audioDockExternalBtn: document.getElementById('audio-dock-external-btn'),
     _audioDockFrame: document.getElementById('audio-dock-frame'),
     _audioDockReloadBtn: document.getElementById('audio-dock-reload-btn'),
+    _audioDockZoomBtn: document.getElementById('audio-dock-zoom-btn'),
     _audioDockSizeBtn: document.getElementById('audio-dock-size-btn'),
     _audioDockPopoutBtn: document.getElementById('audio-dock-popout-btn'),
     _audioDockCloseBtn: document.getElementById('audio-dock-close-btn'),

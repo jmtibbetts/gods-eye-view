@@ -687,3 +687,13 @@ body.recording-mode .audio-dock {
 .audio-dock-frame[hidden] {
   display: none;
 }
+
+.audio-dock-bar button.audio-dock-zoom {
+  width: auto;
+  padding: 0 7px;
+  font: 8px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+}
+.audio-dock-body {
+  overflow: hidden;
+}

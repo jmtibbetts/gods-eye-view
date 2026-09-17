@@ -807,6 +807,7 @@ export class StyleManager extends ShellFacade {
         externalBtn: this._audioDockExternalBtn,
         frame: this._audioDockFrame,
         reloadBtn: this._audioDockReloadBtn,
+        zoomBtn: this._audioDockZoomBtn,
         sizeBtn: this._audioDockSizeBtn,
         popoutBtn: this._audioDockPopoutBtn,
         closeBtn: this._audioDockCloseBtn,

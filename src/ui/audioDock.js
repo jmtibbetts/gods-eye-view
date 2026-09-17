@@ -10,8 +10,19 @@
 
 const SIZES = Object.freeze({
   normal: Object.freeze({ width: 680, height: 440 }),
-  large: Object.freeze({ width: 980, height: 620 }),
+  large: Object.freeze({ width: 1100, height: 680 }),
+  /** Everything the viewport has, minus the margin. */
+  fit: Object.freeze({ width: Infinity, height: Infinity }),
 });
+const SIZE_ORDER = Object.freeze(['normal', 'large', 'fit']);
+/**
+ * Receiver pages (KiwiSDR, Web-888, OpenWebRX) lay their control panel over
+ * the waterfall and assume a wide desktop window. Rendering the page at a
+ * larger virtual width and scaling it down hands most of the window back
+ * to the spectrum — the control panel keeps its pixel size in the page's
+ * own terms, so it takes a smaller share of ours.
+ */
+const ZOOM_STEPS = Object.freeze([1, 0.8, 0.65, 0.5]);
 const MIN_WIDTH = 360;
 const MIN_HEIGHT = 240;
 const EDGE_MARGIN = 8;
@@ -65,6 +76,8 @@ export class AudioDock {
       note: '',
       external: false,
       size: 'normal',
+      // Receiver pages want a wide desktop; 80% hands the waterfall back.
+      zoom: 0.8,
       openedAt: null,
     };
     /** @type {Set<(state: object) => void>} */
@@ -90,6 +103,7 @@ export class AudioDock {
     e.externalBtn?.addEventListener('click', popOut, { signal });
     e.reloadBtn?.addEventListener('click', () => this.reload(), { signal });
     e.sizeBtn?.addEventListener('click', () => this.toggleSize(), { signal });
+    e.zoomBtn?.addEventListener('click', () => this.cycleZoom(), { signal });
     e.bar?.addEventListener(
       'pointerdown',
       (event) => {
@@ -149,7 +163,8 @@ export class AudioDock {
         Number.isFinite(saved?.height)
       )
         this._position = saved;
-      if (saved?.size === 'large') this._state.size = 'large';
+      if (SIZE_ORDER.includes(saved?.size)) this._state.size = saved.size;
+      if (ZOOM_STEPS.includes(saved?.zoom)) this._state.zoom = saved.zoom;
     } catch {
       /* storage is a nicety */
     }
@@ -165,6 +180,7 @@ export class AudioDock {
       width: Math.round(rect.width),
       height: Math.round(rect.height),
       size: this._state.size,
+      zoom: this._state.zoom,
     };
     try {
       this.storage?.setItem?.(STORAGE_KEY, JSON.stringify(this._position));
@@ -202,7 +218,7 @@ export class AudioDock {
     if (!root) return;
     const view = this._viewport();
     const size = SIZES[this._state.size] || SIZES.normal;
-    const saved = this._position;
+    const saved = this._state.size === 'fit' ? null : this._position;
     const width = Math.max(
       MIN_WIDTH,
       Math.min(view.width - EDGE_MARGIN * 2, saved?.width || size.width),
@@ -214,7 +230,21 @@ export class AudioDock {
     root.style.width = `${width}px`;
     root.style.height = `${height}px`;
     if (saved) this._place(saved.left, saved.top);
+    else if (this._state.size === 'fit') this._place(EDGE_MARGIN, EDGE_MARGIN);
     else this._place(EDGE_MARGIN + 12, view.height - height - 96);
+    this._applyZoom();
+  }
+
+  /** Scale the frame so the receiver page renders at 1/zoom of the dock's width. */
+  _applyZoom() {
+    const frame = this.elements.frame;
+    if (!frame) return;
+    const zoom = ZOOM_STEPS.includes(this._state.zoom) ? this._state.zoom : 1;
+    const pct = `${(100 / zoom).toFixed(4)}%`;
+    frame.style.width = pct;
+    frame.style.height = pct;
+    frame.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+    frame.style.transformOrigin = '0 0';
   }
 
   _clamp() {
@@ -301,12 +331,32 @@ export class AudioDock {
     this._emit();
   }
 
+  /** normal → large → fit (whole viewport) → normal. */
   toggleSize() {
-    this._state.size = this._state.size === 'large' ? 'normal' : 'large';
+    const index = SIZE_ORDER.indexOf(this._state.size);
+    this._state.size = SIZE_ORDER[(index + 1) % SIZE_ORDER.length];
     this._position = null;
     this._applyBox();
     this._persist();
     this._render();
+  }
+
+  /** 100% → 80% → 65% → 50% → 100%: more spectrum, smaller text. */
+  cycleZoom() {
+    const index = ZOOM_STEPS.indexOf(this._state.zoom);
+    this._state.zoom = ZOOM_STEPS[(index + 1) % ZOOM_STEPS.length];
+    this._applyZoom();
+    this._persist();
+    this._render();
+  }
+
+  setZoom(zoom) {
+    if (!ZOOM_STEPS.includes(zoom)) return this._state.zoom;
+    this._state.zoom = zoom;
+    this._applyZoom();
+    this._persist();
+    this._render();
+    return zoom;
   }
 
   isOpen() {
@@ -363,11 +413,24 @@ export class AudioDock {
       );
     }
     if (e.frame) e.frame.hidden = Boolean(s.external);
-    if (e.sizeBtn)
+    if (e.sizeBtn) {
       e.sizeBtn.setAttribute(
         'aria-pressed',
-        s.size === 'large' ? 'true' : 'false',
+        s.size === 'normal' ? 'false' : 'true',
       );
+      e.sizeBtn.title =
+        s.size === 'normal'
+          ? 'Larger'
+          : s.size === 'large'
+            ? 'Fit the whole screen'
+            : 'Back to the small window';
+    }
+    if (e.zoomBtn) {
+      setText(e.zoomBtn, `${Math.round(s.zoom * 100)}%`);
+      e.zoomBtn.title =
+        'Page zoom: smaller shows more of the receiver (more waterfall, less panel)';
+      e.zoomBtn.setAttribute('aria-pressed', s.zoom === 1 ? 'false' : 'true');
+    }
     if (e.frame && s.title) e.frame.title = s.title;
   }
 
