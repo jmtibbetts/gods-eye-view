@@ -387,6 +387,8 @@
 #control-panel.collapsed .button-grid,
 #data-panel.collapsed .data-toggle-list,
 #global-context-panel.collapsed #radio-panel,
+#global-context-panel.collapsed #scanner-panel,
+#global-context-panel.collapsed #sdr-panel,
 #global-context-panel.collapsed #military-awareness-panel,
 #global-context-panel.collapsed .global-context-actions,
 #global-context-panel.collapsed .global-context-modes,
@@ -395,6 +397,8 @@
   > .global-context-panel-inner
   > .context-mode-standby,
 #radio-panel.collapsed .radio-panel-inner > :not(.panel-header),
+#scanner-panel.collapsed .audio-panel-inner > :not(.panel-header),
+#sdr-panel.collapsed .audio-panel-inner > :not(.panel-header),
 #cctv-panel.collapsed .cctv-controls,
 #cctv-panel.collapsed .cctv-calibration-block,
 #cctv-panel.collapsed .cctv-frame-wrap,
@@ -419,13 +423,17 @@
   width: var(--left-collapsed-width);
 }
 
-#global-context-panel #radio-panel.collapsed {
+#global-context-panel #radio-panel.collapsed,
+#global-context-panel #scanner-panel.collapsed,
+#global-context-panel #sdr-panel.collapsed {
   width: 100%;
 }
 
 #data-panel.collapsed .panel-title,
 #cctv-panel.collapsed .panel-title,
 #radio-panel.collapsed .panel-title,
+#scanner-panel.collapsed .panel-title,
+#sdr-panel.collapsed .panel-title,
 #scene-panel.collapsed .panel-title {
   font-size: 8px;
   letter-spacing: 1.8px;
@@ -435,6 +443,8 @@
 #data-panel.collapsed .data-panel-inner,
 #cctv-panel.collapsed .cctv-panel-inner,
 #radio-panel.collapsed .radio-panel-inner,
+#scanner-panel.collapsed .audio-panel-inner,
+#sdr-panel.collapsed .audio-panel-inner,
 #scene-panel.collapsed .scene-panel-inner,
 #param-slider-panel.collapsed,
 #location-bar.collapsed .location-inner {
@@ -445,6 +455,8 @@
 #data-panel.collapsed .panel-header,
 #cctv-panel.collapsed .panel-header,
 #radio-panel.collapsed .panel-header,
+#scanner-panel.collapsed .panel-header,
+#sdr-panel.collapsed .panel-header,
 #global-context-panel.collapsed .panel-header,
 #scene-panel.collapsed .panel-header,
 #param-slider-panel.collapsed .param-panel-header {
