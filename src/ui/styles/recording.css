@@ -97,3 +97,33 @@ body.recording-mode #scene-panel {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/* TIMELINE panel — mirrors the other context panels. */
+/* VESSEL WATCH panel — mirrors the WATCHLIST panel chrome. */
+/* WATCHLIST panel — mirrors the MONITOR panel chrome. */
+/* ── Recording Mode ─────────────────────────── */
+body.recording-mode #title-bar,
+body.recording-mode #style-indicator,
+body.recording-mode #top-center-actions,
+body.recording-mode #global-loading-status,
+body.recording-mode #traffic-sync-chip,
+body.recording-mode #cctv-sync-chip,
+body.recording-mode #pp-toggles,
+body.recording-mode #clean-view-exit,
+body.recording-mode #param-slider-panel,
+body.recording-mode #control-panel,
+body.recording-mode #location-bar,
+body.recording-mode #data-panel,
+body.recording-mode #cctv-panel,
+body.recording-mode #radio-panel,
+body.recording-mode #scanner-panel,
+body.recording-mode #sdr-panel,
+body.recording-mode #atc-panel,
+body.recording-mode #timeline-panel,
+body.recording-mode #global-context-panel,
+body.recording-mode #gev-voice-control,
+body.recording-mode #scene-panel {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

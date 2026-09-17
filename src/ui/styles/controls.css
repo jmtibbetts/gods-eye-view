@@ -1214,3 +1214,30 @@ body.ui-clean-view #scene-panel {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/* TIMELINE panel — mirrors the other context panels. */
+/* VESSEL WATCH panel — mirrors the WATCHLIST panel chrome. */
+/* WATCHLIST panel — mirrors the MONITOR panel chrome. */
+body.ui-clean-view #title-bar,
+body.ui-clean-view #style-indicator,
+body.ui-clean-view #top-center-actions,
+body.ui-clean-view #global-loading-status,
+body.ui-clean-view #traffic-sync-chip,
+body.ui-clean-view #cctv-sync-chip,
+body.ui-clean-view #pp-toggles,
+body.ui-clean-view #param-slider-panel,
+body.ui-clean-view #control-panel,
+body.ui-clean-view #location-bar,
+body.ui-clean-view #data-panel,
+body.ui-clean-view #cctv-panel,
+body.ui-clean-view #radio-panel,
+body.ui-clean-view #scanner-panel,
+body.ui-clean-view #sdr-panel,
+body.ui-clean-view #atc-panel,
+body.ui-clean-view #timeline-panel,
+body.ui-clean-view #global-context-panel,
+body.ui-clean-view #scene-panel {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

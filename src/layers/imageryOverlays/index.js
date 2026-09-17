@@ -34,6 +34,8 @@ export function createImageryOverlayLayer({
   let _lastUpdate = null;
   let _lastError = null;
   let _frameTime = null;
+  /** null means 'whatever this feed calls latest'. */
+  let _displayDate = null;
 
   function removeLayer() {
     if (_imageryLayer && _viewer?.imageryLayers) {
@@ -49,7 +51,9 @@ export function createImageryOverlayLayer({
   async function applyProvider() {
     const token = ++_request;
     try {
-      const config = await descriptor.resolve(fetchImpl);
+      const config = await descriptor.resolve(fetchImpl, {
+        date: _displayDate,
+      });
       if (!_enabled || token !== _request || !_viewer?.imageryLayers)
         return false;
       const { url, frameTime, credit, ...providerOptions } = config;
@@ -129,6 +133,32 @@ export function createImageryOverlayLayer({
     /** Overlay layers carry no point records for the analyst export. */
     getAnalystRecords() {
       return [];
+    },
+
+    /** Whether the TIMELINE scrubber can move this feed through its archive. */
+    isTimeAware() {
+      return descriptor.timeAware === true;
+    },
+
+    /**
+     * Pin this overlay to a UTC day, or pass null to return it to the feed's
+     * own latest frame. Re-resolves immediately when enabled so the scrub is
+     * visible without waiting for the next update tick.
+     * @param {string|null} date YYYY-MM-DD, or null for live.
+     * @returns {Promise<boolean>} True when a new frame was applied.
+     */
+    async setDisplayDate(date) {
+      if (descriptor.timeAware !== true) return false;
+      const next = typeof date === 'string' && date ? date : null;
+      if (next === _displayDate) return false;
+      _displayDate = next;
+      if (!_enabled) return false;
+      return applyProvider();
+    },
+
+    /** The day this overlay is pinned to, or null when following live. */
+    getDisplayDate() {
+      return _displayDate;
     },
   };
   return layer;

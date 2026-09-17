@@ -1097,3 +1097,47 @@ body.recording-mode .audio-dock {
   opacity: 0.4;
   cursor: default;
 }
+
+/* TIMELINE panel — mirrors the other context panels. */
+/* VESSEL WATCH panel — mirrors the WATCHLIST panel chrome. */
+/* WATCHLIST panel — mirrors the MONITOR panel chrome. */
+/* ── Scanners and SDR / HAM sections inside Context ── */
+#scanner-panel,
+#sdr-panel,
+#atc-panel,
+#timeline-panel {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(65, 220, 231, 0.16);
+}
+
+#scanner-panel .panel-header,
+#sdr-panel .panel-header,
+#atc-panel .panel-header,
+#timeline-panel .panel-header {
+  margin-bottom: 0;
+}
+
+/* TIMELINE scrubber controls. */
+.timeline-label {
+  color: #e8feff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+}
+
+.timeline-slider {
+  width: 100%;
+  margin: 0 0 8px;
+  accent-color: #72dce6;
+  cursor: pointer;
+}
+
+.timeline-slider:focus-visible {
+  outline: 1px solid rgba(114, 220, 230, 0.8);
+  outline-offset: 2px;
+}

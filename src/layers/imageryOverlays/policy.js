@@ -47,13 +47,15 @@ export const IMAGERY_OVERLAYS = Object.freeze([
       'Imagery: NASA EOSDIS GIBS (VIIRS/NOAA-20 Corrected Reflectance)',
     opacity: 1,
     updateInterval: 60 * 60 * 1000,
-    async resolve() {
+    // Daily product with a deep archive, so the TIMELINE scrubber can move it.
+    timeAware: true,
+    async resolve(fetchImpl, { date = null } = {}) {
       return {
         url: gibsTemplate(
           'VIIRS_NOAA20_CorrectedReflectance_TrueColor',
           'GoogleMapsCompatible_Level9',
           'jpg',
-          recentGibsDate(),
+          date || recentGibsDate(),
         ),
         maximumLevel: 9,
         credit: 'NASA EOSDIS GIBS',

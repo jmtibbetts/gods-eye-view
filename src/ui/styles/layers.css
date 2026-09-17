@@ -1379,3 +1379,16 @@
      contents paint through the next section. */
   flex: 0 0 auto;
 }
+
+/* TIMELINE panel — mirrors the other context panels. */
+/* VESSEL WATCH panel — mirrors the WATCHLIST panel chrome. */
+/* WATCHLIST panel — mirrors the MONITOR panel chrome. */
+#right-context-rail #global-context-panel:not(.collapsed) #scanner-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #sdr-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #atc-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #timeline-panel {
+  /* These sections share the Context panel's existing scroller. Keep their
+     natural heights so flexbox cannot compress one section and let its
+     contents paint through the next section. */
+  flex: 0 0 auto;
+}
