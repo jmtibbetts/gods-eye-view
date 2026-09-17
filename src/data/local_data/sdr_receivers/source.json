@@ -1,0 +1,17 @@
+{
+  "id": "sdr-receivers",
+  "name": "Public web SDR receiver directory (KiwiSDR, WebSDR, OpenWebRX)",
+  "category": "audio",
+  "description": "Snapshot of publicly listed, browser-accessible software-defined radio receivers with coordinates: KiwiSDR and OpenWebRX receivers registered on receiverbook.de plus a curated WebSDR/UberSDR/NovaSDR list. Each entry links to the receiver's own web UI, which streams audio directly from the receiver operator.",
+  "downloaded_at": "2026-09-17",
+  "license_note": "receiverbook.de (GPL-3.0 code; receivers are owner-registered, online-only snapshot). Curated WebSDR entries from rx.skywavelinux.com static_rx.js and priyom/dyatlov static_rx.js (GPLv3+). KiwiSDR.com's own directory is not scraped. Receivers are volunteer-run: honor each operator's user limits.",
+  "files": [
+    {
+      "path": "receivers.json",
+      "url": "https://www.receiverbook.de/map",
+      "format": "JSON",
+      "record_count": 1317,
+      "sha256": "0c24ccefb152e5426e0d76aea11de4fcf65d5e186b47c6722d7d000dd00501ca"
+    }
+  ]
+}

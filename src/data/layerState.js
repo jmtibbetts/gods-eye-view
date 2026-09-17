@@ -377,6 +377,8 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     disposition: 'enabled+options',
     optionOwner: 'satellites',
   }),
+  Object.freeze({ id: 'scanner', token: 'k', disposition: 'enabled-only' }),
+  Object.freeze({ id: 'sdr', token: 'o', disposition: 'enabled-only' }),
   Object.freeze({
     id: 'telegeography-submarine-cables',
     token: 'u',

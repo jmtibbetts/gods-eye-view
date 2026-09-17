@@ -18,6 +18,8 @@ import { createApplicationAwareness } from './layers/militaryAwareness.js';
 import { createApplicationFirms } from './layers/firms.js';
 import { createApplicationEarthquakes } from './layers/earthquakes.js';
 import { createApplicationCables } from './layers/submarineCables.js';
+import { createApplicationScanner } from './layers/scanner.js';
+import { createApplicationSdr } from './layers/sdr.js';
 import { createInfrastructureLayers } from '../data/infrastructure.js';
 import { localGeoJsonServices } from './localGeojsonServices.js';
 import { createBhoteKoshiEventLayer } from '../data/bhoteKoshiEvent.js';
@@ -44,6 +46,8 @@ const SOURCE_METHODS = Object.freeze({
   firms: ['getSnapshot'],
   earthquakes: ['getSnapshot'],
   cables: ['fetch'],
+  scanner: ['getSeed', 'getSystems', 'getRecentCalls', 'getNewerCalls'],
+  sdr: ['getSnapshot'],
 });
 
 /** Construct the current catalog without choosing any source provider.
@@ -111,6 +115,8 @@ export function createApplicationCatalog({
         flights,
         military,
         createApplicationEarthquakes({ source: sources.earthquakes }),
+        createApplicationScanner({ source: sources.scanner }),
+        createApplicationSdr({ source: sources.sdr }),
         createApplicationAlpr({ surface, source: sources.alpr }),
         satellites,
         createApplicationLaunches({ source: sources.launches, satellites }),

@@ -63,6 +63,14 @@ export const DATA_CREDITS = [
       '(API documentation and rate limits)',
   },
   {
+    key: 'openmhz',
+    html: 'Public-safety radio: recorded call audio and system catalog from <a href="https://openmhz.com/" target="_blank" rel="noopener noreferrer">OpenMHz</a> (community trunk-recorder uploads; audio delivered directly by OpenMHz)',
+  },
+  {
+    key: 'sdr-directory',
+    html: 'Web SDR receivers: directory snapshot from <a href="https://www.receiverbook.de/" target="_blank" rel="noopener noreferrer">receiverbook.de</a> and curated WebSDR lists; audio delivered directly by each receiver operator',
+  },
+  {
     key: 'usgs',
     html: 'Earthquakes: Data courtesy of the U.S. Geological Survey',
   },

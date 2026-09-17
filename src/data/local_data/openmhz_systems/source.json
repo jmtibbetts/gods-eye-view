@@ -1,0 +1,17 @@
+{
+  "id": "openmhz-systems",
+  "name": "OpenMHz public-safety radio systems (geocoded seed)",
+  "category": "audio",
+  "description": "Seed catalog of the trunked public-safety radio systems recorded on OpenMHz (api.openmhz.com/systems), geocoded once to city/county/state centroids with OpenStreetMap Nominatim so each system can be placed on the globe. The live catalog and call audio come from OpenMHz at runtime; this file only supplies coordinates and a first paint.",
+  "downloaded_at": "2026-09-17",
+  "license_note": "OpenMHz is a community project (trunk-recorder uploads) with no published API terms; this seed holds only system names, locations and activity averages. Coordinates are derived from OpenStreetMap data (ODbL) via Nominatim, resolved to place centroids, not addresses. Refresh by re-running the geocode against /systems.",
+  "files": [
+    {
+      "path": "systems.json",
+      "url": "https://api.openmhz.com/systems",
+      "format": "JSON",
+      "record_count": 461,
+      "sha256": "9d49bef542bfb4dbd19e60e3d9b51f61acc3db5932d6d2b124c03d2a0b705118"
+    }
+  ]
+}

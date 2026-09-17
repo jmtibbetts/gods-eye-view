@@ -828,6 +828,33 @@
     ],
     "external": ["cesium"]
   },
+  "scanner-layer": {
+    "exports": ["./layers/scanner"],
+    "modules": [
+      "src/layers/scanner/index.js",
+      "src/layers/scanner/model.js",
+      "src/layers/scanner/player.js",
+      "src/layers/scanner/policy.js",
+      "src/layers/scanner/records.js",
+      "src/layers/scanner/source.js",
+      "src/data/inputOwnership.js",
+      "src/data/pickRegistry.js"
+    ],
+    "external": ["cesium"]
+  },
+  "sdr-layer": {
+    "exports": ["./layers/sdr"],
+    "modules": [
+      "src/layers/sdr/index.js",
+      "src/layers/sdr/model.js",
+      "src/layers/sdr/policy.js",
+      "src/layers/sdr/records.js",
+      "src/layers/sdr/source.js",
+      "src/data/inputOwnership.js",
+      "src/data/pickRegistry.js"
+    ],
+    "external": ["cesium"]
+  },
   "fire-layer": {
     "exports": ["./layers/firms"],
     "modules": [
@@ -1809,7 +1836,20 @@
       "src/director/sharing/lifetime.js",
       "src/director/authoring.js",
       "src/scenes/sharing.js",
-      "src/ui/sceneSharing.js"
+      "src/ui/sceneSharing.js",
+      "src/layers/scanner/source.js",
+      "src/layers/scanner/records.js",
+      "src/layers/scanner/policy.js",
+      "src/layers/sdr/source.js",
+      "src/layers/sdr/records.js",
+      "src/layers/sdr/policy.js",
+      "src/layers/scanner/index.js",
+      "src/layers/scanner/model.js",
+      "src/layers/scanner/player.js",
+      "src/layers/sdr/index.js",
+      "src/layers/sdr/model.js",
+      "src/app/layers/scanner.js",
+      "src/app/layers/sdr.js"
     ],
     "external": [
       "@mapbox/vector-tile",
@@ -2203,7 +2243,20 @@
       "src/sources/overpassFeaturesRecords.js",
       "src/sources/overpassFeatures.js",
       "src/sources/featureSource.js",
-      "src/sources/overpassRoads.js"
+      "src/sources/overpassRoads.js",
+      "src/app/layers/scanner.js",
+      "src/app/layers/sdr.js",
+      "src/layers/scanner/index.js",
+      "src/layers/scanner/model.js",
+      "src/layers/scanner/player.js",
+      "src/layers/scanner/policy.js",
+      "src/layers/scanner/records.js",
+      "src/layers/scanner/source.js",
+      "src/layers/sdr/index.js",
+      "src/layers/sdr/model.js",
+      "src/layers/sdr/policy.js",
+      "src/layers/sdr/records.js",
+      "src/layers/sdr/source.js"
     ],
     "external": [
       "cesium",
@@ -2454,6 +2507,24 @@
     ],
     "external": []
   },
+  "scanner-source": {
+    "exports": ["./layers/scanner/source"],
+    "modules": [
+      "src/layers/scanner/policy.js",
+      "src/layers/scanner/records.js",
+      "src/layers/scanner/source.js"
+    ],
+    "external": []
+  },
+  "sdr-source": {
+    "exports": ["./layers/sdr/source"],
+    "modules": [
+      "src/layers/sdr/policy.js",
+      "src/layers/sdr/records.js",
+      "src/layers/sdr/source.js"
+    ],
+    "external": []
+  },
   "firms-source": {
     "exports": ["./layers/firms/source"],
     "modules": ["src/layers/firms/source.js"],
@@ -2499,7 +2570,13 @@
       "src/sources/reference.js",
       "src/layers/earthquakes/source.js",
       "src/layers/earthquakes/records.js",
-      "src/layers/submarineCables/bundledSource.js"
+      "src/layers/submarineCables/bundledSource.js",
+      "src/layers/scanner/source.js",
+      "src/layers/scanner/records.js",
+      "src/layers/scanner/policy.js",
+      "src/layers/sdr/source.js",
+      "src/layers/sdr/records.js",
+      "src/layers/sdr/policy.js"
     ],
     "external": []
   },
