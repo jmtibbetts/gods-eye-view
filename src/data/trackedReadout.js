@@ -41,6 +41,28 @@ let _contextClearedHandler = null;
 let _aircraftSelectedHandler = null;
 let _activeEntryId = null;
 let _overlayHost = DEFAULT_TRACKED_OVERLAY_HOST;
+/**
+ * Optional extra readout line for tracked AIRCRAFT (flights, military).
+ * The ATC layer sets this to name the controller and frequency the selected
+ * plane is on, so a plain click identifies its ATC frequency. Returns a
+ * string (or null) given the tracked entity.
+ * @type {((entity: object) => string|null)|null}
+ */
+let _aircraftAnnotator = null;
+
+/**
+ * Install (or clear) the tracked-aircraft annotator. The line it returns is
+ * appended to the readout card of a tracked flight/military contact.
+ * @param {((entity: object) => string|null)|null} fn
+ */
+export function setTrackedAircraftAnnotator(fn) {
+  _aircraftAnnotator = typeof fn === 'function' ? fn : null;
+}
+
+/** Re-publish the active tracked entry (e.g. after the annotator's data loads). */
+export function republishTrackedReadout() {
+  syncActiveEntity();
+}
 
 /**
  * Convert the former newline/inline label text into the explicit presentation
@@ -131,6 +153,27 @@ function activeEntity() {
  * @param {Object|null} entity Tracked or selected presentation entity.
  * @returns {Object|null}
  */
+/**
+ * The card's detail lines, plus the ATC controller/frequency line for a
+ * tracked aircraft when an annotator is installed and returns one.
+ */
+function annotatedDetails(entity, model) {
+  const base = Array.isArray(model.details)
+    ? model.details.map((line) => String(line))
+    : [];
+  const trackedId = entity?.gevTrackedId;
+  const isAircraft =
+    typeof trackedId === 'string' &&
+    (trackedId.startsWith('flights:') || trackedId.startsWith('military:'));
+  if (!_aircraftAnnotator || !isAircraft) return base;
+  try {
+    const line = _aircraftAnnotator(entity);
+    return line ? [...base, String(line)] : base;
+  } catch {
+    return base;
+  }
+}
+
 export function createTrackedOverlayEntry(entity) {
   const model = entity?.gevLabelModel;
   const id = entryIdFor(entity);
@@ -149,9 +192,7 @@ export function createTrackedOverlayEntry(entity) {
     collisionGroup: 'ambient-card',
     priority: Number.MAX_SAFE_INTEGER,
     title,
-    details: Array.isArray(model.details)
-      ? model.details.map((line) => String(line))
-      : [],
+    details: annotatedDetails(entity, model),
     accent: model.accent || WORLD_OVERLAY_STYLE.accent,
     cardStyle: model.cardStyle,
     selected: model.selected === true,

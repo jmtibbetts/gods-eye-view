@@ -448,6 +448,12 @@ test('the layer lists, selects, listens (SDR first, LiveATC fallback) and follow
   assert.equal(follow.active, true);
   assert.equal(follow.phase, 'tower');
   assert.equal(follow.contact.label, 'SWA1');
+  // Click-to-identify: the readout annotation names the same controller/freq.
+  assert.equal(
+    layer.contactAnnotationText(),
+    'ATC Austin Tower 121.000',
+    'a plain click identifies the tower frequency',
+  );
   assert.equal(opened.length, before + 1, 'follow opened the tower once');
   assert.equal(layer.getAtcListening().reason, 'follow');
   // The same target again does not reopen the window.
@@ -468,6 +474,11 @@ test('the layer lists, selects, listens (SDR first, LiveATC fallback) and follow
   await new Promise((r) => setTimeout(r, 10));
   assert.equal(layer.getAtcUIState().follow.contact, null);
   assert.equal(layer.getAtcUIState().follow.active, true);
+  assert.equal(
+    layer.contactAnnotationText(),
+    null,
+    'no plane selected → no line',
+  );
   assert.ok(sdrHits >= 3);
 
   assert.ok(layer.getAnalystRecords(10).every((r) => r.towered));

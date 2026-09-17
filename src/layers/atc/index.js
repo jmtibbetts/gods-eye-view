@@ -76,6 +76,7 @@ export function createAtcLayer({
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
   ground = null,
   eventTarget = typeof window !== 'undefined' ? window : null,
+  onAnnotationChange = null,
 } = {}) {
   if (typeof source?.getSnapshot !== 'function')
     throw new TypeError('ATC layer requires a snapshot source');
@@ -420,6 +421,11 @@ export function createAtcLayer({
         _builtAt = snapshot.builtAt;
         _cycle = snapshot.cycle;
         _loaded = true;
+        try {
+          onAnnotationChange?.();
+        } catch {
+          /* the readout refreshes on its own poll regardless */
+        }
       } finally {
         _loading = null;
       }
@@ -510,6 +516,11 @@ export function createAtcLayer({
       if (!TRACKED_LAYERS.has(event?.detail?.layerId)) return;
       _followKey = null;
       if (_follow) setTimeout(followTick, 50);
+      try {
+        onAnnotationChange?.();
+      } catch {
+        /* ignore */
+      }
     };
     _subjectClearedHandler = (event) => {
       if (!TRACKED_LAYERS.has(event?.detail?.layerId)) return;
@@ -767,6 +778,34 @@ export function createAtcLayer({
         toweredOnly: Boolean(toweredOnly),
         limit,
       });
+    },
+    /**
+     * A compact "controller frequency" line for the currently selected
+     * tracked aircraft, for the readout card. Loads the directory on first
+     * use so a plain click identifies the frequency even with the ATC dots
+     * off. Returns null when nothing is selected or no VHF frequency applies.
+     * @returns {string|null}
+     */
+    contactAnnotationText() {
+      const record = context?.getSelectedEntityContext?.();
+      if (!record || !TRACKED_LAYERS.has(record.layerId)) return null;
+      if (!_loaded) {
+        loadDirectory().catch(() => {});
+        return null;
+      }
+      const contact = atcContactFromContext(record);
+      if (!contact || !Number.isFinite(contact.lat)) return null;
+      const target = atcFollowTarget(contact, {
+        airports: _airports,
+        byFaa: _byFaa,
+        centers: _centers,
+      });
+      if (target.center)
+        return target.frequency
+          ? `ATC ${target.center.artcc || target.center.name} Center ${atcMhzText(target.frequency.mhz)}`
+          : `ATC ${target.center.artcc || target.center.name} Center`;
+      if (!target.airport || !target.frequency) return null;
+      return `ATC ${atcFacilityName(target.airport, target.position)} ${atcMhzText(target.frequency.mhz)}`;
     },
     /** Resolve the controller a contact would be talking to right now. */
     atcTargetForContact(contact) {
