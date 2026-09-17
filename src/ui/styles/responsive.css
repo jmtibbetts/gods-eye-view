@@ -276,3 +276,23 @@
 #right-context-rail #global-context-panel.collapsed {
   width: 100%;
 }
+
+/* VESSEL WATCH panel — mirrors the WATCHLIST panel chrome. */
+/* WATCHLIST panel — mirrors the MONITOR panel chrome. */
+#right-context-rail #pp-toggles.collapsed .pp-header-row,
+#right-context-rail #cctv-panel,
+#right-context-rail #cctv-panel.collapsed,
+#right-context-rail #radio-panel,
+#right-context-rail #radio-panel.collapsed,
+#right-context-rail #scanner-panel,
+#right-context-rail #scanner-panel.collapsed,
+#right-context-rail #sdr-panel,
+#right-context-rail #atc-panel,
+#right-context-rail #vessel-watch-panel,
+#right-context-rail #sdr-panel.collapsed,
+#right-context-rail #atc-panel.collapsed,
+#right-context-rail #vessel-watch-panel.collapsed,
+#right-context-rail #global-context-panel,
+#right-context-rail #global-context-panel.collapsed {
+  width: 100%;
+}

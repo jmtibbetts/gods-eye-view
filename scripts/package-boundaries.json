@@ -409,7 +409,9 @@
       "src/ui/monitorPanel.js",
       "src/ui/monitorEngine.js",
       "src/ui/watchlistPanel.js",
-      "src/ui/watchlistEngine.js"
+      "src/ui/watchlistEngine.js",
+      "src/ui/vesselWatchPanel.js",
+      "src/ui/vesselWatchEngine.js"
     ],
     "external": []
   },
@@ -597,7 +599,9 @@
       "src/ui/monitorPanel.js",
       "src/ui/monitorEngine.js",
       "src/ui/watchlistPanel.js",
-      "src/ui/watchlistEngine.js"
+      "src/ui/watchlistEngine.js",
+      "src/ui/vesselWatchPanel.js",
+      "src/ui/vesselWatchEngine.js"
     ],
     "external": ["cesium"]
   },
@@ -1913,7 +1917,9 @@
       "src/ui/monitorPanel.js",
       "src/ui/monitorEngine.js",
       "src/ui/watchlistPanel.js",
-      "src/ui/watchlistEngine.js"
+      "src/ui/watchlistEngine.js",
+      "src/ui/vesselWatchPanel.js",
+      "src/ui/vesselWatchEngine.js"
     ],
     "external": [
       "@mapbox/vector-tile",

@@ -1,0 +1,18 @@
+{
+  "id": "sanctioned-vessels",
+  "name": "OFAC sanctioned vessels, keyed by MMSI",
+  "category": "vessels",
+  "description": "Vessel entries from the US Treasury OFAC Specially Designated Nationals list that carry an MMSI, used to flag listed ships in the live AIS feed. Keyed by MMSI only, because vessel names repeat across the world fleet and matching on name would mislabel innocent ships. Of 1540 vessel entries on the list, 803 carry an MMSI; the rest cannot be matched against AIS at all, so absence from this table is not evidence that a vessel is unlisted.",
+  "downloaded_at": "2026-09-17",
+  "license_note": "US Government public data. The SDN list is published by the Office of Foreign Assets Control and is in the public domain. It changes frequently and is authoritative only at sanctionslist.ofac.treas.gov; this snapshot is a convenience copy and must be refreshed rather than relied on as current.",
+  "build": "Parsed from SDN.CSV, keeping rows whose SDN_Type is 'vessel', extracting the nine-digit MMSI and seven-digit IMO from the remarks field alongside name, program, flag and vessel type. The published CSV is served through an expiring signed redirect with no CORS header, so it cannot be read from the browser and is bundled instead.",
+  "files": [
+    {
+      "path": "vessels.json",
+      "url": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV",
+      "format": "JSON",
+      "record_count": 803,
+      "sha256": "b6ded4225f3120b68e45daba23badde39588bd7831a557245f0a74906d058c77"
+    }
+  ]
+}

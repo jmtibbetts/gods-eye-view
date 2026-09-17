@@ -68,6 +68,7 @@ Start with the included data sources, then add your own. Each layer is a separat
 - **🎖️ Military HUD:** Tactical heads-up display with intelligence-style telemetry.
 - **🌐 Global Context:** Stage the full situational picture with one switch — and get your exact view back when you leave.
 - **🧩 Layer combinations:** One press stacks the layers that only make sense together — STORM + AIR puts NEXRAD radar under live flights with active warnings, so you can see what the traffic is actually diverting around. Press again to put it back.
+- **🚢 VESSEL WATCH:** Two reads the raw AIS feed does not give you — which ships in view are on the OFAC sanctions list, matched by MMSI and never by name, and which tracked ships have stopped transmitting. Both are stated with their limits: a listing without an MMSI cannot be matched, and a coverage gap is not proof a transponder was switched off.
 - **📌 WATCHLIST:** Pin the contacts you actually care about — an aircraft callsign or ICAO24 address, a vessel MMSI or name — and each one turns green the moment it appears on any enabled layer, wherever on Earth it is, with a toast and a FLY TO.
 - **🎯 MONITOR watchboxes:** Draw a watch circle over anywhere on Earth and every enabled layer reports what is inside it — aircraft, vessels, fires, scanners, storm reports — with new arrivals flagged as they appear.
 - **🎥 Scene director:** Capture cinematic camera tours for clips and demos.

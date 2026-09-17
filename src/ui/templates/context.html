@@ -321,6 +321,20 @@
             <p class="audio-privacy">Matches against whatever layers you have enabled. Your pinned identifiers stay in this browser; nothing is sent anywhere.</p>
           </div>
         </section>
+        <section id="vessel-watch-panel" class="panel-collapsible collapsed" data-panel-id="vessel-watch-panel" aria-label="Vessel watch">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">VESSEL WATCH</span>
+              <span id="vessel-watch-layer-state" class="audio-layer-state">IDLE</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="vessel-watch-panel" title="Expand Vessel Watch" aria-label="Expand Vessel Watch section">+</button>
+            </div>
+            <ul id="vessel-watch-list" class="vessel-watch-list" aria-label="Vessels of interest"></ul>
+            <div id="vessel-watch-empty" class="vessel-watch-empty">Turn on Live Vessels and this starts reading the AIS feed for two things it does not report itself: ships on the OFAC sanctions list, and tracked ships that stop transmitting.</div>
+            <p id="vessel-watch-note" class="audio-privacy"></p>
+            <p class="audio-privacy">Sanctions matching is by MMSI only, never by name, so a listed ship whose entry carries no MMSI will not appear — absence here is not evidence a vessel is unlisted. A vessel is only called dark after repeated sightings then sustained silence; AIS coverage is patchy and a gap is not proof a transponder was switched off.</p>
+          </div>
+        </section>
       </div>
     </div>
   </aside>

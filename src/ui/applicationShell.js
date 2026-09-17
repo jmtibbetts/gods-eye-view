@@ -19,6 +19,7 @@ import { AtcPanel, ScannerPanel, SdrPanel } from './audioPanels.js';
 import { AudioDock } from './audioDock.js';
 import { MonitorPanel } from './monitorPanel.js';
 import { WatchlistPanel } from './watchlistPanel.js';
+import { VesselWatchPanel } from './vesselWatchPanel.js';
 import { captureSnapshot } from './snapshotExport.js';
 import { LocationNavigation } from './locationNavigation.js';
 import { bindClearLayersControl } from './layers.js';
@@ -249,6 +250,7 @@ export class StyleManager extends ShellFacade {
         _atcPanel: this._atcPanel,
         _monitorPanel: this._monitorPanel,
         _watchlistPanel: this._watchlistPanel,
+        _vesselWatchPanel: this._vesselWatchPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -967,6 +969,21 @@ export class StyleManager extends ShellFacade {
           return null;
         }
       })(),
+      onToast: (message) => {
+        if (!this._disposed) this._showToast(message);
+      },
+    });
+
+    this._vesselWatchPanel?.destroy();
+    this._vesselWatchPanel = new VesselWatchPanel({
+      elements: {
+        layerState: this._vesselWatchLayerState,
+        list: this._vesselWatchList,
+        empty: this._vesselWatchEmpty,
+        note: this._vesselWatchNote,
+      },
+      dataManager: () => this._dataManager,
+      viewer: this.viewer,
       onToast: (message) => {
         if (!this._disposed) this._showToast(message);
       },
@@ -1736,6 +1753,7 @@ export class StyleManager extends ShellFacade {
     this._atcPanel?.destroy();
     this._monitorPanel?.destroy();
     this._watchlistPanel?.destroy();
+    this._vesselWatchPanel?.destroy();
     this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();

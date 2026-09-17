@@ -1367,3 +1367,15 @@
   border-color: rgba(107, 255, 154, 0.66);
   color: #6bff9a;
 }
+
+/* VESSEL WATCH panel — mirrors the WATCHLIST panel chrome. */
+/* WATCHLIST panel — mirrors the MONITOR panel chrome. */
+#right-context-rail #global-context-panel:not(.collapsed) #scanner-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #sdr-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #atc-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #vessel-watch-panel {
+  /* These sections share the Context panel's existing scroller. Keep their
+     natural heights so flexbox cannot compress one section and let its
+     contents paint through the next section. */
+  flex: 0 0 auto;
+}
