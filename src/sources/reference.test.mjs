@@ -17,11 +17,14 @@ test('reference factories retain compatibility without starting acquisition or s
     'cables',
     'scanner',
     'sdr',
+    'atc',
   ]);
   assert.notEqual(first.scanner, second.scanner);
   assert.notEqual(first.sdr, second.sdr);
   assert.equal(typeof first.scanner.getSeed, 'function');
   assert.equal(typeof first.sdr.getSnapshot, 'function');
+  assert.notEqual(first.atc, second.atc);
+  assert.equal(typeof first.atc.getSnapshot, 'function');
   assert.notEqual(first.earthquakes, second.earthquakes);
   assert.notEqual(first.cables, second.cables);
   assert.equal(typeof first.earthquakes.getSnapshot, 'function');

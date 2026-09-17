@@ -62,7 +62,7 @@ export function createSdrLayer({
     throw new TypeError('SDR layer requires a snapshot source');
   if (!overlayHost) throw new TypeError('SDR layer requires an overlay host');
 
-  const open =
+  let open =
     openUrl ||
     ((url) => {
       if (typeof window === 'undefined') return;
@@ -79,6 +79,8 @@ export function createSdrLayer({
   /** @type {Map<string, Cesium.Entity>} */
   const _entities = new Map();
   let _loaded = false;
+  /** @type {Promise<void>|null} In-flight directory load shared by update() and ensureSdrDirectory(). */
+  let _loading = null;
   let _builtAt = null;
   let _lastUpdate = null;
   let _lastError = null;
@@ -263,8 +265,43 @@ export function createSdrLayer({
     const receiver = _selectedId ? _receivers.get(_selectedId) : null;
     if (!receiver) return null;
     const url = sdrTunedUrl(receiver, _tune || {});
-    open(url);
+    open(url, {
+      kind: 'sdr',
+      layerId: SDR_LAYER_ID,
+      title: receiver.name,
+      subtitle: _tune
+        ? `${(_tune.freqHz / 1e6).toFixed(3)} MHz ${String(_tune.mode).toUpperCase()} · ${sdrTypeLabel(receiver)}`
+        : sdrTypeLabel(receiver),
+      receiver,
+    });
     return url;
+  }
+
+  /** Load the bundled directory once, with or without the layer enabled. */
+  function loadDirectory(signal) {
+    if (_loaded) return Promise.resolve();
+    if (_loading) return _loading;
+    _loading = (async () => {
+      try {
+        const { rows, builtAt } = await source.getSnapshot({ signal });
+        for (const row of rows) _receivers.set(row.id, row);
+        _builtAt = builtAt;
+        _loaded = true;
+      } finally {
+        _loading = null;
+      }
+    })();
+    return _loading;
+  }
+
+  function distanceKm(lat, lon, r) {
+    const toRad = Math.PI / 180;
+    const dLat = (r.lat - lat) * toRad;
+    const dLon = (r.lon - lon) * toRad;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat * toRad) * Math.cos(r.lat * toRad) * Math.sin(dLon / 2) ** 2;
+    return 6371 * 2 * Math.asin(Math.sqrt(a));
   }
 
   function installInput(viewer) {
@@ -361,14 +398,9 @@ export function createSdrLayer({
       _request = request;
       try {
         if (!_loaded) {
-          const { rows, builtAt } = await source.getSnapshot({
-            signal: request.signal,
-          });
+          await loadDirectory(request.signal);
           if (request.signal.aborted || _request !== request || !_enabled)
             return false;
-          for (const row of rows) _receivers.set(row.id, row);
-          _builtAt = builtAt;
-          _loaded = true;
         }
         rebuildEntities();
         _lastUpdate = Date.now();
@@ -419,6 +451,45 @@ export function createSdrLayer({
     },
 
     // ---- programmatic / voice surface ----
+    /** Swap the receiver hand-off (the shell installs the in-map dock here). */
+    setSdrUrlOpener(fn) {
+      if (typeof fn === 'function') open = fn;
+    },
+    /** Resolve once the directory is in memory (does not enable the layer). */
+    ensureSdrDirectory() {
+      return loadDirectory();
+    },
+    /**
+     * One-click listen: pick the nearest receiver that covers the frequency
+     * and open it tuned. Selects it on the globe when the layer is enabled.
+     * @param {{freqHz:number, mode?:string, lat:number, lon:number, maxKm?:number}} query
+     * @returns {Promise<{receiver:object, url:string}|null>}
+     */
+    async listenSdr({ freqHz, mode = 'am', lat, lon, maxKm = Infinity } = {}) {
+      await loadDirectory();
+      const [best] = layer.findSdrReceivers({
+        lat,
+        lon,
+        freqHz,
+        coveredOnly: true,
+        limit: 1,
+      });
+      if (!best || !(best.distanceKm <= maxKm)) return null;
+      layer.setSdrTune({ freqHz, mode });
+      if (_enabled && _entities.has(best.id)) {
+        selectReceiver(best.id);
+        return { receiver: best, url: openSelected() };
+      }
+      const url = sdrTunedUrl(best, { freqHz, mode });
+      open(url, {
+        kind: 'sdr',
+        layerId: SDR_LAYER_ID,
+        title: best.name,
+        subtitle: `${(freqHz / 1e6).toFixed(3)} MHz ${String(mode).toUpperCase()} · ${sdrTypeLabel(best)}`,
+        receiver: best,
+      });
+      return { receiver: best, url };
+    },
     selectSdrReceiver: selectReceiver,
     clearSdrSelection() {
       clearSelection();
@@ -441,28 +512,28 @@ export function createSdrLayer({
       return _selectedId ? { ..._receivers.get(_selectedId) } : null;
     },
     /**
-     * Nearest receivers to a point, optionally only those covering a frequency.
-     * @param {{lat:number, lon:number, freqHz?:number, type?:string, limit?:number}} query
+     * Nearest receivers to a point, optionally only those covering a
+     * frequency. Receivers with no published range pass the frequency
+     * filter unless `coveredOnly` is set.
+     * @param {{lat:number, lon:number, freqHz?:number, type?:string, coveredOnly?:boolean, limit?:number}} query
      */
-    findSdrReceivers({ lat, lon, freqHz, type, limit = 5 } = {}) {
+    findSdrReceivers({
+      lat,
+      lon,
+      freqHz,
+      type,
+      coveredOnly = false,
+      limit = 5,
+    } = {}) {
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-      const toRad = Math.PI / 180;
-      const dist = (r) => {
-        const dLat = (r.lat - lat) * toRad;
-        const dLon = (r.lon - lon) * toRad;
-        const a =
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos(lat * toRad) *
-            Math.cos(r.lat * toRad) *
-            Math.sin(dLon / 2) ** 2;
-        return 6371 * 2 * Math.asin(Math.sqrt(a));
-      };
       const out = [];
       for (const r of _receivers.values()) {
         if (type && r.type !== type) continue;
-        if (Number.isFinite(freqHz) && sdrCoversFrequency(r, freqHz) === false)
-          continue;
-        out.push([dist(r), r]);
+        if (Number.isFinite(freqHz)) {
+          const covers = sdrCoversFrequency(r, freqHz);
+          if (covers === false || (coveredOnly && covers !== true)) continue;
+        }
+        out.push([distanceKm(lat, lon, r), r]);
       }
       return out
         .sort((a, b) => a[0] - b[0])

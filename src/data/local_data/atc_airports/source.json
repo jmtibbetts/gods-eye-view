@@ -1,0 +1,19 @@
+{
+  "id": "atc-airports",
+  "name": "ATC facilities and frequencies (FAA NASR + OurAirports)",
+  "category": "audio",
+  "description": "Every US airport, heliport and seaplane base with a published VHF frequency (tower, ground, clearance, approach/departure, ATIS, CTAF, UNICOM, automated weather) with tower type, hours, radio call and approach provider, plus the FAA ARTCC remote (RCAG) sites that carry en-route Center frequencies; airports worldwide with published frequencies from OurAirports. UHF military frequencies are omitted.",
+  "downloaded_at": "2026-09-17",
+  "license_note": "FAA NASR 28-day subscription data is US Government public data (effective 2026-09-03: APT_BASE.csv, ATC_BASE.csv, FRQ.csv). OurAirports airports.csv and airport-frequencies.csv are released to the public domain. Live audio is never bundled or relayed: LiveATC.net's terms forbid third-party use of its streams, so the layer opens LiveATC's own airport page, or tunes a public web SDR.",
+  "build": "scripts note: built by a one-off Python pass over the NASR CSV extracts and the OurAirports CSVs (see the layer README in src/layers/atc/policy.js); rebuild each NASR cycle.",
+  "files": [
+    {
+      "path": "airports.json",
+      "url": "https://nfdc.faa.gov/webContent/28DaySub/extra/03_Sep_2026_FRQ_CSV.zip",
+      "format": "JSON",
+      "record_count": 13656,
+      "center_sites": 737,
+      "sha256": "6bd622d853f0a89d4f91507e7b256169f344250e3fbf58938f0fb2db7bf84cb9"
+    }
+  ]
+}

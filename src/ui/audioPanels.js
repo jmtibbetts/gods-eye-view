@@ -6,8 +6,12 @@ import { cameraPoseSignature } from '../data/iconOrientation.js';
  *
  *  - SCANNERS — the public-safety radio systems nearest the current view,
  *    a live call ticker for the selected one, and transport controls.
- *  - SDR / HAM — the web SDR receivers nearest the current view, a tune
- *    field, and an OPEN RECEIVER hand-off.
+ *  - SDR / HAM — plain-language band presets and one LISTEN button that
+ *    opens the best receiver inside the map; the receivers nearest the
+ *    current view; an exact-frequency row for people who know what they want.
+ *  - ATC — every airport with published frequencies, the positions at the
+ *    selected one, LISTEN through an airband SDR or LiveATC's page, and a
+ *    FOLLOW PLANE mode that retunes as the selected aircraft moves.
  *
  * Both follow the RadioControls contract: `connect()` after the layer
  * manager is live, `destroy()` on teardown, `actions` for the manager-level
@@ -16,6 +20,65 @@ import { cameraPoseSignature } from '../data/iconOrientation.js';
  */
 
 const LIST_REFRESH_MS = 1500;
+
+/**
+ * Beginner presets: what people actually want to hear, with a frequency
+ * that is busy or always on, the right mode, and a one-line explanation.
+ * Airband resolves to the nearest tower frequency when the ATC directory
+ * is available, so LISTEN lands on real traffic rather than a guard channel.
+ */
+export const SDR_PRESETS = Object.freeze({
+  airband: Object.freeze({
+    label: 'Airband',
+    freqHz: 121_500_000,
+    mode: 'am',
+    band: [118_000_000, 137_000_000],
+    hint: 'Pilots talking to control towers. AM voice, busiest near big airports in daytime. LISTEN picks the nearest tower frequency.',
+    airband: true,
+  }),
+  marine: Object.freeze({
+    label: 'Marine',
+    freqHz: 156_800_000,
+    mode: 'nbfm',
+    band: [156_000_000, 162_500_000],
+    hint: 'Channel 16: ships, harbors and the coast guard calling each other. Needs a receiver near the water.',
+  }),
+  ham2m: Object.freeze({
+    label: 'Ham 2 m',
+    freqHz: 146_520_000,
+    mode: 'nbfm',
+    band: [144_000_000, 148_000_000],
+    hint: 'Local amateur radio on the 2-metre calling frequency (FM). Repeaters nearby are often busier.',
+  }),
+  ham20m: Object.freeze({
+    label: 'Ham 20 m',
+    freqHz: 14_200_000,
+    mode: 'usb',
+    band: [14_000_000, 14_350_000],
+    hint: 'Worldwide amateur voice on 20 metres (upper sideband). Best in daylight; tune around 14.150–14.350.',
+  }),
+  ham40m: Object.freeze({
+    label: 'Ham 40 m',
+    freqHz: 7_150_000,
+    mode: 'lsb',
+    band: [7_000_000, 7_300_000],
+    hint: 'Regional amateur voice on 40 metres (lower sideband). Best evenings and nights.',
+  }),
+  shortwave: Object.freeze({
+    label: 'Shortwave',
+    freqHz: 9_700_000,
+    mode: 'am',
+    band: [9_400_000, 9_900_000],
+    hint: 'International broadcasters on the 31-metre band (AM). Programs come and go by the hour; tune around.',
+  }),
+  wwv: Object.freeze({
+    label: 'Time signal',
+    freqHz: 10_000_000,
+    mode: 'am',
+    band: [9_990_000, 10_010_000],
+    hint: 'WWV, the US atomic-clock station: ticks and a voice every minute, always on. A good first test that a receiver works.',
+  }),
+});
 
 /** Assign text without naming string literals in the assignment itself. */
 function setText(el, value) {
@@ -376,11 +439,13 @@ export class ScannerPanel {
 
 /** SDR / HAM panel. */
 export class SdrPanel {
-  constructor({ elements, layer, actions, viewer }) {
+  constructor({ elements, layer, actions, viewer, atc = null }) {
     this.elements = elements;
     this.layer = layer;
     this.actions = actions;
     this.viewer = viewer;
+    /** Optional ATC layer: turns the Airband preset into the nearest tower frequency. */
+    this.atc = atc;
     this.label = 'SDR';
     this.destroyed = false;
     this._abort = new AbortController();
@@ -389,6 +454,10 @@ export class SdrPanel {
     this._pose = null;
     this._state = null;
     this._rows = [];
+    this._preset = null;
+    this._busy = false;
+    /** @type {{text:string, error:boolean}|null} Outcome of the last LISTEN, kept across renders. */
+    this._notice = null;
   }
 
   connect() {
@@ -428,6 +497,29 @@ export class SdrPanel {
       { signal },
     );
     e.mode?.addEventListener('change', applyTune, { signal });
+    e.presets?.addEventListener(
+      'click',
+      (event) => {
+        const key = event.target?.closest?.('button[data-preset]')?.dataset
+          .preset;
+        if (key && SDR_PRESETS[key]) this.choosePreset(key);
+      },
+      { signal },
+    );
+    e.advancedBtn?.addEventListener(
+      'click',
+      () => {
+        const open = e.advanced ? e.advanced.hidden : false;
+        if (e.advanced) e.advanced.hidden = !open;
+        e.advancedBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        setText(
+          e.advancedBtn,
+          open ? 'ADVANCED: EXACT FREQUENCY ▾' : 'ADVANCED: EXACT FREQUENCY ▸',
+        );
+      },
+      { signal },
+    );
+    e.listenBtn?.addEventListener('click', () => this.listen(), { signal });
     e.openBtn?.addEventListener(
       'click',
       () => this.layer.openSelectedSdrReceiver?.(),
@@ -457,6 +549,101 @@ export class SdrPanel {
     this.render();
   }
 
+  /** Apply a beginner preset: tune, filter the list by coverage, explain. */
+  choosePreset(key) {
+    const preset = SDR_PRESETS[key];
+    if (!preset) return;
+    this._preset = key;
+    this._notice = null;
+    const e = this.elements;
+    if (e.freq) e.freq.value = (preset.freqHz / 1e6).toFixed(3);
+    if (e.mode) e.mode.value = preset.mode;
+    this.layer.setSdrTune?.({ freqHz: preset.freqHz, mode: preset.mode });
+    for (const button of e.presets?.querySelectorAll('button[data-preset]') ??
+      [])
+      button.classList.toggle('active', button.dataset.preset === key);
+    setText(e.presetHint, preset.hint);
+    this.refreshList({ force: true });
+    this.render();
+  }
+
+  /** The frequency LISTEN should use: the preset's, or the exact-tune row's. */
+  async _resolveListenTune(anchor) {
+    const preset = this._preset ? SDR_PRESETS[this._preset] : null;
+    const tune = this._state?.tune;
+    if (preset?.airband && this.atc?.ensureAtcDirectory && anchor) {
+      try {
+        await this.atc.ensureAtcDirectory();
+        const [airport] =
+          this.atc.findAtcAirports?.({
+            ...anchor,
+            toweredOnly: true,
+            limit: 1,
+          }) ?? [];
+        const tower = airport?.freqs?.find(
+          (f) => f.position === 'TWR' && !f.secondary,
+        );
+        if (tower)
+          return {
+            freqHz: Math.round(tower.mhz * 1e6),
+            mode: 'am',
+            label: `${airport.call || airport.id} Tower ${tower.mhz.toFixed(3)}`,
+          };
+      } catch {
+        /* fall through to the preset frequency */
+      }
+    }
+    if (tune?.freqHz) return { freqHz: tune.freqHz, mode: tune.mode || 'am' };
+    if (preset) return { freqHz: preset.freqHz, mode: preset.mode };
+    return null;
+  }
+
+  /** One click: best receiver for the chosen band, opened inside the map. */
+  async listen() {
+    if (this._busy || this.destroyed) return;
+    const e = this.elements;
+    const anchor = viewportAnchor(this.viewer);
+    const tune = await this._resolveListenTune(anchor);
+    if (!tune) {
+      this._notice = {
+        text: 'Pick a band above (or type a frequency under ADVANCED) first.',
+        error: true,
+      };
+      this.render();
+      return;
+    }
+    this._busy = true;
+    this._notice = null;
+    if (e.listenBtn) e.listenBtn.disabled = true;
+    this.render();
+    try {
+      if (!this.actions.isEnabled?.()) await toggleLayer(this, true);
+      const selected = this.layer.getSelectedSdrReceiver?.();
+      let result = null;
+      if (selected && this._state?.tune?.freqHz === tune.freqHz) {
+        result = {
+          receiver: selected,
+          url: this.layer.openSelectedSdrReceiver?.(),
+        };
+      } else {
+        result = await this.layer.listenSdr?.({
+          ...tune,
+          lat: anchor?.lat ?? 0,
+          lon: anchor?.lon ?? 0,
+        });
+      }
+      this._notice = {
+        text: result
+          ? `Listening ${tune.label || `${(tune.freqHz / 1e6).toFixed(3)} MHz ${String(tune.mode).toUpperCase()}`} on ${result.receiver.name}${Number.isFinite(result.receiver.distanceKm) ? ` (${kmText(result.receiver.distanceKm)} away)` : ''}`
+          : 'No public receiver in the directory covers that frequency. Try another band, or pick a receiver from the list.',
+        error: !result,
+      };
+    } finally {
+      this._busy = false;
+      this.render();
+    }
+  }
+
   refreshList({ force = false } = {}) {
     if (this.destroyed) return;
     const enabled = this.actions.isEnabled?.();
@@ -481,6 +668,7 @@ export class SdrPanel {
       this.layer.findSdrReceivers?.({
         ...anchor,
         freqHz: tune?.freqHz,
+        coveredOnly: Boolean(this._preset),
         limit: q ? 200 : 14,
       }) ?? [];
     this._rows = q
@@ -558,6 +746,12 @@ export class SdrPanel {
       e.layerState.classList.toggle('active', enabled);
     }
     for (const el of [e.search, e.freq, e.mode]) if (el) el.disabled = !enabled;
+    if (e.listenBtn)
+      e.listenBtn.disabled =
+        this._busy ||
+        lifecycle === 'enabling' ||
+        lifecycle === 'disabling' ||
+        !(this._preset || s?.tune?.freqHz);
     const r = enabled ? s?.selectedReceiver : null;
     if (e.openBtn) e.openBtn.disabled = !r;
     if (e.flyBtn) e.flyBtn.disabled = !r;
@@ -596,17 +790,386 @@ export class SdrPanel {
       }
     }
     if (e.playbackState) {
+      const notice = this._busy
+        ? { text: 'Finding the nearest receiver that covers it…', error: false }
+        : this._notice;
+      setText(
+        e.playbackState,
+        notice
+          ? notice.text
+          : !enabled
+            ? 'SDR off — pick a band and press LISTEN'
+            : s?.error
+              ? s.error
+              : r
+                ? 'OPEN HERE shows this receiver on the map, tuned if a frequency is set'
+                : `${s?.receivers ?? 0} public receivers in the directory`,
+      );
+      e.playbackState.classList.toggle(
+        'error',
+        Boolean(notice ? notice.error : s?.error),
+      );
+    }
+    this.renderList();
+  }
+
+  destroy() {
+    this.destroyed = true;
+    this._abort.abort();
+    this._unsubscribe?.();
+    this._unsubscribe = null;
+    if (this._timer) clearInterval(this._timer);
+    this._timer = null;
+  }
+}
+
+const ATC_POSITION_ORDER = [
+  'TWR',
+  'GND',
+  'CLD',
+  'APP',
+  'DEP',
+  'CTR',
+  'ATIS',
+  'CTAF',
+  'UNICOM',
+  'AFIS',
+  'INFO',
+  'RAMP',
+  'WX',
+];
+const ATC_POSITION_NAMES = {
+  TWR: 'TOWER',
+  GND: 'GROUND',
+  CLD: 'CLEARANCE',
+  APP: 'APPROACH',
+  DEP: 'DEPARTURE',
+  CTR: 'CENTER',
+  ATIS: 'ATIS',
+  CTAF: 'CTAF',
+  UNICOM: 'UNICOM',
+  AFIS: 'AFIS',
+  INFO: 'INFO',
+  RAMP: 'RAMP',
+  WX: 'WEATHER',
+};
+
+/** ATC panel. */
+export class AtcPanel {
+  constructor({ elements, layer, actions, viewer, dock = null }) {
+    this.elements = elements;
+    this.layer = layer;
+    this.actions = actions;
+    this.viewer = viewer;
+    /** The in-map receiver dock, closed by STOP. */
+    this.dock = dock;
+    this.label = 'ATC';
+    this.destroyed = false;
+    this._abort = new AbortController();
+    this._unsubscribe = null;
+    this._timer = null;
+    this._pose = null;
+    this._state = null;
+    this._rows = [];
+    this._position = null;
+  }
+
+  connect() {
+    const { signal } = this._abort;
+    const e = this.elements;
+    e.enableBtn?.addEventListener(
+      'click',
+      () => toggleLayer(this, !this.actions.isEnabled?.()),
+      { signal },
+    );
+    e.search?.addEventListener(
+      'input',
+      () => this.refreshList({ force: true }),
+      { signal },
+    );
+    e.toweredOnly?.addEventListener(
+      'change',
+      () => this.refreshList({ force: true }),
+      { signal },
+    );
+    e.freqs?.addEventListener(
+      'click',
+      (event) => {
+        const button = event.target?.closest?.('button[data-position]');
+        if (!button) return;
+        this._position = button.dataset.position;
+        this.layer.listenAtc?.({ position: this._position });
+      },
+      { signal },
+    );
+    e.listenBtn?.addEventListener(
+      'click',
+      () => this.layer.listenAtc?.({ position: this._position || undefined }),
+      { signal },
+    );
+    e.followBtn?.addEventListener(
+      'click',
+      () => this.layer.setAtcFollow?.(!this._state?.follow?.active),
+      { signal },
+    );
+    e.flyBtn?.addEventListener(
+      'click',
+      () => {
+        const a = this.layer.getSelectedAtcAirport?.();
+        if (a) flyTo(this.viewer, a.lat, a.lon, 18_000);
+      },
+      { signal },
+    );
+    e.stopBtn?.addEventListener(
+      'click',
+      () => {
+        this.layer.setAtcFollow?.(false);
+        this.layer.stopAtc?.();
+        this.dock?.close?.();
+      },
+      { signal },
+    );
+    this._unsubscribe = this.layer.subscribeAtc?.((state) => {
+      if (state?.selected !== this._state?.selected) this._position = null;
+      this._state = state;
+      this.render();
+    });
+    this._timer = setInterval(() => this.refreshList(), LIST_REFRESH_MS);
+    this.refreshList({ force: true });
+    this.render();
+  }
+
+  refreshList({ force = false } = {}) {
+    if (this.destroyed) return;
+    const enabled = this.actions.isEnabled?.();
+    if (!enabled) {
+      if (this._rows.length) {
+        this._rows = [];
+        this.renderList();
+      }
+      return;
+    }
+    const camera = this.viewer?.camera;
+    const pose = camera ? cameraPoseSignature(camera) : null;
+    if (!force && pose === this._pose) return;
+    this._pose = pose;
+    const anchor = viewportAnchor(this.viewer);
+    if (!anchor) return;
+    this._rows =
+      this.layer.findAtcAirports?.({
+        ...anchor,
+        query: this.elements.search?.value ?? '',
+        toweredOnly: this.elements.toweredOnly?.checked ?? true,
+        limit: 14,
+      }) ?? [];
+    this.renderList();
+  }
+
+  renderList() {
+    const e = this.elements;
+    const selectedId = this._state?.selected ?? null;
+    renderList({
+      list: e.list,
+      rows: this._rows,
+      selectedId,
+      render: (button, row) => {
+        const tower = row.freqs?.find(
+          (f) => f.position === 'TWR' && !f.secondary,
+        );
+        const ctaf = row.freqs?.find((f) => f.position === 'CTAF');
+        const kind = row.towered
+          ? row.hours === '24'
+            ? 'tower24'
+            : 'tower'
+          : 'untowered';
+        button.innerHTML = `<span class="audio-list-dot ${kind}" aria-hidden="true"></span><span class="audio-list-main"><strong></strong><span></span></span><span class="audio-list-side"><b></b><i></i></span>`;
+        setText(button.querySelector('strong'), `${row.id} · ${row.name}`);
+        const region = row.country === 'US' ? row.region : row.country;
+        setText(
+          button.querySelector('.audio-list-main span'),
+          [row.city, region].filter(Boolean).join(', ') +
+            (row.towered
+              ? ` · tower ${row.hours === '24' ? '24 h' : row.hours || 'part time'}`
+              : ' · no tower'),
+        );
+        setText(
+          button.querySelector('b'),
+          tower
+            ? `TWR ${tower.mhz.toFixed(3)}`
+            : ctaf
+              ? `CTAF ${ctaf.mhz.toFixed(3)}`
+              : `${row.freqs?.length ?? 0} freqs`,
+        );
+        setText(button.querySelector('i'), kmText(row.distanceKm));
+        button.title =
+          row.id === selectedId
+            ? 'Click to listen'
+            : `Select ${row.id} ${row.name}`;
+      },
+      onPick: (row) => {
+        if (row.id === selectedId) this.layer.listenAtc?.({});
+        else this.layer.selectAtcAirport?.(row.id);
+      },
+    });
+    if (e.listCount)
+      setText(
+        e.listCount,
+        this._rows.length
+          ? `${this._rows.length} shown · ${this._state?.towered ?? 0} towered of ${this._state?.airports ?? 0}`
+          : '',
+      );
+  }
+
+  renderFrequencies(airport) {
+    const e = this.elements;
+    if (!e.freqs) return;
+    e.freqs.replaceChildren();
+    if (!airport) return;
+    const listening = this._state?.listening;
+    const seen = new Set();
+    const rows = [...airport.freqs].sort(
+      (a, b) =>
+        ATC_POSITION_ORDER.indexOf(a.position) -
+          ATC_POSITION_ORDER.indexOf(b.position) ||
+        Number(a.secondary) - Number(b.secondary),
+    );
+    for (const f of rows) {
+      const key = `${f.position}|${f.mhz}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'audio-freq-chip';
+      button.dataset.position = f.position;
+      button.dataset.mhz = String(f.mhz);
+      const active =
+        listening &&
+        listening.airport?.id === airport.id &&
+        listening.frequency?.mhz === f.mhz;
+      const chosen =
+        (this._position || this._state?.selectedPosition) === f.position &&
+        !f.secondary;
+      button.classList.toggle('active', Boolean(active));
+      button.classList.toggle('chosen', Boolean(chosen) && !active);
+      button.innerHTML = '<b></b><span></span><i></i>';
+      setText(
+        button.querySelector('b'),
+        ATC_POSITION_NAMES[f.position] || f.position,
+      );
+      setText(button.querySelector('span'), f.mhz.toFixed(3));
+      setText(
+        button.querySelector('i'),
+        f.sector || (f.secondary ? 'secondary' : ''),
+      );
+      button.title = `Listen to ${ATC_POSITION_NAMES[f.position] || f.position} ${f.mhz.toFixed(3)} MHz`;
+      e.freqs.append(button);
+    }
+  }
+
+  render() {
+    if (this.destroyed) return;
+    const e = this.elements;
+    const s = this._state;
+    const lifecycle = lifecycleState(this);
+    const enabled = lifecycle === 'enabled';
+    paintEnableButton(this, lifecycle);
+    const listening = enabled ? s?.listening : null;
+    const follow = s?.follow;
+    if (e.layerState) {
+      setText(
+        e.layerState,
+        enabled
+          ? follow?.active
+            ? 'FOLLOWING'
+            : listening
+              ? 'LISTENING'
+              : s?.loaded
+                ? `${s.towered} TOWERS`
+                : 'LOADING'
+          : lifecycle === 'enabling'
+            ? 'SYNC'
+            : 'OFF',
+      );
+      e.layerState.classList.toggle('active', enabled);
+    }
+    if (e.search) e.search.disabled = !enabled;
+    const airport = enabled ? s?.selectedAirport : null;
+    if (e.listenBtn) e.listenBtn.disabled = !airport;
+    if (e.flyBtn) e.flyBtn.disabled = !airport;
+    if (e.followBtn) {
+      e.followBtn.disabled = !enabled;
+      e.followBtn.classList.toggle('active', Boolean(follow?.active));
+      e.followBtn.setAttribute(
+        'aria-pressed',
+        follow?.active ? 'true' : 'false',
+      );
+      setText(e.followBtn, follow?.active ? 'FOLLOWING ✓' : 'FOLLOW PLANE');
+    }
+    if (e.stopBtn) e.stopBtn.disabled = !(listening || follow?.active);
+    if (e.nowName)
+      setText(
+        e.nowName,
+        airport
+          ? `${airport.id} · ${airport.name}`
+          : enabled
+            ? 'NO AIRPORT SELECTED'
+            : 'ATC OFF',
+      );
+    if (e.nowMeta) {
+      if (airport) {
+        const region =
+          airport.country === 'US' ? airport.region : airport.country;
+        const parts = [[airport.city, region].filter(Boolean).join(', ')];
+        parts.push(
+          airport.towered
+            ? `${airport.call ? airport.call + ' Tower' : 'Towered'} · ${airport.hours === '24' ? '24 h' : airport.hours || 'part time'}`
+            : 'No tower — pilots self-announce on CTAF',
+        );
+        if (airport.appCall) parts.push(`approach: ${airport.appCall}`);
+        setText(e.nowMeta, parts.join(' · '));
+      } else {
+        setText(
+          e.nowMeta,
+          enabled
+            ? 'Pick an airport from the list or a globe marker, then tap a frequency.'
+            : 'Enable ATC, then pick an airport from the list or a globe marker.',
+        );
+      }
+    }
+    this.renderFrequencies(airport);
+    if (e.followState) {
+      const contact = follow?.contact;
+      e.followState.hidden = !(follow?.active && enabled);
+      setText(
+        e.followContact,
+        contact
+          ? `${contact.label}${contact.route ? ' · ' + contact.route : ''}`
+          : 'Select a plane on the globe (Live Flights or Military) to follow it.',
+      );
+      setText(
+        e.followPhase,
+        contact
+          ? `${follow.phaseLabel || ''}${listening ? ' → ' + listening.facility + ' ' + (listening.frequency ? listening.frequency.mhz.toFixed(3) : '') : ''}`
+          : '',
+      );
+    }
+    if (e.playbackState) {
+      const error = s?.error;
       setText(
         e.playbackState,
         !enabled
-          ? 'SDR off'
-          : s?.error
-            ? s.error
-            : r
-              ? 'OPEN RECEIVER launches it in a new tab, tuned if a frequency is set'
-              : `${s?.receivers ?? 0} public receivers in the directory`,
+          ? 'ATC off'
+          : error
+            ? error
+            : listening
+              ? listening.via === 'sdr'
+                ? `Tuned ${listening.facility} ${listening.frequency?.mhz.toFixed(3)} MHz on ${listening.receiver?.name || 'a web SDR'} — audio in the window on the map`
+                : `${listening.facility} ${listening.frequency?.mhz.toFixed(3) ?? ''} MHz — no airband SDR in range, so LiveATC's page is in the window: press its LISTEN for that frequency`
+              : airport
+                ? 'Tap a frequency, or press LISTEN for the tower'
+                : `${s?.towered ?? 0} towered airports · ${s?.airports ?? 0} with published frequencies`,
       );
-      e.playbackState.classList.toggle('error', Boolean(s?.error));
+      e.playbackState.classList.toggle('error', Boolean(error));
     }
     this.renderList();
   }

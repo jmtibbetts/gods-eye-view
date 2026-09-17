@@ -140,6 +140,7 @@ const schemas = [
             'alpr-cameras',
             'scanner',
             'sdr',
+            'atc',
           ],
         },
         enabled: {
@@ -174,6 +175,7 @@ const schemas = [
             'alpr-cameras',
             'scanner',
             'sdr',
+            'atc',
           ],
         },
       },

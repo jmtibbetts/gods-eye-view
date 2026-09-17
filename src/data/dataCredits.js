@@ -71,6 +71,10 @@ export const DATA_CREDITS = [
     html: 'Web SDR receivers: directory snapshot from <a href="https://www.receiverbook.de/" target="_blank" rel="noopener noreferrer">receiverbook.de</a> and curated WebSDR lists; audio delivered directly by each receiver operator',
   },
   {
+    key: 'atc-directory',
+    html: 'ATC frequencies: <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/" target="_blank" rel="noopener noreferrer">FAA NASR 28-day subscription</a> (US) and <a href="https://ourairports.com/data/" target="_blank" rel="noopener noreferrer">OurAirports</a> open data (world); live audio via <a href="https://www.liveatc.net/" target="_blank" rel="noopener noreferrer">LiveATC.net</a>\'s own pages or public web SDRs',
+  },
+  {
     key: 'usgs',
     html: 'Earthquakes: Data courtesy of the U.S. Geological Survey',
   },

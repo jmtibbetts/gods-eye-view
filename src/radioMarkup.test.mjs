@@ -187,9 +187,9 @@ test('no unchanged Realtime tool definition drifts silently', () => {
     .update(JSON.stringify(unchanged))
     .digest('hex')
     .slice(0, 16);
-  // ALPR, then the scanner + sdr layers, intentionally extend the two layer
+  // ALPR, then the scanner + sdr + atc layers, intentionally extend the two layer
   // enums (set_layer_visibility, show_data_layers_menu); retain the complete pin.
-  assert.equal(digest, 'd13df21f9ae7a065', 'an unchanged Realtime tool definition drifted');
+  assert.equal(digest, '0c097a7e075c0b7e', 'an unchanged Realtime tool definition drifted');
 });
 
 test('Radio volume and mission speed share the Sharpen slider visual language', () => {

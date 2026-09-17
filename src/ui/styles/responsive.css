@@ -209,7 +209,9 @@
   #right-context-rail #scanner-panel,
   #right-context-rail #scanner-panel.collapsed,
   #right-context-rail #sdr-panel,
+  #right-context-rail #atc-panel,
   #right-context-rail #sdr-panel.collapsed,
+  #right-context-rail #atc-panel.collapsed,
   #right-context-rail #global-context-panel,
   #right-context-rail #global-context-panel.collapsed {
     width: 100%;

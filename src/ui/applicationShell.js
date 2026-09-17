@@ -15,7 +15,8 @@ import { CockpitCoordinator } from './cockpitCoordinator.js';
 import { ContextControls } from './context.js';
 import { CctvControls } from './cctv.js';
 import { RadioControls } from './radio.js';
-import { ScannerPanel, SdrPanel } from './audioPanels.js';
+import { AtcPanel, ScannerPanel, SdrPanel } from './audioPanels.js';
+import { AudioDock } from './audioDock.js';
 import { LocationNavigation } from './locationNavigation.js';
 import { bindClearLayersControl } from './layers.js';
 import { bindCameraOrientationControls } from './cameraOrientationControls.js';
@@ -242,6 +243,7 @@ export class StyleManager extends ShellFacade {
         _radioControls: this._radioControls,
         _scannerPanel: this._scannerPanel,
         _sdrPanel: this._sdrPanel,
+        _atcPanel: this._atcPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -787,9 +789,40 @@ export class StyleManager extends ShellFacade {
     });
   }
 
-  /** Wire the independent Radio companion controls. */
+  /** Wire the Scanners, SDR and ATC panels and the in-map receiver dock. */
   _initAudioPanels() {
-    const { scannerLayer, sdrLayer } = this.services;
+    const { scannerLayer, sdrLayer, atcLayer } = this.services;
+    this._audioDock?.destroy();
+    this._audioDock = new AudioDock({
+      elements: {
+        root: this._audioDockRoot,
+        bar: this._audioDockBar,
+        kind: this._audioDockKind,
+        title: this._audioDockTitle,
+        subtitle: this._audioDockSubtitle,
+        note: this._audioDockNote,
+        frame: this._audioDockFrame,
+        reloadBtn: this._audioDockReloadBtn,
+        sizeBtn: this._audioDockSizeBtn,
+        popoutBtn: this._audioDockPopoutBtn,
+        closeBtn: this._audioDockCloseBtn,
+      },
+      storage: (() => {
+        try {
+          return globalThis.localStorage ?? null;
+        } catch {
+          return null;
+        }
+      })(),
+    });
+    const openInDock = (url, meta) => {
+      if (!this._audioDock?.open(url, meta || {})) {
+        const tab = window.open(url, '_blank', 'noopener,noreferrer');
+        if (tab) tab.opener = null;
+      }
+    };
+    sdrLayer?.setSdrUrlOpener?.(openInDock);
+    atcLayer?.setAtcUrlOpener?.(openInDock);
     const actionsFor = (id) => ({
       isRegistered: () => this._dataManager?.layers?.has(id),
       isEnabled: () => this._dataManager?.isEnabled(id),
@@ -836,10 +869,42 @@ export class StyleManager extends ShellFacade {
         flyBtn: this._sdrFlyBtn,
         clearBtn: this._sdrClearBtn,
         playbackState: this._sdrPlaybackState,
+        presets: this._sdrPresets,
+        presetHint: this._sdrPresetHint,
+        advancedBtn: this._sdrAdvancedBtn,
+        advanced: this._sdrAdvanced,
+        listenBtn: this._sdrListenBtn,
       },
       layer: sdrLayer,
       actions: actionsFor('sdr'),
       viewer: this.viewer,
+      atc: atcLayer,
+    });
+    this._atcPanel?.destroy();
+    this._atcPanel = new AtcPanel({
+      elements: {
+        layerState: this._atcLayerState,
+        enableBtn: this._atcEnableBtn,
+        search: this._atcSearch,
+        toweredOnly: this._atcToweredOnly,
+        list: this._atcList,
+        listCount: this._atcListCount,
+        nowName: this._atcNowName,
+        nowMeta: this._atcNowMeta,
+        freqs: this._atcFreqs,
+        listenBtn: this._atcListenBtn,
+        followBtn: this._atcFollowBtn,
+        flyBtn: this._atcFlyBtn,
+        stopBtn: this._atcStopBtn,
+        followState: this._atcFollowState,
+        followContact: this._atcFollowContact,
+        followPhase: this._atcFollowPhase,
+        playbackState: this._atcPlaybackState,
+      },
+      layer: atcLayer,
+      actions: actionsFor('atc'),
+      viewer: this.viewer,
+      dock: this._audioDock,
     });
   }
 
@@ -1533,6 +1598,8 @@ export class StyleManager extends ShellFacade {
     this._radioControls?.destroy();
     this._scannerPanel?.destroy();
     this._sdrPanel?.destroy();
+    this._atcPanel?.destroy();
+    this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();
     this.shareLinkManager?.destroy();

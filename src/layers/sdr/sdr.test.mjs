@@ -237,3 +237,119 @@ test('layer loads the directory, finds nearest receivers by frequency, and hands
   h.layer.destroy(h.viewer);
   assert.equal(h.dataSources.length, 0);
 });
+
+test('per-profile ranges decide coverage; coveredOnly skips receivers with no published range', () => {
+  const rows = normalizeSdrDirectory({
+    receivers: [
+      {
+        ...rx('multi', 45, -122, 'openwebrx', null),
+        ranges: [
+          [118e6, 120.4e6, 'Airband (low)'],
+          [144e6, 148e6, '2 m'],
+          [10, 5, 'bad'],
+        ],
+      },
+      rx('blank', 45.1, -122.1, 'openwebrx', null),
+    ],
+  });
+  const multi = rows.find((r) => r.id === 'multi');
+  assert.deepEqual(multi.bands, [118e6, 148e6], 'envelope derived from ranges');
+  assert.equal(multi.ranges.length, 2);
+  assert.equal(sdrCoversFrequency(multi, 119e6), true);
+  assert.equal(
+    sdrCoversFrequency(multi, 121e6),
+    false,
+    'inside the envelope but between profiles',
+  );
+  assert.equal(
+    sdrCoversFrequency(
+      rows.find((r) => r.id === 'blank'),
+      121e6,
+    ),
+    null,
+  );
+});
+
+test('listenSdr picks the nearest covering receiver, opens it tuned in the dock, and lazy-loads the directory', async () => {
+  const opened = [];
+  const dataSources = [];
+  const viewer = {
+    dataSources: {
+      add: (d) => dataSources.push(d),
+      remove: (d) => dataSources.splice(dataSources.indexOf(d), 1),
+    },
+    entities: { add: (e) => e, remove() {} },
+    scene: { canvas: {} },
+    camera: {
+      positionWC: Cesium.Cartesian3.fromDegrees(-122, 45, 2_000_000),
+      heading: 0,
+      pitch: -1.2,
+      roll: 0,
+    },
+  };
+  let loads = 0;
+  const layer = createSdrLayer({
+    source: {
+      getSnapshot: async () => {
+        loads++;
+        return {
+          rows: [
+            rx('air', 45.5, -122.6, 'openwebrx', [118e6, 137e6]),
+            rx('hf', 45.4, -122.5),
+            rx('unknown', 45.45, -122.55, 'websdr', null),
+          ],
+          builtAt: '2026-09-17',
+        };
+      },
+    },
+    overlayHost: { setEntries() {}, setVisible() {}, clearSource() {} },
+    openUrl: (url, meta) => opened.push({ url, meta }),
+    screenSpaceEventHandlerFactory: () => ({
+      setInputAction() {},
+      destroy() {},
+    }),
+  });
+  layer.init(viewer);
+  // Layer still disabled: the directory loads on demand and the hand-off goes straight to the opener.
+  const hit = await layer.listenSdr({
+    freqHz: 121e6,
+    mode: 'am',
+    lat: 45.5,
+    lon: -122.6,
+  });
+  assert.equal(loads, 1);
+  assert.equal(
+    hit.receiver.id,
+    'air',
+    'the unknown-range receiver is skipped, the HF one does not cover',
+  );
+  assert.equal(hit.url, 'http://air.example:8073/#freq=121000000,mod=am');
+  assert.equal(opened.at(-1).meta.kind, 'sdr');
+  assert.match(opened.at(-1).meta.subtitle, /121\.000 MHz AM · OpenWebRX/);
+  assert.equal(
+    await layer.listenSdr({ freqHz: 400e6, lat: 45.5, lon: -122.6 }),
+    null,
+  );
+  assert.equal(
+    await layer.listenSdr({ freqHz: 121e6, lat: 0, lon: 0, maxKm: 100 }),
+    null,
+    'out of range',
+  );
+  layer.enable(viewer);
+  assert.equal(await layer.update(viewer), true);
+  assert.equal(loads, 1, 'enable reuses the lazy load');
+  const again = await layer.listenSdr({
+    freqHz: 7.1e6,
+    mode: 'lsb',
+    lat: 45.4,
+    lon: -122.5,
+  });
+  assert.equal(again.receiver.id, 'hf');
+  assert.equal(
+    layer.getSelectedSdrReceiver().id,
+    'hf',
+    'selected on the globe once enabled',
+  );
+  assert.equal(layer.getSdrUIState().tune.freqHz, 7.1e6);
+  layer.destroy(viewer);
+});

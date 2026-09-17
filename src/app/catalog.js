@@ -13,6 +13,7 @@ const CONTROL_LAYER_IDS = Object.freeze({
   rocketLaunchesLayer: 'rocket-launches',
   scannerLayer: 'scanner',
   sdrLayer: 'sdr',
+  atcLayer: 'atc',
 });
 
 /** Capture the ordered application instances and their serialization metadata. */

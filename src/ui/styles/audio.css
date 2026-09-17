@@ -1,6 +1,7 @@
 /* ── Scanners and SDR / HAM sections inside Context ── */
 #scanner-panel,
-#sdr-panel {
+#sdr-panel,
+#atc-panel {
   position: relative;
   width: 100%;
   min-height: 0;
@@ -21,7 +22,8 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 #scanner-panel .panel-header,
-#sdr-panel .panel-header {
+#sdr-panel .panel-header,
+#atc-panel .panel-header {
   margin-bottom: 0;
 }
 .audio-layer-state {
@@ -315,4 +317,322 @@
   margin: 0;
   color: rgba(190, 230, 230, 0.48);
   font: 7px/1.4 var(--font-mono);
+}
+
+/* ── Beginner presets (SDR / HAM) ── */
+.audio-preset-row {
+  display: grid;
+  gap: 6px;
+}
+.audio-preset-label {
+  color: var(--text-dim);
+  font: 7px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+}
+.audio-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.audio-presets button {
+  padding: 6px 8px;
+  border: 1px solid rgba(65, 220, 231, 0.28);
+  border-radius: 999px;
+  color: #8feaf2;
+  background: rgba(14, 69, 78, 0.14);
+  font: 8px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.audio-presets button:hover,
+.audio-presets button:focus-visible {
+  border-color: #65f7ff;
+  color: #fff;
+  outline: none;
+}
+.audio-presets button.active {
+  color: #041418;
+  border-color: #65f7ff;
+  background: #65f7ff;
+  box-shadow: 0 0 12px rgba(101, 247, 255, 0.35);
+}
+.audio-preset-hint {
+  margin: 0;
+  min-height: 22px;
+  color: #9fe4ec;
+  font: 8px/1.45 var(--font-mono);
+}
+.audio-advanced-toggle {
+  justify-self: start;
+  padding: 3px 0;
+  border: 0;
+  color: var(--text-dim);
+  background: transparent;
+  font: 7px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.audio-advanced-toggle:hover,
+.audio-advanced-toggle:focus-visible {
+  color: #fff;
+  outline: none;
+}
+.audio-transport-primary {
+  grid-template-columns: 1fr;
+}
+.audio-listen-btn {
+  min-height: 36px !important;
+  color: #041418 !important;
+  border-color: #65f7ff !important;
+  background: linear-gradient(180deg, #7ffaff, #3fd5e4) !important;
+  font-size: 10px !important;
+  font-weight: 700;
+  letter-spacing: 0.14em !important;
+}
+.audio-listen-btn:disabled {
+  opacity: 0.35 !important;
+}
+.audio-check-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font: 7px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.audio-check-row input {
+  margin: 0;
+  accent-color: #65f7ff;
+}
+
+/* ── ATC frequency chips and follow card ── */
+.audio-list-dot.tower24 {
+  background: #65f7ff;
+}
+.audio-list-dot.tower {
+  background: #3fc9d8;
+}
+.audio-list-dot.untowered {
+  background: #6d8a94;
+}
+.audio-freq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 4px;
+  margin-top: 4px;
+}
+.audio-freq-grid:empty {
+  display: none;
+}
+.audio-freq-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid rgba(65, 220, 231, 0.22);
+  border-radius: 6px;
+  color: #c5faff;
+  background: rgba(14, 69, 78, 0.12);
+  font: 8px/1.2 var(--font-mono);
+  text-align: left;
+  cursor: pointer;
+}
+.audio-freq-chip b {
+  color: #72dce6;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.audio-freq-chip span {
+  color: #e8feff;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.audio-freq-chip i {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: 7px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audio-freq-chip:hover,
+.audio-freq-chip:focus-visible {
+  border-color: #65f7ff;
+  outline: none;
+}
+.audio-freq-chip.chosen {
+  border-color: rgba(101, 247, 255, 0.6);
+}
+.audio-freq-chip.active {
+  border-color: #65f7ff;
+  background: rgba(65, 220, 231, 0.22);
+  box-shadow: 0 0 12px rgba(65, 220, 231, 0.18);
+}
+.audio-freq-chip.active b::after {
+  content: ' ● LIVE';
+  color: #ff6b6b;
+}
+.audio-follow-card {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 157, 77, 0.35);
+  border-radius: 7px;
+  background: rgba(40, 22, 6, 0.45);
+}
+.audio-follow-card strong {
+  color: #ffd2a8;
+  font: 9px/1.3 var(--font-mono);
+  letter-spacing: 0.05em;
+}
+.audio-follow-card span {
+  color: #ffb27a;
+  font: 8px/1.35 var(--font-mono);
+}
+
+/* ── In-map receiver dock ── */
+.audio-dock {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 360px;
+  min-height: 240px;
+  border: 1px solid rgba(65, 220, 231, 0.45);
+  border-radius: 9px;
+  background: rgba(2, 15, 20, 0.92);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  resize: both;
+  overflow: hidden;
+}
+.audio-dock[hidden] {
+  display: none;
+}
+.audio-dock.dragging {
+  user-select: none;
+  box-shadow:
+    0 22px 56px rgba(0, 0, 0, 0.65),
+    0 0 0 1px #65f7ff;
+}
+.audio-dock-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  border-bottom: 1px solid rgba(65, 220, 231, 0.22);
+  background: rgba(6, 30, 38, 0.9);
+  cursor: grab;
+  touch-action: none;
+}
+.audio-dock.dragging .audio-dock-bar {
+  cursor: grabbing;
+}
+.audio-dock-kind {
+  padding: 2px 6px;
+  border: 1px solid rgba(101, 247, 255, 0.5);
+  border-radius: 4px;
+  color: #65f7ff;
+  font: 7px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+}
+.audio-dock[data-kind='liveatc'] .audio-dock-kind {
+  border-color: rgba(255, 157, 77, 0.6);
+  color: #ff9d4d;
+}
+.audio-dock-title {
+  overflow: hidden;
+  color: #e8feff;
+  font: 10px/1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audio-dock-subtitle {
+  overflow: hidden;
+  color: var(--text-dim);
+  font: 8px/1.2 var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audio-dock-bar .panel-divider {
+  flex: 1;
+}
+.audio-dock-bar button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(65, 220, 231, 0.28);
+  border-radius: 4px;
+  color: #8feaf2;
+  background: rgba(14, 69, 78, 0.14);
+  cursor: pointer;
+}
+.audio-dock-bar button .material-symbols-outlined {
+  font-size: 14px;
+}
+.audio-dock-bar button:hover,
+.audio-dock-bar button:focus-visible {
+  border-color: #65f7ff;
+  color: #fff;
+  outline: none;
+}
+.audio-dock-bar button[aria-pressed='true'] {
+  color: #041418;
+  background: #65f7ff;
+}
+.audio-dock-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #000;
+}
+.audio-dock-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #0a1216;
+}
+.audio-dock-note {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  padding: 6px 9px;
+  border: 1px solid rgba(65, 220, 231, 0.3);
+  border-radius: 6px;
+  color: #c5faff;
+  background: rgba(2, 15, 20, 0.88);
+  font: 8px/1.4 var(--font-mono);
+  pointer-events: none;
+  animation: audio-dock-note-fade 0.4s ease 9s forwards;
+}
+.audio-dock-note[hidden] {
+  display: none;
+}
+@keyframes audio-dock-note-fade {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+body.ui-clean-view .audio-dock,
+body.recording-mode .audio-dock {
+  display: none;
+}
+@media (max-width: 720px) {
+  .audio-dock {
+    inset: auto 8px 8px 8px !important;
+    width: auto !important;
+    height: 60vh !important;
+    resize: none;
+  }
 }

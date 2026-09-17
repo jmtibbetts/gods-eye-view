@@ -966,6 +966,7 @@ body.ui-clean-view #cctv-panel,
 body.ui-clean-view #radio-panel,
 body.ui-clean-view #scanner-panel,
 body.ui-clean-view #sdr-panel,
+body.ui-clean-view #atc-panel,
 body.ui-clean-view #global-context-panel,
 body.ui-clean-view #scene-panel {
   opacity: 0 !important;

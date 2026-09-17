@@ -75,6 +75,17 @@ export function normalizeSdrDirectory(payload) {
         : type === 'kiwisdr'
           ? KIWISDR_BANDS
           : null;
+    const ranges = Array.isArray(row.ranges)
+      ? row.ranges
+          .filter(
+            (r) =>
+              Array.isArray(r) &&
+              Number.isFinite(r[0]) &&
+              Number.isFinite(r[1]) &&
+              r[1] > r[0],
+          )
+          .map((r) => [Math.max(0, r[0]), r[1], text(r[2], 40)])
+      : null;
     out.push({
       id,
       name: text(row.name, 90) || id,
@@ -84,7 +95,13 @@ export function normalizeSdrDirectory(payload) {
       type: Object.prototype.hasOwnProperty.call(SDR_COLORS, type)
         ? type
         : 'sdr',
-      bands,
+      bands:
+        bands ||
+        (ranges?.length
+          ? [ranges[0][0], Math.max(...ranges.map((r) => r[1]))]
+          : null),
+      /** Per-profile tuning ranges [lowHz, highHz, name] when the receiver publishes them. */
+      ranges: ranges?.length ? ranges : null,
       antenna: text(row.antenna, 60) || null,
       hw: text(row.hw, 60) || null,
       usersMax: Number.isFinite(row.usersMax) ? Math.floor(row.usersMax) : null,

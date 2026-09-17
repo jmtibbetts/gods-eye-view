@@ -225,6 +225,8 @@
     "./layers/earthquakes/source": "./src/layers/earthquakes/source.js",
     "./layers/scanner/source": "./src/layers/scanner/source.js",
     "./layers/sdr/source": "./src/layers/sdr/source.js",
+    "./layers/atc": "./src/layers/atc/index.js",
+    "./layers/atc/source": "./src/layers/atc/source.js",
     "./layers/firms/source": "./src/layers/firms/source.js",
     "./layers/installations/source": "./src/layers/installations/source.js",
     "./layers/launches/source": "./src/layers/launches/source.js",

@@ -95,6 +95,7 @@ test('controls bind catalog instances rather than similarly named defaults', () 
     'rocket-launches',
     'scanner',
     'sdr',
+    'atc',
   ];
   const layers = ids.map((id) => ({ id }));
   const catalog = createLayerCatalog(layers, metadata(layers));

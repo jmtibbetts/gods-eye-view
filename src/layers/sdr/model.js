@@ -29,7 +29,10 @@ export function sdrBandText(bands) {
 
 /** True when a frequency (Hz) falls inside the receiver's advertised range. */
 export function sdrCoversFrequency(receiver, hz) {
-  if (!Array.isArray(receiver?.bands) || !Number.isFinite(hz)) return null;
+  if (!Number.isFinite(hz)) return null;
+  if (Array.isArray(receiver?.ranges) && receiver.ranges.length)
+    return receiver.ranges.some((r) => hz >= r[0] && hz <= r[1]);
+  if (!Array.isArray(receiver?.bands)) return null;
   return hz >= receiver.bands[0] && hz <= receiver.bands[1];
 }
 

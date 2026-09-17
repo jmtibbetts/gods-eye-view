@@ -657,15 +657,15 @@ test('the DISPLAY rail starts collapsed on a first run, and a stored choice wins
 // ── Voice: instruction-only, tool schema unchanged ─────────────────────
 
 test('the voice TOOL SCHEMA matches the pinned release — the mission mapping is instructions only', () => {
-  // ALPR, scanner and sdr deliberately add their IDs to the two layer menus and visibility aliases.
+  // ALPR, scanner, sdr and atc deliberately add their IDs to the two layer menus and visibility aliases.
   // Canonical serialization pins every tool name, description, property and
   // ordering while allowing source formatting. Derived from the unchanged
   // release schema before formatting (the previous source-byte pin passed).
   const block = JSON.stringify(GEV_REALTIME_TOOLS);
-  assert.equal(block.length, 26379, 'serialized tool schema length drifted');
+  assert.equal(block.length, 26456, 'serialized tool schema length drifted');
   assert.equal(
     crypto.createHash('sha256').update(block).digest('hex'),
-    '28eb5d356d0c9f89c47b7cb5af740c37ce65c08667a801387d52825b2f14ce65',
+    'cfb1818481fd4cc48ba554629d3a47ec2931fb008fcb182722095209c734e1ea',
     'the first-run missions must ride EXISTING tools: no schema edit, no cache bust',
   );
   const instructions = fs.readFileSync(new URL('../server/providers/openai/instructions.js', import.meta.url), 'utf8');

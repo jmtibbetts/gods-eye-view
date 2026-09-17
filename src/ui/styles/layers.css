@@ -1234,9 +1234,12 @@
   min-height: 0;
 }
 #right-context-rail #global-context-panel:not(.collapsed) .context-mode-view,
-#right-context-rail #global-context-panel:not(.collapsed) #radio-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #radio-panel {
+  flex: 0 0 auto;
+}
 #right-context-rail #global-context-panel:not(.collapsed) #scanner-panel,
-#right-context-rail #global-context-panel:not(.collapsed) #sdr-panel {
+#right-context-rail #global-context-panel:not(.collapsed) #sdr-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #atc-panel {
   /* These sections share the Context panel's existing scroller. Keep their
      natural heights so flexbox cannot compress one section and let its
      contents paint through the next section. */

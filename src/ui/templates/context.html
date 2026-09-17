@@ -191,7 +191,21 @@
               <label class="audio-filter-label" for="sdr-search">FIND A RECEIVER</label>
               <input id="sdr-search" type="search" placeholder="callsign, city, kiwi, websdr…" aria-label="Filter receivers by name or software" autocomplete="off" disabled />
             </div>
-            <div class="audio-tune-row">
+            <div class="audio-preset-row" role="group" aria-label="What do you want to hear?">
+              <span class="audio-preset-label">WHAT DO YOU WANT TO HEAR?</span>
+              <div id="sdr-presets" class="audio-presets">
+                <button type="button" data-preset="airband" title="Pilots and control towers (AM)">AIRBAND</button>
+                <button type="button" data-preset="marine" title="Ships and coast stations, channel 16 (FM)">MARINE</button>
+                <button type="button" data-preset="ham2m" title="Local amateur radio, 2 m calling frequency (FM)">HAM 2 M</button>
+                <button type="button" data-preset="ham20m" title="Worldwide amateur voice, 20 m (USB)">HAM 20 M</button>
+                <button type="button" data-preset="ham40m" title="Regional amateur voice, 40 m (LSB)">HAM 40 M</button>
+                <button type="button" data-preset="shortwave" title="International broadcasters, 31 m band (AM)">SHORTWAVE</button>
+                <button type="button" data-preset="wwv" title="WWV time signal, always on (AM)">TIME SIGNAL</button>
+              </div>
+              <p id="sdr-preset-hint" class="audio-preset-hint">Pick a band, then press LISTEN — the nearest receiver that covers it opens right here on the map.</p>
+            </div>
+            <button id="sdr-advanced-btn" class="audio-advanced-toggle" type="button" aria-expanded="false" aria-controls="sdr-advanced">ADVANCED: EXACT FREQUENCY ▸</button>
+            <div id="sdr-advanced" class="audio-tune-row" hidden>
               <label for="sdr-freq"><span>TUNE MHz</span><input id="sdr-freq" type="number" inputmode="decimal" step="0.001" min="0" max="6000" placeholder="7.074" aria-label="Frequency in megahertz" disabled /></label>
               <label for="sdr-mode"><span>MODE</span>
                 <select id="sdr-mode" aria-label="Demodulation mode" disabled>
@@ -210,8 +224,11 @@
               <strong id="sdr-now-name">NO RECEIVER SELECTED</strong>
               <span id="sdr-now-meta">Enable SDR, then pick a receiver from the list or a globe marker.</span>
             </div>
+            <div class="audio-transport audio-transport-primary" role="group" aria-label="Listen">
+              <button id="sdr-listen-btn" class="audio-listen-btn" type="button" aria-label="Listen: open the best receiver for the chosen band inside the map" disabled>▶ LISTEN</button>
+            </div>
             <div class="audio-transport" role="group" aria-label="Receiver actions">
-              <button id="sdr-open-btn" type="button" aria-label="Open the selected receiver in a new tab" disabled>OPEN RECEIVER ↗</button>
+              <button id="sdr-open-btn" type="button" aria-label="Open the selected receiver inside the map" disabled>OPEN HERE</button>
               <button id="sdr-fly-btn" type="button" aria-label="Fly the camera to the selected receiver" disabled>FLY TO</button>
               <button id="sdr-clear-btn" type="button" aria-label="Clear the selected receiver" disabled>CLEAR</button>
             </div>
@@ -220,7 +237,48 @@
               <a href="https://www.receiverbook.de/map" target="_blank" rel="noopener noreferrer">DIRECTORY: RECEIVERBOOK</a>
               <a href="https://www.remotehamradio.com/" target="_blank" rel="noopener noreferrer">TRANSMIT: REMOTE HAM RADIO ↗</a>
             </div>
-            <p class="audio-privacy">Receivers open in their own tab and stream from the operator's own hardware. Volunteer-run: most allow only a few listeners at a time.</p>
+            <p class="audio-privacy">Receivers open in a window on the map (waterfall and all) and stream from the operator's own hardware. Volunteer-run: most allow only a few listeners at a time. If one stays blank, use the pop-out button on the window.</p>
+          </div>
+        </section>
+        <section id="atc-panel" class="panel-collapsible collapsed" data-panel-id="atc-panel" aria-label="Air traffic control frequencies">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">ATC</span>
+              <span id="atc-layer-state" class="audio-layer-state">OFF</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="atc-panel" title="Expand ATC" aria-label="Expand ATC section">+</button>
+            </div>
+            <div class="audio-directory-row">
+              <button id="atc-enable-btn" class="panel-layer-toggle" type="button" aria-pressed="false">ENABLE</button>
+              <label class="audio-filter-label" for="atc-search">FIND AN AIRPORT</label>
+              <input id="atc-search" type="search" placeholder="KAUS, Austin, Kennedy…" aria-label="Filter airports by code, name or city" autocomplete="off" disabled />
+            </div>
+            <label class="audio-check-row" for="atc-towered-only"><input id="atc-towered-only" type="checkbox" checked /><span>TOWERED AIRPORTS ONLY</span></label>
+            <div class="audio-list-heading"><span>NEAREST TO VIEW</span><span id="atc-list-count"></span></div>
+            <ul id="atc-list" class="audio-list" role="listbox" aria-label="Airports nearest the current view"></ul>
+            <div id="atc-now" class="audio-now-card" aria-live="polite">
+              <strong id="atc-now-name">NO AIRPORT SELECTED</strong>
+              <span id="atc-now-meta">Enable ATC, then pick an airport from the list or a globe marker.</span>
+              <div id="atc-freqs" class="audio-freq-grid" role="group" aria-label="Frequencies at the selected airport"></div>
+            </div>
+            <div class="audio-transport audio-transport-primary" role="group" aria-label="Listen">
+              <button id="atc-listen-btn" class="audio-listen-btn" type="button" aria-label="Listen to the selected position" disabled>▶ LISTEN</button>
+            </div>
+            <div class="audio-transport" role="group" aria-label="Follow the selected aircraft">
+              <button id="atc-follow-btn" type="button" aria-pressed="false" aria-label="Follow the selected aircraft between ground, tower, approach and center" disabled>FOLLOW PLANE</button>
+              <button id="atc-fly-btn" type="button" aria-label="Fly the camera to the selected airport" disabled>FLY TO</button>
+              <button id="atc-stop-btn" type="button" aria-label="Stop listening and close the receiver window" disabled>STOP</button>
+            </div>
+            <div id="atc-follow-state" class="audio-follow-card" aria-live="polite" hidden>
+              <strong id="atc-follow-contact"></strong>
+              <span id="atc-follow-phase"></span>
+            </div>
+            <div id="atc-playback-state" class="audio-playback-state" role="status" aria-live="polite">ATC off</div>
+            <div class="audio-links">
+              <a href="https://www.liveatc.net/" target="_blank" rel="noopener noreferrer">AUDIO: LIVEATC.NET ↗</a>
+              <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/" target="_blank" rel="noopener noreferrer">FREQUENCIES: FAA NASR</a>
+            </div>
+            <p class="audio-privacy">Frequencies come from the FAA's current 28-day data (US) and OurAirports (world). Audio plays from an airband web SDR in range or LiveATC's own page, shown in a window on the map — never relayed by this app.</p>
           </div>
         </section>
       </div>

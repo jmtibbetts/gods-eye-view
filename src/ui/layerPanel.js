@@ -45,7 +45,7 @@ const PANEL_GROUPS = [
   },
   {
     label: 'Utilities',
-    ids: ['directions', 'radio', 'scanner', 'sdr'],
+    ids: ['directions', 'radio', 'scanner', 'sdr', 'atc'],
   },
 ];
 const PANEL_ORDER = PANEL_GROUPS.flatMap(({ label, ids }) =>
@@ -63,6 +63,7 @@ const PANEL_LABELS = {
   'local-firms': 'Active Fires',
   scanner: 'Police / Fire / EMS Scanners',
   sdr: 'Web SDR Receivers',
+  atc: 'ATC — Airports & Frequencies',
 };
 
 function panelLabel(layer) {
