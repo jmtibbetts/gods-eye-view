@@ -1323,3 +1323,47 @@
      contents paint through the next section. */
   flex: 0 0 auto;
 }
+
+/* One-press layer combinations, above the per-layer groups. */
+.data-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0 0 9px;
+}
+
+.data-preset-btn {
+  flex: 1 1 auto;
+  background: rgba(6, 20, 28, 0.82);
+  border: 1px solid rgba(114, 220, 230, 0.32);
+  border-radius: 3px;
+  color: rgba(200, 240, 246, 0.92);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 5px 7px;
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+  white-space: nowrap;
+}
+
+.data-preset-btn:hover {
+  background: rgba(12, 36, 46, 0.92);
+  border-color: rgba(114, 220, 230, 0.6);
+  color: #e8feff;
+}
+
+.data-preset-btn:focus-visible {
+  outline: 1px solid rgba(114, 220, 230, 0.8);
+  outline-offset: 1px;
+}
+
+.data-preset-btn.is-active {
+  background: rgba(18, 62, 58, 0.9);
+  border-color: rgba(107, 255, 154, 0.66);
+  color: #6bff9a;
+}

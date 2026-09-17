@@ -1,5 +1,11 @@
 import { layerFeedState } from '../data/feedState.js';
 export { layerFeedState } from '../data/feedState.js';
+import {
+  LAYER_PRESETS,
+  presetIsActive,
+  presetToastText,
+  presetToggleAction,
+} from './layerPresets.js';
 import { GUIDANCE_STATUSES } from '../loadingFeedback.js';
 import { keySetupRequirement } from '../keySetupCore.mjs';
 const FEED_STATE_LABELS = Object.freeze({
@@ -116,6 +122,7 @@ export class LayerPanel {
     hasRowControls,
     subscribeRowControls,
     onHiddenRefresh = () => {},
+    onPresetToast = () => {},
   }) {
     this.getAll = getLayers;
     this.isEnabled = isEnabled;
@@ -125,6 +132,7 @@ export class LayerPanel {
     this.hasRowControls = hasRowControls;
     this.subscribeRowControls = subscribeRowControls;
     this.onHiddenRefresh = onHiddenRefresh;
+    this.onPresetToast = onPresetToast;
     this._generation = 0;
     this._removers = [];
     this._destroyed = false;
@@ -149,6 +157,61 @@ export class LayerPanel {
     this._releaseBindings();
     this._toggleContainer = null;
   }
+  /**
+   * A row of one-press layer combinations above the groups. Reading radar
+   * against live flights needs three toggles from three different groups,
+   * which is enough friction that it rarely happens; this makes it one press,
+   * and a second press puts it back.
+   * @returns {void}
+   */
+  _renderPresets() {
+    if (!this._toggleContainer || typeof this.setEnabled !== 'function') return;
+    const probes = {
+      isEnabled: (id) => this.isEnabled(id),
+      isRegistered: (id) => this.getAll().some((layer) => layer.id === id),
+    };
+    const available = LAYER_PRESETS.filter(
+      (preset) => preset.ids.filter(probes.isRegistered).length >= 2,
+    );
+    if (!available.length) return;
+    const heading = document.createElement('h3');
+    heading.className = 'data-layer-group-heading';
+    heading.textContent = 'Combinations';
+    this._toggleContainer.appendChild(heading);
+    const row = document.createElement('div');
+    row.className = 'data-preset-row';
+    for (const preset of available) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'data-preset-btn';
+      button.dataset.presetId = preset.id;
+      button.textContent = preset.label;
+      button.title = preset.hint;
+      button.setAttribute('aria-label', `${preset.label} — ${preset.hint}`);
+      const active = presetIsActive(preset, probes);
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      this._bind(button, 'click', async () => {
+        const action = presetToggleAction(preset, probes);
+        if (action.action === 'none') {
+          this.onPresetToast?.(presetToastText(preset, action));
+          return;
+        }
+        const enable = action.action === 'enable';
+        for (const id of action.ids) {
+          try {
+            await this.setEnabled(id, enable, { origin: 'user' });
+          } catch {
+            /* one layer refusing must not strand the rest of the preset */
+          }
+        }
+        this.onPresetToast?.(presetToastText(preset, action));
+      });
+      row.appendChild(button);
+    }
+    this._toggleContainer.appendChild(row);
+  }
+
   _renderToggles() {
     if (this._destroyed || !this._toggleContainer) return;
     this._releaseBindings();
@@ -162,6 +225,8 @@ export class LayerPanel {
           (PANEL_POSITIONS.get(a.id) ?? PANEL_ORDER.length) -
           (PANEL_POSITIONS.get(b.id) ?? PANEL_ORDER.length),
       );
+    this._renderPresets();
+
     let previousGroup = '';
     for (const layer of layers) {
       if (!layer.showInTogglePanel) continue;
