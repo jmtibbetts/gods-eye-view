@@ -7,6 +7,7 @@ import { createNwsAlertsSource } from '../layers/weatherAlerts/source.js';
 import { createSpcStormReportsSource } from '../layers/stormReports/source.js';
 import { createUsgsVolcanoSource } from '../layers/volcanoes/source.js';
 import { createNhcTropicalSource } from '../layers/tropical/source.js';
+import { createNwpsGaugeSource } from '../layers/riverFlood/source.js';
 import { createSpcOutlookSource } from '../layers/severeOutlook/source.js';
 import { createAirNowSource } from '../layers/airQuality/source.js';
 
@@ -22,6 +23,7 @@ export function createReferenceSources() {
     stormReports: createSpcStormReportsSource(),
     volcanoes: createUsgsVolcanoSource(),
     tropical: createNhcTropicalSource(),
+    riverFlood: createNwpsGaugeSource(),
     severeOutlook: createSpcOutlookSource(),
     airQuality: createAirNowSource(),
   };

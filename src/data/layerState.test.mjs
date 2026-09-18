@@ -158,8 +158,8 @@ function encode(state) {
 
 test('production registry is exact, canonical, and rejects incomplete contracts', async () => {
   assert.equal(validateLayerStateRegistry(), true);
-  assert.equal(REGISTERED_LAYER_IDS.length, 34);
-  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 34);
+  assert.equal(REGISTERED_LAYER_IDS.length, 35);
+  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 35);
   assert.ok(REGISTERED_LAYER_IDS.includes('transit'));
   assert.deepEqual(REGISTERED_LAYER_IDS, [...REGISTERED_LAYER_IDS].sort());
   assert.throws(
@@ -204,6 +204,59 @@ test('a link with EVERY layer enabled round-trips', () => {
   const decoded = decodeLayerStateParams(new URLSearchParams(params.toString()));
   assert.ok(decoded, 'a maximal link must decode, not be rejected wholesale');
   assert.deepEqual([...decoded.enabledLayerIds].sort(), [...every].sort());
+});
+
+test('every registered enum option can encode all of its own values', () => {
+  // An enum built with a positional array of codes instead of a value->code
+  // map encodes every value as `undefined`; the decoder then rejects the whole
+  // payload and the recipient silently gets default state. That is exactly the
+  // failure the maximal-link test above was written for, arriving by a second
+  // route, so it is checked here rather than per layer.
+  for (const entry of LAYER_STATE_REGISTRY) {
+    const owner = entry.optionOwner;
+    if (!owner) continue;
+    const defaults = createDefaultLayerState();
+    for (const [key, value] of Object.entries(defaults.options[owner] || {})) {
+      const params = new URLSearchParams();
+      params.set('v', '2');
+      encodeLayerStateParams(params, {
+        enabledLayerIds: [entry.id],
+        options: { [owner]: { [key]: value } },
+      });
+      assert.ok(
+        !String(params.get('lo') || '').includes('undefined'),
+        `${owner}.${key} encoded to undefined`,
+      );
+      const decoded = decodeLayerStateParams(
+        new URLSearchParams(params.toString()),
+      );
+      assert.ok(decoded, `${owner}.${key} produced an undecodable link`);
+      assert.equal(decoded.options[owner][key], value);
+    }
+  }
+});
+
+test('the river-flood horizon survives a share link on every setting', () => {
+  for (const horizon of ['observed', 'f24', 'f48', 'f72']) {
+    const params = new URLSearchParams();
+    params.set('v', '2');
+    encodeLayerStateParams(params, {
+      enabledLayerIds: ['river-flood'],
+      options: { 'river-flood': { horizon } },
+    });
+    const decoded = decodeLayerStateParams(
+      new URLSearchParams(params.toString()),
+    );
+    assert.ok(decoded);
+    assert.equal(decoded.options['river-flood'].horizon, horizon);
+  }
+  // A retired or mistyped code opens on the default rather than rejecting the
+  // link, so an old share still lands on a working map.
+  const stale = decodeLayerStateParams(
+    new URLSearchParams('v=2&l=0&lo=0.h.Z'),
+  );
+  assert.deepEqual(stale.enabledLayerIds, ['river-flood']);
+  assert.equal(stale.options['river-flood'].horizon, 'observed');
 });
 
 test('an oversized or junk layer payload is still rejected whole', () => {

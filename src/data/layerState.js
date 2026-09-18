@@ -175,6 +175,22 @@ function stringOption(key, token, defaultValue) {
 }
 
 function enumOption(key, token, defaultValue, values, codes) {
+  // `codes` maps VALUE -> code. Passing a positional array instead encodes
+  // every value as undefined, which produces a link the decoder then rejects
+  // whole — a silently empty share link rather than a loud failure. Asserting
+  // at module load turns that into a startup error instead.
+  if (!codes || Array.isArray(codes) || typeof codes !== 'object')
+    throw new Error(`Enum option ${key} needs a value->code map, not a list`);
+  for (const value of values) {
+    if (typeof codes[value] !== 'string' || !codes[value])
+      throw new Error(`Enum option ${key} has no URL code for '${value}'`);
+  }
+  const seen = new Set();
+  for (const code of Object.values(codes)) {
+    if (seen.has(code))
+      throw new Error(`Duplicate code '${code}' in enum option ${key}`);
+    seen.add(code);
+  }
   const reverse = Object.fromEntries(
     Object.entries(codes).map(([name, code]) => [code, name]),
   );
@@ -289,6 +305,17 @@ const OPTION_GROUPS = Object.freeze({
   // `imageryOption` below asserts they stay unique within a slot.
   // Owner key IS the owning layer's id — the encoder resolves owners through
   // REGISTRY_BY_ID, so a friendlier name here would silently encode nothing.
+  // Which forecast horizon the river-gauge layer is showing. Codes are the
+  // horizon keys' own shape: 'n' for now, then the hour count, so a shared
+  // link still reads as a time when someone looks at the URL.
+  'river-flood': Object.freeze([
+    enumOption('horizon', 'h', 'observed', ['observed', 'f24', 'f48', 'f72'], {
+      observed: 'n',
+      f24: '1',
+      f48: '2',
+      f72: '3',
+    }),
+  ]),
   // Which SPC product the outlook layer is showing. Codes are positional
   // rather than mnemonic because the day-N and hazard products share letters.
   'severe-outlook': Object.freeze([
@@ -462,6 +489,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     token: 'r',
     disposition: 'enabled+options',
     optionOwner: 'radio',
+  }),
+  Object.freeze({
+    id: 'river-flood',
+    token: '0',
+    disposition: 'enabled+options',
+    optionOwner: 'river-flood',
   }),
   Object.freeze({
     id: 'rocket-launches',

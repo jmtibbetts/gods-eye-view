@@ -25,6 +25,7 @@ import { createApplicationImageryOverlays } from './layers/imageryOverlays.js';
 import { createApplicationWeatherAlerts } from './layers/weatherAlerts.js';
 import { createApplicationStormReports } from './layers/stormReports.js';
 import { createApplicationTropical } from './layers/tropical.js';
+import { createApplicationRiverFlood } from './layers/riverFlood.js';
 import { createApplicationSevereOutlook } from './layers/severeOutlook.js';
 import { createApplicationAirQuality } from './layers/airQuality.js';
 import { createApplicationVolcanoes } from './layers/volcanoes.js';
@@ -60,6 +61,7 @@ const SOURCE_METHODS = Object.freeze({
   weatherAlerts: ['getSnapshot'],
   stormReports: ['getSnapshot'],
   tropical: ['fetchTropical'],
+  riverFlood: ['fetchGauges'],
   severeOutlook: ['fetchOutlook'],
   airQuality: ['fetchAirQuality'],
   volcanoes: ['getSnapshot'],
@@ -138,6 +140,7 @@ export function createApplicationCatalog({
         createApplicationWeatherAlerts({ source: sources.weatherAlerts }),
         createApplicationStormReports({ source: sources.stormReports }),
         createApplicationTropical({ source: sources.tropical }),
+        createApplicationRiverFlood({ source: sources.riverFlood }),
         createApplicationSevereOutlook({ source: sources.severeOutlook }),
         createApplicationAirQuality({ source: sources.airQuality }),
         createApplicationVolcanoes({ source: sources.volcanoes }),
