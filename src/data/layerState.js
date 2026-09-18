@@ -285,6 +285,31 @@ const OPTION_GROUPS = Object.freeze({
   // `imageryOption` below asserts they stay unique within a slot.
   // Owner key IS the owning layer's id — the encoder resolves owners through
   // REGISTRY_BY_ID, so a friendlier name here would silently encode nothing.
+  // Which SPC product the outlook layer is showing. Codes are positional
+  // rather than mnemonic because the day-N and hazard products share letters.
+  'severe-outlook': Object.freeze([
+    enumOption(
+      'product',
+      'p',
+      'day1-cat',
+      [
+        'day1-cat',
+        'day2-cat',
+        'day3-cat',
+        'day1-torn',
+        'day1-wind',
+        'day1-hail',
+      ],
+      {
+        'day1-cat': '1',
+        'day2-cat': '2',
+        'day3-cat': '3',
+        'day1-torn': 't',
+        'day1-wind': 'w',
+        'day1-hail': 'h',
+      },
+    ),
+  ]),
   'imagery-viirs': Object.freeze([imageryOption('imagery-viirs')]),
   'imagery-goes': Object.freeze([imageryOption('imagery-goes')]),
   'imagery-science': Object.freeze([imageryOption('imagery-science')]),
@@ -442,6 +467,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   }),
   Object.freeze({ id: 'scanner', token: 'k', disposition: 'enabled-only' }),
   Object.freeze({ id: 'sdr', token: 'o', disposition: 'enabled-only' }),
+  Object.freeze({
+    id: 'severe-outlook',
+    token: '8',
+    disposition: 'enabled+options',
+    optionOwner: 'severe-outlook',
+  }),
   Object.freeze({
     id: 'storm-reports',
     token: '5',

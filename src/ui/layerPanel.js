@@ -59,6 +59,7 @@ const PANEL_GROUPS = [
       'imagery-viirs',
       'imagery-science',
       'tropical-cyclones',
+      'severe-outlook',
     ],
   },
   {
@@ -86,6 +87,7 @@ const PANEL_LABELS = {
   'imagery-goes': 'Geostationary Weather',
   'imagery-science': 'Science Overlay',
   'tropical-cyclones': 'Tropical Cyclones',
+  'severe-outlook': 'Severe Outlook',
   'imagery-radar': 'Weather Radar',
   'weather-alerts': 'NWS Weather Alerts',
   'storm-reports': 'SPC Storm Reports',

@@ -25,6 +25,7 @@ import { createApplicationImageryOverlays } from './layers/imageryOverlays.js';
 import { createApplicationWeatherAlerts } from './layers/weatherAlerts.js';
 import { createApplicationStormReports } from './layers/stormReports.js';
 import { createApplicationTropical } from './layers/tropical.js';
+import { createApplicationSevereOutlook } from './layers/severeOutlook.js';
 import { createApplicationVolcanoes } from './layers/volcanoes.js';
 import { createInfrastructureLayers } from '../data/infrastructure.js';
 import { localGeoJsonServices } from './localGeojsonServices.js';
@@ -58,6 +59,7 @@ const SOURCE_METHODS = Object.freeze({
   weatherAlerts: ['getSnapshot'],
   stormReports: ['getSnapshot'],
   tropical: ['fetchTropical'],
+  severeOutlook: ['fetchOutlook'],
   volcanoes: ['getSnapshot'],
 });
 
@@ -134,6 +136,7 @@ export function createApplicationCatalog({
         createApplicationWeatherAlerts({ source: sources.weatherAlerts }),
         createApplicationStormReports({ source: sources.stormReports }),
         createApplicationTropical({ source: sources.tropical }),
+        createApplicationSevereOutlook({ source: sources.severeOutlook }),
         createApplicationVolcanoes({ source: sources.volcanoes }),
         createApplicationAlpr({ surface, source: sources.alpr }),
         satellites,

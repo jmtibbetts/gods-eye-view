@@ -7,6 +7,7 @@ import { createNwsAlertsSource } from '../layers/weatherAlerts/source.js';
 import { createSpcStormReportsSource } from '../layers/stormReports/source.js';
 import { createUsgsVolcanoSource } from '../layers/volcanoes/source.js';
 import { createNhcTropicalSource } from '../layers/tropical/source.js';
+import { createSpcOutlookSource } from '../layers/severeOutlook/source.js';
 
 /** Construct the existing reference feeds independently of application setup. */
 export function createReferenceSources() {
@@ -20,5 +21,6 @@ export function createReferenceSources() {
     stormReports: createSpcStormReportsSource(),
     volcanoes: createUsgsVolcanoSource(),
     tropical: createNhcTropicalSource(),
+    severeOutlook: createSpcOutlookSource(),
   };
 }
