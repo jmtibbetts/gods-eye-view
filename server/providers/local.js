@@ -4,6 +4,7 @@ import { tomtomProxy } from './traffic.js';
 import { firmsProxy } from './firms.js';
 import { aviationProxy } from './aviation.js';
 import { copernicusProxy } from './copernicus.js';
+import { lightningProxy } from './lightning.js';
 import { satnogsProxy } from './satnogs.js';
 import { tropicalProxy } from './tropical.js';
 import { terrainHeightsProxy } from './terrain.js';
@@ -34,6 +35,7 @@ function localProviderPlugins() {
     firmsProxy(),
     aviationProxy(),
     copernicusProxy(),
+    lightningProxy(),
     satnogsProxy(),
     tropicalProxy(),
     rocketLaunchesProxy(),

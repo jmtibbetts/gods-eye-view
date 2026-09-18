@@ -24,6 +24,7 @@ test('reference factories retain compatibility without starting acquisition or s
     'tropical',
     'aviationHazards',
     'drought',
+    'lightning',
     'riverFlood',
     'satnogs',
     'severeOutlook',
