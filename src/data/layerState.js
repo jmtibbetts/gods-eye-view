@@ -314,6 +314,15 @@ const OPTION_GROUPS = Object.freeze({
       seasonal: 's',
     }),
   ]),
+  // How wide a net the SatNOGS layer casts over the station list.
+  satnogs: Object.freeze([
+    enumOption('scope', 'w', 'online', ['online', 'day', 'month', 'all'], {
+      online: 'o',
+      day: 'd',
+      month: 'm',
+      all: 'a',
+    }),
+  ]),
   // Which forecast horizon the river-gauge layer is showing. Codes are the
   // horizon keys' own shape: 'n' for now, then the hour count, so a shared
   // link still reads as a time when someone looks at the URL.
@@ -524,6 +533,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     token: 's',
     disposition: 'enabled+options',
     optionOwner: 'satellites',
+  }),
+  Object.freeze({
+    id: 'satnogs',
+    token: 'sn',
+    disposition: 'enabled+options',
+    optionOwner: 'satnogs',
   }),
   Object.freeze({ id: 'scanner', token: 'k', disposition: 'enabled-only' }),
   Object.freeze({ id: 'sdr', token: 'o', disposition: 'enabled-only' }),

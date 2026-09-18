@@ -9,6 +9,7 @@ import { createUsgsVolcanoSource } from '../layers/volcanoes/source.js';
 import { createNhcTropicalSource } from '../layers/tropical/source.js';
 import { createDroughtSource } from '../layers/drought/source.js';
 import { createNwpsGaugeSource } from '../layers/riverFlood/source.js';
+import { createSatnogsSource } from '../layers/satnogs/source.js';
 import { createSpcOutlookSource } from '../layers/severeOutlook/source.js';
 import { createAirNowSource } from '../layers/airQuality/source.js';
 
@@ -26,6 +27,7 @@ export function createReferenceSources() {
     tropical: createNhcTropicalSource(),
     drought: createDroughtSource(),
     riverFlood: createNwpsGaugeSource(),
+    satnogs: createSatnogsSource(),
     severeOutlook: createSpcOutlookSource(),
     airQuality: createAirNowSource(),
   };
