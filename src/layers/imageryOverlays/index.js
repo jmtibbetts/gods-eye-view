@@ -9,7 +9,7 @@ import {
   isWms,
   liveTimeFor,
   productFor,
-  wmsTimeFor,
+  wmsParameters,
 } from './policy.js';
 import { imagerySurface } from './surface.js';
 
@@ -108,7 +108,7 @@ export function createImageryOverlayLayer({
           parameters: {
             format: 'image/png',
             transparent: true,
-            TIME: wmsTimeFor(current, now()),
+            ...wmsParameters(current, now()),
           },
         },
       };

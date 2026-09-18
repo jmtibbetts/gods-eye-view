@@ -23,7 +23,7 @@ import {
   gibsTileUrl,
   isWms,
   liveTimeFor,
-  wmsTimeFor,
+  wmsParameters,
 } from '../src/layers/imageryOverlays/catalog.js';
 
 const VERBOSE = process.argv.includes('--verbose');
@@ -94,12 +94,14 @@ function wmsBBox(product) {
 }
 
 async function probeWms(product) {
-  const time = wmsTimeFor(product);
+  const params = new URLSearchParams(wmsParameters(product));
+  const time = params.get('TIME') || 'default';
   const url =
     `${EUMETVIEW_WMS}?service=WMS&version=1.3.0&request=GetMap` +
     `&layers=${encodeURIComponent(product.wmsLayer)}&styles=` +
     `&format=image/png&transparent=true&CRS=EPSG:3857` +
-    `&BBOX=${wmsBBox(product)}&WIDTH=320&HEIGHT=320&TIME=${time}`;
+    `&BBOX=${wmsBBox(product)}&WIDTH=320&HEIGHT=320` +
+    (params.toString() ? `&${params.toString()}` : '');
   try {
     const response = await fetch(url, {
       headers: { 'user-agent': 'gods-eye-view/imagery-catalog-check' },
@@ -184,6 +186,12 @@ async function probeAt(product, time, tile) {
     const bytes = Buffer.from(await response.arrayBuffer());
     const digest = createHash('sha1').update(bytes).digest('hex').slice(0, 8);
     const floor = product.sparse ? MIN_BYTES_SPARSE : MIN_BYTES;
+    if (bytes.length < floor && product.daylightOnly)
+      // A visible band on a geostationary satellite goes dark for half of
+      // every day over its own disc, and its disc does not move — so unlike a
+      // polar orbiter there is no sunlit tile to follow when its side of the
+      // planet is in night. Darkness here is the instrument working.
+      return { ok: true, product, time, url, size: bytes.length, night: true };
     if (bytes.length < floor)
       return {
         ok: false,
@@ -228,10 +236,35 @@ async function probe(product) {
   return probeAt(product, time, probeTile(product));
 }
 
+/**
+ * Probe with a single retry.
+ *
+ * These are live public services and they hiccup: EUMETView returned HTTP 502
+ * on one run and a connection failure on the next, for products that were
+ * fine seconds earlier. A check that fails randomly trains people to ignore
+ * it, which costs more than the check was ever worth — so a transient upstream
+ * error gets one second chance, and only a repeated failure is reported.
+ */
+async function probeWithRetry(product) {
+  const first = await probe(product);
+  if (first.ok) return first;
+  const transient =
+    /HTTP 5\d\d|fetch failed|timeout|socket|ECONN|network|terminated/i.test(
+      String(first.why || ''),
+    );
+  if (!transient) return first;
+  await new Promise((r) => setTimeout(r, 2_000));
+  return probe(product);
+}
+
 const results = [];
-for (let i = 0; i < ALL_IMAGERY_PRODUCTS.length; i += 6) {
+// Four at a time rather than six: these are public services being asked for
+// large images, and hammering them is what produced the 502s in the first place.
+for (let i = 0; i < ALL_IMAGERY_PRODUCTS.length; i += 4) {
   results.push(
-    ...(await Promise.all(ALL_IMAGERY_PRODUCTS.slice(i, i + 6).map(probe))),
+    ...(await Promise.all(
+      ALL_IMAGERY_PRODUCTS.slice(i, i + 4).map(probeWithRetry),
+    )),
   );
 }
 

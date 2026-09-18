@@ -20,6 +20,13 @@
  *             their frames, so TIMELINE leaves them on latest and SAYS so.
  *   'static'  A fixed composite that never moves. Labelled with its vintage so
  *             nobody reads a 2016 mosaic as tonight's pass.
+ *   'composite' Assembled on demand from the best scene in a requested window.
+ *             Sentinel-2 revisits a spot every few days and is often looking
+ *             at cloud when it does, so there is no single "latest frame" to
+ *             ask for — the picture you get is the clearest pass within the
+ *             window, and its actual date varies by where you are looking.
+ *             TIMELINE cannot scrub these, because the thing it would scrub is
+ *             a window rather than a day.
  *
  * `sparse` marks a product that does NOT cover the globe on any given day.
  * The swath products image strips as the satellite passes, so most of the
@@ -87,32 +94,40 @@ export function liveTimeFor(product, now = Date.now()) {
 export const EUMETVIEW_WMS = 'https://view.eumetsat.int/geoserver/wms';
 
 /**
- * The timestamp to request for a EUMETView product.
+ * The time-and-quality parameters a WMS product needs.
  *
- * Same lesson as GIBS `default`, one service along: the server advertises a
- * `default` time in its capabilities, and that frame is not always actually
- * there. Asking for it during a gap returns a ~3 KB fully transparent PNG with
- * a 200 — indistinguishable, in Cesium, from a layer that simply has nothing
- * to draw. So instead of trusting `default` we ask for a frame old enough to
- * certainly exist: step back `lagMinutes`, then floor to the product's own
- * scan interval so the request lands on a real slot boundary rather than
- * between two.
+ * The two services want opposite things, because they are opposite kinds of
+ * feed.
  *
- * Costing a geostationary view half an hour of freshness is not a real loss —
- * these scan every 10 to 15 minutes anyway — and it buys a picture that is
- * always there.
+ * EUMETView wants NOTHING. Its `default` resolves to the newest published
+ * frame and does so reliably. An earlier version of this file pinned an
+ * explicit instant, on the theory that `default` could land in a publication
+ * gap — that was a misdiagnosis. The blanks that prompted it were visible-band
+ * products over their own night side, which is the instrument working and is
+ * now handled by `daylightOnly`. Pinning an instant made things strictly
+ * worse: individual frames do go missing, and asking for one that is absent
+ * returns HTTP 502, so the "fix" introduced the failure it was meant to
+ * prevent. Ask for the default and let the service decide.
  *
- * @param {object} product A catalog entry with `service: 'eumetview'`.
+ * Sentinel-2 wants a WINDOW. It revisits a given spot every few days and is
+ * often looking at cloud when it does, so there is no newest-frame to ask for:
+ * it takes a date range and a cloud ceiling, and composites the clearest pass
+ * inside them. Asking it for an instant would usually return nothing.
+ *
+ * @param {object} product A catalog entry with `service` set.
  * @param {number|Date} [now]
- * @returns {string} An ISO-8601 instant, e.g. `2026-09-18T16:30:00Z`.
+ * @returns {Record<string, string>} WMS query parameters.
  */
-export function wmsTimeFor(product, now = Date.now()) {
+export function wmsParameters(product, now = Date.now()) {
+  if (product?.service !== 'copernicus') return {};
   const ms = now instanceof Date ? now.getTime() : now;
-  const lag = Number.isFinite(product?.lagMinutes) ? product.lagMinutes : 30;
-  const scan = Number.isFinite(product?.scanMinutes) ? product.scanMinutes : 15;
-  const stepped = ms - lag * 60_000;
-  const floored = Math.floor(stepped / (scan * 60_000)) * (scan * 60_000);
-  return new Date(floored).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const days = Number.isFinite(product.windowDays) ? product.windowDays : 90;
+  const from = new Date(ms - days * 86_400_000).toISOString().slice(0, 10);
+  const to = new Date(ms).toISOString().slice(0, 10);
+  const params = { TIME: `${from}/${to}` };
+  if (Number.isFinite(product.maxCloudCover))
+    params.MAXCC = String(product.maxCloudCover);
+  return params;
 }
 
 /** True when a product is served by EUMETView WMS rather than GIBS tiles. */
@@ -316,23 +331,142 @@ const orbital = [
   {
     key: 'sentinel2-true',
     code: 'k',
-    label: 'Sentinel-2 · 10 m True Colour',
+    label: 'Sentinel-2 · True Colour 10 m',
     platform: 'Sentinel-2',
     instrument: 'MSI',
     service: 'copernicus',
-    // Proxied, never called directly: the OAuth secret stays server side and
-    // the browser only ever sees rendered tiles. See server/providers/copernicus.js.
     wmsUrl: '/api/copernicus/wms',
-    wmsLayer: 'TRUE-COLOR-S2L2A',
+    wmsLayer: 'TRUE_COLOR',
     maximumLevel: 15,
-    cadence: 'rolling',
-    scanMinutes: 1440,
-    lagMinutes: 4320,
-    // The only product here behind a key. Hidden unless configured, rather
-    // than offered and failing when clicked.
+    cadence: 'composite',
+    // Sentinel-2 is not a daily global mosaic: it revisits a given spot every
+    // few days, and the pass is often cloudy. So these ask for the least
+    // cloudy scene in a trailing window rather than a single date, which is
+    // what makes the picture reliably present instead of reliably empty.
+    windowDays: 90,
+    maxCloudCover: 20,
     requiresKey: 'copernicus',
     reveals:
-      'Individual buildings, field boundaries, single vessels — roughly a thousand times the detail of the daily global mosaics.',
+      'Individual buildings, field boundaries, single vessels — the least cloudy pass of the last three months.',
+  },
+  {
+    key: 'sentinel2-false',
+    code: 'l',
+    label: 'Sentinel-2 · False Colour 10 m',
+    platform: 'Sentinel-2',
+    instrument: 'MSI near-infrared',
+    service: 'copernicus',
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'FALSE_COLOR',
+    maximumLevel: 15,
+    cadence: 'composite',
+    windowDays: 90,
+    maxCloudCover: 20,
+    requiresKey: 'copernicus',
+    reveals:
+      'Living vegetation glows red at this resolution — healthy crop from failed, and burn scars field by field.',
+  },
+  {
+    key: 'sentinel2-swir',
+    code: 'm',
+    label: 'Sentinel-2 · Shortwave IR 10 m',
+    platform: 'Sentinel-2',
+    instrument: 'MSI SWIR',
+    service: 'copernicus',
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'SWIR',
+    maximumLevel: 15,
+    cadence: 'composite',
+    windowDays: 90,
+    maxCloudCover: 20,
+    requiresKey: 'copernicus',
+    reveals:
+      'Active fire fronts and soil moisture, at a scale where you can see which side of a road burned.',
+  },
+  {
+    key: 'sentinel2-ndvi',
+    code: 'n',
+    label: 'Sentinel-2 · Vegetation Index',
+    platform: 'Sentinel-2',
+    instrument: 'MSI NDVI',
+    service: 'copernicus',
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'NDVI',
+    maximumLevel: 15,
+    cadence: 'composite',
+    windowDays: 90,
+    maxCloudCover: 20,
+    requiresKey: 'copernicus',
+    reveals:
+      'How much living plant matter is there, per 10 m cell — drought stress and irrigation, field by field.',
+  },
+  {
+    key: 'sentinel2-urban',
+    code: 'o',
+    label: 'Sentinel-2 · Urban 10 m',
+    platform: 'Sentinel-2',
+    instrument: 'MSI false colour (urban)',
+    service: 'copernicus',
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'FALSE_COLOR_URBAN',
+    maximumLevel: 15,
+    cadence: 'composite',
+    windowDays: 90,
+    maxCloudCover: 20,
+    requiresKey: 'copernicus',
+    reveals:
+      'Built structure separated from bare ground — new construction, runways, and the edge of a city against its soil.',
+  },
+  {
+    key: 'sentinel2-water',
+    code: 'p',
+    label: 'Sentinel-2 · Water Index',
+    platform: 'Sentinel-2',
+    instrument: 'MSI NDWI',
+    service: 'copernicus',
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'NDWI',
+    maximumLevel: 15,
+    cadence: 'composite',
+    windowDays: 90,
+    maxCloudCover: 20,
+    requiresKey: 'copernicus',
+    reveals:
+      'Where surface water is, at 10 m — a reservoir falling through a drought, or a river over its banks.',
+  },
+  {
+    key: 'sentinel2-burn',
+    code: 'q',
+    label: 'Sentinel-2 · Burn Severity',
+    platform: 'Sentinel-2',
+    instrument: 'MSI NBR',
+    service: 'copernicus',
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'NBR_RAW',
+    maximumLevel: 15,
+    cadence: 'composite',
+    windowDays: 90,
+    maxCloudCover: 20,
+    requiresKey: 'copernicus',
+    reveals:
+      'Not just where it burned but how hard — the normalized burn ratio, which is what post-fire assessments run on.',
+  },
+  {
+    key: 'sentinel2-bathymetric',
+    code: 'r',
+    label: 'Sentinel-2 · Bathymetric',
+    platform: 'Sentinel-2',
+    instrument: 'MSI bathymetric',
+    service: 'copernicus',
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'BATHYMETRIC',
+    maximumLevel: 15,
+    cadence: 'composite',
+    windowDays: 90,
+    maxCloudCover: 20,
+    requiresKey: 'copernicus',
+    reveals:
+      'Shallow seafloor through the water column — reefs, sandbars and channels the basemap draws as flat blue.',
   },
   {
     key: 'black-marble',

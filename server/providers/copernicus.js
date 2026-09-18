@@ -179,6 +179,50 @@ export function copernicusProxy() {
       );
     });
 
+    // The account's own configuration instances, so the id does not have to be
+    // hunted for in a dashboard. Sentinel Hub exposes them to the same
+    // credentials that fetch tiles, and the ids are needed in .env anyway.
+    server.middlewares.use('/api/copernicus/instances', async (req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      const bearer = await getToken();
+      if (!bearer) {
+        res.statusCode = 503;
+        res.end(JSON.stringify({ error: 'no_key', instances: [] }));
+        return;
+      }
+      try {
+        const upstream = await fetch(
+          'https://sh.dataspace.copernicus.eu/configuration/v1/wms/instances',
+          { headers: { Authorization: `Bearer ${bearer}` } },
+        );
+        const body = await upstream.text();
+        let parsed = null;
+        try {
+          parsed = JSON.parse(body);
+        } catch {
+          parsed = null;
+        }
+        const instances = Array.isArray(parsed)
+          ? parsed.map((i) => ({ id: i?.id, name: i?.name }))
+          : [];
+        res.statusCode = upstream.ok ? 200 : upstream.status;
+        res.end(
+          JSON.stringify(
+            upstream.ok
+              ? { instances }
+              : {
+                  error: `HTTP ${upstream.status}`,
+                  detail: body.slice(0, 300),
+                  instances: [],
+                },
+          ),
+        );
+      } catch (error) {
+        res.statusCode = 504;
+        res.end(JSON.stringify({ error: error?.message, instances: [] }));
+      }
+    });
+
     // Which layers THIS account's configuration instance actually offers.
     // Layer names are per-instance, so hardcoding one would be a guess that
     // fails silently as a blank tile. This asks the server instead.

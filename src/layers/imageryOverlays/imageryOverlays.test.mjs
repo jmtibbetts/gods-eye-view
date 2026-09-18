@@ -12,8 +12,8 @@ import {
   productFor,
   isWms,
   rainviewerLatest,
+  wmsParameters,
   slotCodec,
-  wmsTimeFor,
 } from './policy.js';
 import {
   createImageryOverlayLayer,
@@ -66,7 +66,7 @@ test('every catalog product is completely and consistently described', () => {
     }
     assert.ok(Number.isInteger(p.maximumLevel), `${p.key} maximumLevel`);
     assert.ok(
-      ['daily', 'rolling', 'static'].includes(p.cadence),
+      ['daily', 'rolling', 'static', 'composite'].includes(p.cadence),
       `${p.key} cadence`,
     );
     // The matrix set has to agree with the zoom ceiling, or tiles are
@@ -144,29 +144,28 @@ test('EUMETView products resolve to a WMS provider, addressed by instant', async
   assert.match(call.url, /view\.eumetsat\.int/);
   assert.equal(call.layers, 'mumi:wideareacoverage_rgb_natural');
   assert.equal(call.parameters.transparent, true);
-  // Never the server's advertised `default` — that frame is not always there.
-  assert.match(call.parameters.TIME, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-  assert.notEqual(call.parameters.TIME, 'default');
+  // No TIME at all: the service's own default is the newest frame.
+  assert.equal(call.parameters.TIME, undefined);
 
   // Switching back to a GIBS product returns to the tile-template path.
   await layer.setSensor('goes-east-geo');
   assert.equal(wmsCalls.length, 1);
 });
 
-test('WMS time steps back a safety margin and lands on a scan boundary', () => {
-  const at = Date.parse('2026-09-18T17:07:00Z');
-  // 10-minute scan, 30-minute lag: 17:07 - 30min = 16:37, floored to 16:30.
-  assert.equal(
-    wmsTimeFor({ scanMinutes: 10, lagMinutes: 30 }, at),
-    '2026-09-18T16:30:00Z',
+test('EUMETView asks for the service default; only Sentinel-2 takes a window', () => {
+  const at = Date.parse('2026-09-18T17:40:00Z');
+  // EUMETView's default resolves to its newest frame and does so reliably.
+  // Pinning an instant is strictly worse: missing frames return HTTP 502, so
+  // it introduces the failure it was meant to prevent.
+  assert.deepEqual(
+    wmsParameters(productFor('imagery-goes', 'meteosat-geocolour'), at),
+    {},
   );
-  // The multimission ring scans every 3 hours, so its floor is much coarser.
-  assert.equal(
-    wmsTimeFor({ scanMinutes: 180, lagMinutes: 240 }, at),
-    '2026-09-18T12:00:00Z',
-  );
-  // Missing fields fall back rather than producing an invalid instant.
-  assert.match(wmsTimeFor({}, at), /^2026-09-18T\d{2}:\d{2}:00Z$/);
+  // Sentinel-2 has no newest-frame to ask for - it composites the clearest
+  // pass inside a window, so an instant would usually return nothing.
+  const s2 = wmsParameters(productFor('imagery-viirs', 'sentinel2-true'), at);
+  assert.equal(s2.TIME, '2026-06-20/2026-09-18');
+  assert.equal(s2.MAXCC, '20');
 });
 
 test('the geostationary slot now covers the whole ring, not just the Americas', () => {
@@ -179,9 +178,16 @@ test('the geostationary slot now covers the whole ring, not just the Americas', 
   // time cannot be computed and it silently serves blanks.
   for (const p of geo.filter(isWms)) {
     assert.ok(p.wmsLayer, `${p.key} needs a wmsLayer`);
-    assert.ok(Number.isFinite(p.scanMinutes), `${p.key} needs scanMinutes`);
-    assert.ok(Number.isFinite(p.lagMinutes), `${p.key} needs lagMinutes`);
     assert.equal(p.cadence, 'rolling');
+  }
+});
+
+test('every keyed product routes through the proxy, never the service directly', () => {
+  for (const p of ALL_IMAGERY_PRODUCTS.filter((x) => x.requiresKey)) {
+    assert.ok(
+      p.wmsUrl && p.wmsUrl.startsWith('/api/'),
+      `${p.key} must go through our proxy so its secret stays server side`,
+    );
   }
 });
 
