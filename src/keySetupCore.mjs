@@ -99,6 +99,22 @@ export const KEY_SETUP_KEYS = Object.freeze([
     tier: 'free',
   }),
   Object.freeze({
+    id: 'copernicus',
+    title: 'COPERNICUS',
+    unlocks: 'Sentinel-2 imagery at 10 m (all other imagery is keyless)',
+    getUrl: 'https://dataspace.copernicus.eu',
+    // Three values, not two: OGC services are addressed per configuration
+    // instance, and the instance id forms the endpoint path — credentials
+    // alone have nothing to point at. The id comes from the dashboard's
+    // Configuration Utility; accounts ship with a usable "Simple WMS Instance".
+    envVars: Object.freeze([
+      'COPERNICUS_CLIENT_ID',
+      'COPERNICUS_CLIENT_SECRET',
+      'COPERNICUS_INSTANCE_ID',
+    ]),
+    tier: 'free',
+  }),
+  Object.freeze({
     id: 'launch-library',
     title: 'LAUNCH LIBRARY',
     unlocks: 'Higher space-missions request allowance',
