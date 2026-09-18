@@ -413,6 +413,8 @@
       "src/ui/vesselWatchPanel.js",
       "src/ui/vesselWatchEngine.js",
       "src/ui/timelinePanel.js",
+      "src/ui/imageryPanel.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/ui/timelineEngine.js"
     ],
     "external": []
@@ -499,6 +501,7 @@
       "src/data/detectionPolicy.js",
       "src/data/installationFeedback.js",
       "src/data/layerState.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/data/militaryAwarenessEngine.js",
       "src/data/scenePick.js",
       "src/keySetupCore.mjs",
@@ -605,6 +608,7 @@
       "src/ui/vesselWatchPanel.js",
       "src/ui/vesselWatchEngine.js",
       "src/ui/timelinePanel.js",
+      "src/ui/imageryPanel.js",
       "src/ui/timelineEngine.js"
     ],
     "external": ["cesium"]
@@ -735,6 +739,7 @@
       "src/data/contactMatch.js",
       "src/data/iconOrientation.js",
       "src/data/layerState.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/data/modelVisualAnchor.js",
       "src/data/motionModel.js",
       "src/data/renderAltitude.js",
@@ -773,6 +778,7 @@
       "src/data/contactMatch.js",
       "src/data/iconOrientation.js",
       "src/data/layerState.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/data/modelVisualAnchor.js",
       "src/data/motionModel.js",
       "src/data/renderAltitude.js",
@@ -808,6 +814,7 @@
       "src/data/contactMatch.js",
       "src/data/iconOrientation.js",
       "src/data/layerState.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/data/modelVisualAnchor.js",
       "src/data/motionModel.js",
       "src/data/renderAltitude.js",
@@ -1114,6 +1121,7 @@
     "modules": [
       "src/data/iconOrientation.js",
       "src/data/layerState.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/data/radioCountry.js",
       "src/layers/radio/catalogModel.js",
       "src/layers/radio/categories.js",
@@ -1897,6 +1905,8 @@
       "src/ui/audioDock.js",
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
+      "src/layers/imageryOverlays/surface.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/layers/weatherAlerts/index.js",
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
@@ -1925,6 +1935,7 @@
       "src/ui/vesselWatchPanel.js",
       "src/ui/vesselWatchEngine.js",
       "src/ui/timelinePanel.js",
+      "src/ui/imageryPanel.js",
       "src/ui/timelineEngine.js"
     ],
     "external": [
@@ -2346,6 +2357,8 @@
       "src/data/markerField.js",
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
+      "src/layers/imageryOverlays/surface.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/layers/weatherAlerts/index.js",
       "src/layers/weatherAlerts/policy.js",
       "src/layers/weatherAlerts/records.js",
@@ -2449,6 +2462,7 @@
     "modules": [
       "src/data/installationFeedback.js",
       "src/data/layerState.js",
+      "src/layers/imageryOverlays/catalog.js",
       "src/loadingFeedback.js",
       "src/navigationPolicy.js",
       "src/ui/shareRestoration.js",
@@ -2681,7 +2695,9 @@
     "exports": ["./layers/imageryOverlays"],
     "modules": [
       "src/layers/imageryOverlays/index.js",
-      "src/layers/imageryOverlays/policy.js"
+      "src/layers/imageryOverlays/policy.js",
+      "src/layers/imageryOverlays/surface.js",
+      "src/layers/imageryOverlays/catalog.js"
     ],
     "external": ["cesium"]
   },

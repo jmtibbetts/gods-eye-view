@@ -1,88 +1,74 @@
 /**
  * Imagery-overlay layers — full-globe raster feeds added on top of the base
- * map as Cesium imagery layers, rather than dots. Three near-real-time feeds:
+ * map as Cesium imagery layers, rather than dots.
  *
- *  - VIIRS true-color (NASA GIBS): daily corrected-reflectance imagery,
- *    ~1.5–3.5 h after each overpass.
- *  - GOES-East GeoColor (NASA GIBS): geostationary cloud/weather imagery,
- *    refreshed roughly every 10 minutes ("default" time = latest available).
- *  - Weather radar (RainViewer / NEXRAD + world mosaics): precipitation,
- *    latest frame fetched from RainViewer's index.
+ * Four slots. Three are GIBS sensor slots whose product is chosen from
+ * `catalog.js` at runtime (see IMAGERY_SLOTS there); the fourth is RainViewer
+ * radar, which is not GIBS and carries its own resolver.
  *
  * The provider is a plain tiled raster (UrlTemplateImageryProvider), so this
  * never touches the marker/pick/context machinery — enable() adds an imagery
  * layer, disable() removes it.
+ *
+ * NOTE ON IDS. `imagery-viirs` and `imagery-goes` keep the ids they shipped
+ * with, because share links, saved layer state and the combination presets are
+ * all written against them and renaming would break every link in the wild.
+ * Their DISPLAY names moved with their new breadth: the `imagery-viirs` slot
+ * now also carries MODIS and the day/night band, so calling it "VIIRS" in the
+ * UI would be a lie. Id is storage; name is what we promise the user.
+ *
+ * EVERY ONE OF THESE COVERS THE BASEMAP. They are full-globe rasters painted
+ * over the photorealistic 3D tileset, so an overlay left on is indistinguishable
+ * from "the 3D broke". The panel says so, and only one GIBS slot renders opaque
+ * at a time.
  */
 
+export * from './catalog.js';
+
+/** SPC-style keyless radar index; serves `access-control-allow-origin: *`. */
 export const RAINVIEWER_INDEX_URL =
   'https://api.rainviewer.com/public/weather-maps.json';
 
-/** GIBS best-available WMTS REST endpoint (Web Mercator). */
-const GIBS_BASE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
-
-/** A recent, fully-published UTC date for daily GIBS products (yesterday). */
-export function recentGibsDate(now = Date.now()) {
-  const d = new Date(now - 24 * 60 * 60 * 1000);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Build a GIBS REST tile template for `{z}/{x}/{y}` substitution. */
-export function gibsTemplate(layerId, matrixSet, ext, time = 'default') {
-  return `${GIBS_BASE}/${layerId}/default/${time}/${matrixSet}/{z}/{y}/{x}.${ext}`;
-}
-
 /**
- * The three overlay descriptors. `resolve(fetchImpl)` returns the tile config
- * the layer turns into a Cesium provider; it is async only because radar must
- * look up the latest frame.
+ * The four overlay descriptors. A descriptor with `slotId` draws its tile
+ * config from the GIBS catalog and can be switched between sensors; one with
+ * its own `resolve` cannot.
  */
 export const IMAGERY_OVERLAYS = Object.freeze([
   Object.freeze({
     id: 'imagery-viirs',
     token: '1',
-    name: 'Satellite (VIIRS)',
+    slotId: 'imagery-viirs',
+    name: 'Orbital Imagery',
     icon: '🛰️',
     source: 'NASA GIBS',
-    attribution:
-      'Imagery: NASA EOSDIS GIBS (VIIRS/NOAA-20 Corrected Reflectance)',
+    attribution: 'Imagery: NASA EOSDIS GIBS (VIIRS / MODIS)',
     opacity: 1,
     updateInterval: 60 * 60 * 1000,
-    // Daily product with a deep archive, so the TIMELINE scrubber can move it.
-    timeAware: true,
-    async resolve(fetchImpl, { date = null } = {}) {
-      return {
-        url: gibsTemplate(
-          'VIIRS_NOAA20_CorrectedReflectance_TrueColor',
-          'GoogleMapsCompatible_Level9',
-          'jpg',
-          date || recentGibsDate(),
-        ),
-        maximumLevel: 9,
-        credit: 'NASA EOSDIS GIBS',
-      };
-    },
   }),
   Object.freeze({
     id: 'imagery-goes',
     token: '2',
-    name: 'GOES Live Weather',
+    slotId: 'imagery-goes',
+    name: 'Geostationary Weather',
     icon: '🌀',
-    source: 'NASA GIBS / NOAA GOES',
-    attribution: 'Imagery: NOAA GOES-East ABI GeoColor via NASA GIBS',
+    source: 'NASA GIBS / NOAA / JMA',
+    attribution: 'Imagery: NOAA GOES ABI and JMA Himawari AHI via NASA GIBS',
     opacity: 1,
     updateInterval: 10 * 60 * 1000,
-    async resolve() {
-      return {
-        url: gibsTemplate(
-          'GOES-East_ABI_GeoColor',
-          'GoogleMapsCompatible_Level7',
-          'png',
-          'default',
-        ),
-        maximumLevel: 7,
-        credit: 'NOAA GOES via NASA GIBS',
-      };
-    },
+  }),
+  Object.freeze({
+    id: 'imagery-science',
+    token: '7',
+    slotId: 'imagery-science',
+    name: 'Science Overlay',
+    icon: '🌡️',
+    source: 'NASA GIBS',
+    attribution: 'Data: NASA EOSDIS GIBS (GHRSST MUR, MODIS MAIAC, MODIS L3)',
+    // Retrieved measurements on a colour ramp rather than a photograph, so
+    // they are drawn semi-transparent and imagery underneath still reads.
+    opacity: 0.8,
+    updateInterval: 60 * 60 * 1000,
   }),
   Object.freeze({
     id: 'imagery-radar',

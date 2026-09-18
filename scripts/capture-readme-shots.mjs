@@ -32,6 +32,7 @@ const ALL_PANELS = [
   'watchlist-panel',
   'vessel-watch-panel',
   'timeline-panel',
+  'imagery-panel',
 ];
 
 const SHOTS = [
@@ -80,6 +81,55 @@ const SHOTS = [
     settle: 18_000,
     clip: '#right-context-rail',
     hideSections: ['radio-panel', 'scanner-panel', 'sdr-panel', 'atc-panel'],
+  },
+  {
+    name: '26-imagery-sensors',
+    caption:
+      'The IMAGERY panel: 24 NASA GIBS sensors grouped by what they reveal',
+    layers: ['imagery-goes'],
+    view: { lon: -75, lat: 20, height: 16_000_000 },
+    panels: ['global-context-panel', 'imagery-panel'],
+    // The panel sits near the bottom of a rail that is taller than the
+    // viewport, so hide everything above it — otherwise the capture is of
+    // whatever the fold happens to cut through. Each hidden panel has its own
+    // shot elsewhere in the README.
+    settle: 20_000,
+    clip: '#imagery-panel',
+    clipWithin: '#right-context-rail',
+    hideSections: [
+      'radio-panel',
+      'scanner-panel',
+      'sdr-panel',
+      'atc-panel',
+      'monitor-panel',
+      'watchlist-panel',
+      'vessel-watch-panel',
+      'timeline-panel',
+    ],
+  },
+  {
+    name: '27-goes-geocolor',
+    caption:
+      'GOES-East GeoColor over the Americas beside the geostationary sensor list',
+    layers: ['imagery-goes'],
+    view: { lon: -75, lat: 20, height: 16_000_000 },
+    // Deliberately keeps the panel open: the globe shows what one sensor
+    // looks like and the rail shows what else it could have been, which is
+    // the whole point of the feature in a single frame.
+    panels: ['global-context-panel', 'imagery-panel'],
+    // The rail does not scroll to an expanded panel, so the sections above
+    // IMAGERY are hidden to lift it into frame. Each has its own capture.
+    hideSections: [
+      'radio-panel',
+      'scanner-panel',
+      'sdr-panel',
+      'atc-panel',
+      'monitor-panel',
+      'watchlist-panel',
+      'vessel-watch-panel',
+      'timeline-panel',
+    ],
+    settle: 24_000,
   },
   {
     name: '25-layer-combinations',
@@ -209,29 +259,45 @@ try {
       }, shot.scrubDays);
     }
 
+    // The rail is taller than the viewport and does not scroll to an expanded
+    // panel, so a shot of one near its bottom would be cropped away or miss it
+    // entirely. Hide the sections this shot is not about — each is documented
+    // by its own capture — rather than scrolling, which the rail does not do
+    // predictably. Done before the settle so the layout is final, and outside
+    // the clip branch so full-frame shots can lift a panel into view too.
+    await page.evaluate((hide) => {
+      // Un-hide first: display:none set for an earlier shot would otherwise
+      // persist into every shot after it, silently emptying their rails.
+      for (const section of document.querySelectorAll('[data-panel-id]'))
+        section.style.display = '';
+      for (const id of hide) {
+        const section = document.getElementById(id);
+        if (section) section.style.display = 'none';
+      }
+    }, shot.hideSections || []);
+
     await new Promise((r) => setTimeout(r, shot.settle));
 
     const path = `${outDir}${shot.name}.png`;
     if (shot.clip) {
-      // A rail taller than the viewport hides the newest panels at the bottom,
-      // so scroll its scrollable box before measuring.
       const rect = await page.evaluate(
-        (selector, hide) => {
-          // The rail is taller than the viewport, so a shot of the panels near
-          // its bottom would otherwise be cropped away. Hide the sections this
-          // shot is not about — they are documented by their own captures —
-          // rather than scrolling, which the rail does not do predictably.
-          for (const id of hide) {
-            const section = document.getElementById(id);
-            if (section) section.style.display = 'none';
-          }
+        (selector, within) => {
           const node = document.querySelector(selector);
           if (!node) return null;
           const r = node.getBoundingClientRect();
-          return { x: r.x, y: r.y, width: r.width, height: r.height };
+          let bottom = r.bottom;
+          // A panel taller than its scrolling rail reports a box that runs
+          // past what is actually painted, and the capture then trails off
+          // into whatever sits below the rail. Clamp to the scroll container.
+          if (within) {
+            const box = document.querySelector(within);
+            if (box)
+              bottom = Math.min(bottom, box.getBoundingClientRect().bottom);
+          }
+          return { x: r.x, y: r.y, width: r.width, height: bottom - r.y };
         },
         shot.clip,
-        shot.hideSections || [],
+        shot.clipWithin || null,
       );
       if (!rect) throw new Error(`clip target ${shot.clip} not found`);
       await new Promise((r) => setTimeout(r, 1200));

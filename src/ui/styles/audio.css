@@ -1141,3 +1141,135 @@ body.recording-mode .audio-dock {
   outline: 1px solid rgba(114, 220, 230, 0.8);
   outline-offset: 2px;
 }
+
+/* ---------------------------------------------------------------- *
+ * IMAGERY panel — GIBS sensor selection per overlay slot.
+ * ---------------------------------------------------------------- */
+
+.imagery-list {
+  display: grid;
+  gap: 9px;
+  margin: 8px 0 0;
+}
+
+.imagery-slot {
+  display: grid;
+  gap: 5px;
+  padding: 8px 9px;
+  border: 1px solid rgba(65, 220, 231, 0.16);
+  border-radius: 7px;
+  background: rgba(2, 15, 20, 0.38);
+}
+
+.imagery-slot.active {
+  border-color: rgba(65, 220, 231, 0.42);
+  background: rgba(4, 26, 33, 0.58);
+}
+
+.imagery-slot-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.imagery-slot-title {
+  color: #e8feff;
+  font: 9px/1.3 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.imagery-slot-state {
+  color: #72dce6;
+  font: 8px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.imagery-slot.active .imagery-slot-state {
+  color: #8affc4;
+}
+
+.imagery-slot-blurb {
+  margin: 0;
+  color: rgba(157, 214, 222, 0.72);
+  font: 8px/1.45 var(--font-mono);
+}
+
+.imagery-sensor-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.imagery-sensor {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid rgba(65, 220, 231, 0.14);
+  border-radius: 5px;
+  background: rgba(1, 10, 14, 0.5);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.imagery-sensor:hover {
+  border-color: rgba(65, 220, 231, 0.4);
+  background: rgba(4, 26, 33, 0.7);
+}
+
+.imagery-sensor:focus-visible {
+  outline: 1px solid rgba(138, 255, 196, 0.8);
+  outline-offset: 1px;
+}
+
+.imagery-sensor.active {
+  border-color: rgba(138, 255, 196, 0.6);
+  background: rgba(8, 38, 32, 0.68);
+}
+
+.imagery-sensor-label {
+  color: #e8feff;
+  font: 9px/1.3 var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+.imagery-sensor.active .imagery-sensor-label {
+  color: #8affc4;
+}
+
+.imagery-sensor-meta {
+  color: #72dce6;
+  font: 7.5px/1.3 var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.imagery-sensor-reveals {
+  color: rgba(157, 214, 222, 0.66);
+  font: 7.5px/1.4 var(--font-mono);
+}
+
+.imagery-clear-btn {
+  padding: 2px 7px;
+  border: 1px solid rgba(65, 220, 231, 0.3);
+  border-radius: 4px;
+  background: rgba(2, 15, 20, 0.6);
+  color: #72dce6;
+  font: 8px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.imagery-clear-btn:hover:not(:disabled) {
+  border-color: rgba(255, 138, 138, 0.6);
+  color: #ffb4b4;
+}
+
+.imagery-clear-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

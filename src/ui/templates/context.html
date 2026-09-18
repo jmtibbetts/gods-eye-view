@@ -335,6 +335,20 @@
             <p class="audio-privacy">Sanctions matching is by MMSI only, never by name, so a listed ship whose entry carries no MMSI will not appear — absence here is not evidence a vessel is unlisted. A vessel is only called dark after repeated sightings then sustained silence; AIS coverage is patchy and a gap is not proof a transponder was switched off.</p>
           </div>
         </section>
+        <section id="imagery-panel" class="panel-collapsible collapsed" data-panel-id="imagery-panel" aria-label="Satellite imagery sensors">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">IMAGERY</span>
+              <span id="imagery-layer-state" class="audio-layer-state">CLEAR</span>
+              <span class="panel-divider"></span>
+              <button id="imagery-clear-btn" class="imagery-clear-btn" type="button" aria-label="Turn off every imagery overlay" disabled>CLEAR</button>
+              <button class="panel-collapse-btn" data-collapse-target="imagery-panel" title="Expand Imagery" aria-label="Expand Imagery section">+</button>
+            </div>
+            <div id="imagery-list" class="imagery-list" aria-label="Imagery sensors"></div>
+            <p id="imagery-note" class="audio-privacy"></p>
+            <p class="audio-privacy">Imagery is painted on the 2D globe surface, which the photorealistic 3D basemap replaces — so turning on any sensor switches the basemap to 2D, and CLEAR switches it back. Imagery is published on each instrument's own schedule — the lag shown per sensor is real, and none of these is a live view of this second.</p>
+          </div>
+        </section>
         <section id="timeline-panel" class="panel-collapsible collapsed" data-panel-id="timeline-panel" aria-label="Imagery timeline">
           <div class="audio-panel-inner">
             <div class="panel-header">

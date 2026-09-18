@@ -20,6 +20,7 @@ import { AudioDock } from './audioDock.js';
 import { MonitorPanel } from './monitorPanel.js';
 import { WatchlistPanel } from './watchlistPanel.js';
 import { VesselWatchPanel } from './vesselWatchPanel.js';
+import { ImageryPanel } from './imageryPanel.js';
 import { TimelinePanel } from './timelinePanel.js';
 import { captureSnapshot } from './snapshotExport.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -253,6 +254,7 @@ export class StyleManager extends ShellFacade {
         _watchlistPanel: this._watchlistPanel,
         _vesselWatchPanel: this._vesselWatchPanel,
         _timelinePanel: this._timelinePanel,
+        _imageryPanel: this._imageryPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -1002,6 +1004,20 @@ export class StyleManager extends ShellFacade {
         playBtn: this._timelinePlayBtn,
         liveBtn: this._timelineLiveBtn,
         note: this._timelineNote,
+      },
+      dataManager: () => this._dataManager,
+      onToast: (message) => {
+        if (!this._disposed) this._showToast(message);
+      },
+    });
+
+    this._imageryPanel?.destroy();
+    this._imageryPanel = new ImageryPanel({
+      elements: {
+        layerState: this._imageryLayerState,
+        list: this._imageryList,
+        clearBtn: this._imageryClearBtn,
+        note: this._imageryNote,
       },
       dataManager: () => this._dataManager,
       onToast: (message) => {
@@ -1775,6 +1791,7 @@ export class StyleManager extends ShellFacade {
     this._watchlistPanel?.destroy();
     this._vesselWatchPanel?.destroy();
     this._timelinePanel?.destroy();
+    this._imageryPanel?.destroy();
     this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();

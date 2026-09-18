@@ -1,3 +1,5 @@
+import { slotCodec } from '../layers/imageryOverlays/catalog.js';
+
 const VALID_DISPOSITIONS = new Set([
   'enabled-only',
   'enabled+options',
@@ -182,6 +184,35 @@ function enumOption(key, token, defaultValue, values, codes) {
   });
 }
 
+/**
+ * The sensor selection for one GIBS imagery slot.
+ *
+ * Unlike the hand-written enums above, the value set is the slot's catalog, so
+ * adding a sensor in catalog.js is enough — there is no second list here to
+ * forget. The single-char URL codes live on the product records for the same
+ * reason. They must be unique WITHIN a slot (never globally: each slot has its
+ * own token namespace), and this asserts that at module load rather than
+ * letting two products quietly collide into one link.
+ *
+ * An unknown code decodes to null, which the codec reads as "absent" and fills
+ * with the slot default — so an old link naming a retired sensor still opens on
+ * a working picture instead of a blank globe.
+ *
+ * @param {string} slotId A key of IMAGERY_SLOTS.
+ */
+function imageryOption(slotId) {
+  const { values, codes, defaultKey } = slotCodec(slotId);
+  const seen = new Set();
+  for (const [key, code] of Object.entries(codes)) {
+    if (seen.has(code))
+      throw new Error(`Duplicate imagery code '${code}' in slot ${slotId}`);
+    seen.add(code);
+    if (typeof code !== 'string' || code.length !== 1)
+      throw new Error(`Imagery code for ${key} must be one character`);
+  }
+  return enumOption('sensor', 's', defaultKey, values, codes);
+}
+
 function integerOption(key, token, defaultValue) {
   return Object.freeze({
     key,
@@ -249,6 +280,14 @@ const OPTION_GROUPS = Object.freeze({
     booleanOption('showProjection', 'p', true),
     booleanOption('autoHop', 'a', false),
   ]),
+  // Imagery sensor selection. Codes come from the catalog so a product's URL
+  // code lives beside the product itself and cannot drift out of sync with it;
+  // `imageryOption` below asserts they stay unique within a slot.
+  // Owner key IS the owning layer's id — the encoder resolves owners through
+  // REGISTRY_BY_ID, so a friendlier name here would silently encode nothing.
+  'imagery-viirs': Object.freeze([imageryOption('imagery-viirs')]),
+  'imagery-goes': Object.freeze([imageryOption('imagery-goes')]),
+  'imagery-science': Object.freeze([imageryOption('imagery-science')]),
   radio: Object.freeze([
     Object.freeze({
       key: 'filter',
@@ -341,7 +380,8 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   Object.freeze({
     id: 'imagery-goes',
     token: '2',
-    disposition: 'enabled-only',
+    disposition: 'enabled+options',
+    optionOwner: 'imagery-goes',
   }),
   Object.freeze({
     id: 'imagery-radar',
@@ -349,9 +389,16 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     disposition: 'enabled-only',
   }),
   Object.freeze({
+    id: 'imagery-science',
+    token: '7',
+    disposition: 'enabled+options',
+    optionOwner: 'imagery-science',
+  }),
+  Object.freeze({
     id: 'imagery-viirs',
     token: '1',
-    disposition: 'enabled-only',
+    disposition: 'enabled+options',
+    optionOwner: 'imagery-viirs',
   }),
   Object.freeze({ id: 'local-dams', token: 'q', disposition: 'enabled-only' }),
   Object.freeze({

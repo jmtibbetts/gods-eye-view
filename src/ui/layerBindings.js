@@ -78,6 +78,9 @@ export class LayerBindings {
   get _timelinePanel() {
     return this.readControls()._timelinePanel;
   }
+  get _imageryPanel() {
+    return this.readControls()._imageryPanel;
+  }
   observeCamera() {
     this._cctvRequestFocusHandler = (event) =>
       routeCctvFocusRequest(
@@ -242,6 +245,7 @@ export class LayerBindings {
     this._watchlistPanel?.connect();
     this._vesselWatchPanel?.connect();
     this._timelinePanel?.connect();
+    this._imageryPanel?.connect();
     this._connectDirectionsCamera();
     if (!this._awarenessSelectedHandler) {
       this._awarenessSelectedHandler = (event) =>
