@@ -4,6 +4,7 @@
   "scripts/format-scope.json",
   "scripts/package-boundaries.json",
   "scripts/format.mjs",
+  "scripts/capture-readme-shots.mjs",
   "scripts/check-package-boundaries.mjs",
   "scripts/precompute-cctv-heights.mjs",
   "src/tooling/precomputeCctvHeights.test.mjs",

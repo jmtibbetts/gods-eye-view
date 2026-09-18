@@ -77,6 +77,18 @@ Start with the included data sources, then add your own. Each layer is a separat
 - **🔗 Share Links:** Camera, style, layers, and even one tracked target serialize into a URL — a live target is a handoff, not a bookmark.
 - **🏠 Reset Globe:** One control — or one sentence — back to the full Earth.
 
+![The DATA LAYERS panel showing a COMBINATIONS row with STORM + AIR, SEVERE WX and SEA + WX above the movement layers](docs/media/25-layer-combinations.png)
+
+_Combinations sit above the layer groups. Press one to fill in whatever is still off; press it again to turn the whole set back off, so trying one costs nothing._
+
+![The Context rail showing the MONITOR, WATCHLIST, VESSEL WATCH and TIMELINE panels](docs/media/24-context-panels.png)
+
+_The analysis panels ride in the Context rail beside the radio stack: **MONITOR** watch circles, the **WATCHLIST** of pinned contacts, **VESSEL WATCH** for OFAC-listed and gone-dark ships, and the **TIMELINE** scrubber._
+
+![The globe showing VIIRS true-colour imagery with the TIMELINE panel scrubbed back into the archive](docs/media/23-timeline-archive.png)
+
+_TIMELINE scrubbing daily VIIRS true-colour back through a fortnight of archive. It moves only the feeds that have an archive and names them — live feeds always show now and are never rewound._
+
 ---
 
 <div align="center">
@@ -320,6 +332,18 @@ _The Space Missions layer replaying a Falcon 9 ascent — labeled `RECONSTRUCTED
 **Also on the globe:** neighborhood overlays · an optional cockpit WX cloud effect. **Bundled static infrastructure:** Datacenters (4,351), Dams (704), and Submarine Cables (712).
 
 ![Diving into the Bahamas and revealing labeled submarine cable routes beneath the globe](docs/media/09-undersea-cables.gif)
+
+![Live flights over the continental United States with weather radar beneath them and active NWS warning polygons](docs/media/20-storm-and-air.png)
+
+_One press of **STORM + AIR** stacks NEXRAD radar under the live fleet and paints active NWS warnings on top — the three toggles live in different groups, which is exactly why the combination exists._
+
+![Preliminary SPC storm reports plotted across the central United States, coloured by tornado, wind and hail](docs/media/21-storm-reports.png)
+
+_Storm Reports: preliminary tornado, damaging-wind and hail reports from NWS offices over a rolling two days, coloured by kind. Every card says **preliminary**, because SPC revises and removes them during review._
+
+![Volcano alert markers across the Aleutians and Hawaii, coloured by aviation colour code](docs/media/22-volcano-alerts.png)
+
+_Volcano Alerts across the North Pacific. Each marker carries both scales side by side — the aviation colour code for the ash threat to aircraft, the ground alert level for the threat on the ground — because they move independently._
 
 **Missing a layer you want?** Open an issue — or add it and send the PR.
 
