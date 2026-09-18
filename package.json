@@ -232,6 +232,7 @@
     "./layers/stormReports": "./src/layers/stormReports/index.js",
     "./layers/tropical": "./src/layers/tropical/index.js",
     "./layers/severeOutlook": "./src/layers/severeOutlook/index.js",
+    "./layers/airQuality": "./src/layers/airQuality/index.js",
     "./layers/volcanoes": "./src/layers/volcanoes/index.js",
     "./layers/volcanoes/source": "./src/layers/volcanoes/source.js",
     "./layers/stormReports/source": "./src/layers/stormReports/source.js",

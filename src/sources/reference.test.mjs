@@ -23,6 +23,7 @@ test('reference factories retain compatibility without starting acquisition or s
     'volcanoes',
     'tropical',
     'severeOutlook',
+    'airQuality',
   ]);
   assert.notEqual(first.scanner, second.scanner);
   assert.notEqual(first.sdr, second.sdr);

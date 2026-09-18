@@ -60,6 +60,7 @@ const PANEL_GROUPS = [
       'imagery-science',
       'tropical-cyclones',
       'severe-outlook',
+      'air-quality',
     ],
   },
   {
@@ -88,6 +89,7 @@ const PANEL_LABELS = {
   'imagery-science': 'Science Overlay',
   'tropical-cyclones': 'Tropical Cyclones',
   'severe-outlook': 'Severe Outlook',
+  'air-quality': 'Air Quality',
   'imagery-radar': 'Weather Radar',
   'weather-alerts': 'NWS Weather Alerts',
   'storm-reports': 'SPC Storm Reports',
