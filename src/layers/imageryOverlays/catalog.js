@@ -79,6 +79,48 @@ export function liveTimeFor(product, now = Date.now()) {
 }
 
 /**
+ * EUMETSAT's EUMETView WMS. Open — no account, no key, no OAuth — and it
+ * carries the half of the geostationary ring NASA's GIBS does not: Meteosat
+ * over Europe and Africa, the Indian Ocean service, and multimission
+ * composites that stitch every geostationary satellite into one global image.
+ */
+export const EUMETVIEW_WMS = 'https://view.eumetsat.int/geoserver/wms';
+
+/**
+ * The timestamp to request for a EUMETView product.
+ *
+ * Same lesson as GIBS `default`, one service along: the server advertises a
+ * `default` time in its capabilities, and that frame is not always actually
+ * there. Asking for it during a gap returns a ~3 KB fully transparent PNG with
+ * a 200 — indistinguishable, in Cesium, from a layer that simply has nothing
+ * to draw. So instead of trusting `default` we ask for a frame old enough to
+ * certainly exist: step back `lagMinutes`, then floor to the product's own
+ * scan interval so the request lands on a real slot boundary rather than
+ * between two.
+ *
+ * Costing a geostationary view half an hour of freshness is not a real loss —
+ * these scan every 10 to 15 minutes anyway — and it buys a picture that is
+ * always there.
+ *
+ * @param {object} product A catalog entry with `service: 'eumetview'`.
+ * @param {number|Date} [now]
+ * @returns {string} An ISO-8601 instant, e.g. `2026-09-18T16:30:00Z`.
+ */
+export function wmsTimeFor(product, now = Date.now()) {
+  const ms = now instanceof Date ? now.getTime() : now;
+  const lag = Number.isFinite(product?.lagMinutes) ? product.lagMinutes : 30;
+  const scan = Number.isFinite(product?.scanMinutes) ? product.scanMinutes : 15;
+  const stepped = ms - lag * 60_000;
+  const floored = Math.floor(stepped / (scan * 60_000)) * (scan * 60_000);
+  return new Date(floored).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/** True when a product is served by EUMETView WMS rather than GIBS tiles. */
+export function isWms(product) {
+  return product?.service === 'eumetview';
+}
+
+/**
  * Build a GIBS REST tile template for `{z}/{y}/{x}` substitution.
  * @param {object} product A catalog entry.
  * @param {string} [time] A `YYYY-MM-DD` day, or `default` for latest.
@@ -423,6 +465,119 @@ const geostationary = [
   },
 ];
 
+// EUMETView additions. These complete the geostationary ring: GIBS gives the
+// Americas (GOES) and the west Pacific (Himawari), and everything between —
+// Europe, Africa, the Indian Ocean — was a blind spot until these.
+const geostationaryEumetview = [
+  {
+    key: 'georing-natural',
+    code: 'j',
+    label: 'Geo Ring · Natural Colour',
+    platform: 'GOES + Meteosat + Himawari',
+    instrument: 'Multimission composite',
+    service: 'eumetview',
+    wmsLayer: 'mumi:wideareacoverage_rgb_natural',
+    maximumLevel: 7,
+    cadence: 'rolling',
+    scanMinutes: 180,
+    lagMinutes: 240,
+    reveals:
+      'Every geostationary satellite stitched into one image — the whole belt at once, with no blind side.',
+  },
+  {
+    key: 'georing-ir',
+    code: 'k',
+    label: 'Geo Ring · Infrared',
+    platform: 'GOES + Meteosat + Himawari',
+    instrument: 'Multimission IR10.8',
+    service: 'eumetview',
+    wmsLayer: 'mumi:worldcloudmap_ir108',
+    maximumLevel: 7,
+    cadence: 'rolling',
+    scanMinutes: 180,
+    lagMinutes: 240,
+    reveals:
+      'The same global ring read thermally, so the night half is as visible as the day half.',
+  },
+  {
+    key: 'meteosat-geocolour',
+    code: 'l',
+    label: 'Meteosat · GeoColor',
+    platform: 'Meteosat Third Generation',
+    instrument: 'FCI GeoColor',
+    service: 'eumetview',
+    wmsLayer: 'mtg_fd:rgb_geocolour',
+    maximumLevel: 7,
+    cadence: 'rolling',
+    scanMinutes: 10,
+    lagMinutes: 30,
+    reveals:
+      'Europe, Africa and the Atlantic every ten minutes — the GOES view, for the other side of the world.',
+  },
+  {
+    key: 'meteosat-truecolour',
+    code: 'm',
+    label: 'Meteosat · True Colour',
+    platform: 'Meteosat Third Generation',
+    instrument: 'FCI',
+    service: 'eumetview',
+    wmsLayer: 'mtg_fd:rgb_truecolour',
+    maximumLevel: 7,
+    cadence: 'rolling',
+    scanMinutes: 10,
+    lagMinutes: 30,
+    daylightOnly: true,
+    reveals:
+      'Unprocessed daylight colour over Europe and Africa, without GeoColor’s night-time substitution.',
+  },
+  {
+    key: 'meteosat-io',
+    code: 'n',
+    label: 'Meteosat · Indian Ocean',
+    platform: 'Meteosat Second Generation',
+    instrument: 'SEVIRI natural colour',
+    service: 'eumetview',
+    wmsLayer: 'msg_iodc:rgb_natural',
+    maximumLevel: 7,
+    cadence: 'rolling',
+    scanMinutes: 15,
+    lagMinutes: 45,
+    daylightOnly: true,
+    reveals:
+      'The Indian Ocean service — monsoon, Arabian Sea cyclones, and the ocean neither GOES nor Himawari sees well.',
+  },
+  {
+    key: 'meteosat-io-ir',
+    code: 'o',
+    label: 'Meteosat · Indian Ocean IR',
+    platform: 'Meteosat Second Generation',
+    instrument: 'SEVIRI IR10.8',
+    service: 'eumetview',
+    wmsLayer: 'msg_iodc:ir108',
+    maximumLevel: 7,
+    cadence: 'rolling',
+    scanMinutes: 15,
+    lagMinutes: 45,
+    reveals:
+      'The same disc around the clock — cyclone structure over the Indian Ocean at night, when the colour view is dark.',
+  },
+  {
+    key: 'meteosat-ash',
+    code: 'p',
+    label: 'Meteosat · Volcanic Ash',
+    platform: 'Meteosat',
+    instrument: 'SEVIRI Ash RGB',
+    service: 'eumetview',
+    wmsLayer: 'msg_fes:rgb_ash',
+    maximumLevel: 7,
+    cadence: 'rolling',
+    scanMinutes: 15,
+    lagMinutes: 45,
+    reveals:
+      'Separates a volcanic ash plume from ordinary cloud — the thing that actually grounds aircraft, seen directly.',
+  },
+];
+
 const science = [
   {
     key: 'sst',
@@ -570,8 +725,8 @@ export const IMAGERY_SLOTS = Object.freeze({
     group: 'geostationary',
     heading: 'GEOSTATIONARY WEATHER',
     blurb:
-      'Parked over one spot, staring. Refreshed every ~10 minutes — this is what moves while you watch.',
-    products: freezeGroup(geostationary),
+      'Parked over one spot, staring. Refreshed every ~10 minutes — this is what moves while you watch. NASA covers the Americas and the west Pacific; EUMETSAT covers everything between.',
+    products: freezeGroup([...geostationary, ...geostationaryEumetview]),
     defaultKey: 'goes-east-geo',
   }),
   'imagery-science': Object.freeze({

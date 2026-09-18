@@ -10,8 +10,10 @@ import {
   isArchived,
   liveTimeFor,
   productFor,
+  isWms,
   rainviewerLatest,
   slotCodec,
+  wmsTimeFor,
 } from './policy.js';
 import {
   createImageryOverlayLayer,
@@ -49,19 +51,19 @@ test('every catalog product is completely and consistently described', () => {
   for (const p of ALL_IMAGERY_PRODUCTS) {
     assert.ok(!keys.has(p.key), `duplicate product key ${p.key}`);
     keys.add(p.key);
-    for (const field of [
-      'label',
-      'platform',
-      'instrument',
-      'gibsId',
-      'matrixSet',
-      'ext',
-      'reveals',
-    ]) {
+    // Every product needs describing; only the GIBS ones carry tile identity,
+    // since a WMS product is addressed by layer name instead.
+    for (const field of ['label', 'platform', 'instrument', 'reveals']) {
       assert.equal(typeof p[field], 'string', `${p.key} missing ${field}`);
       assert.ok(p[field].length, `${p.key} has an empty ${field}`);
     }
-    assert.ok(['jpg', 'png'].includes(p.ext), `${p.key} odd extension`);
+    if (!isWms(p)) {
+      for (const field of ['gibsId', 'matrixSet', 'ext']) {
+        assert.equal(typeof p[field], 'string', `${p.key} missing ${field}`);
+        assert.ok(p[field].length, `${p.key} has an empty ${field}`);
+      }
+      assert.ok(['jpg', 'png'].includes(p.ext), `${p.key} odd extension`);
+    }
     assert.ok(Number.isInteger(p.maximumLevel), `${p.key} maximumLevel`);
     assert.ok(
       ['daily', 'rolling', 'static'].includes(p.cadence),
@@ -69,11 +71,13 @@ test('every catalog product is completely and consistently described', () => {
     );
     // The matrix set has to agree with the zoom ceiling, or tiles are
     // requested at levels the product does not publish.
-    assert.match(
-      p.matrixSet,
-      new RegExp(`_Level${p.maximumLevel}$`),
-      `${p.key}: matrixSet ${p.matrixSet} disagrees with maximumLevel ${p.maximumLevel}`,
-    );
+    if (!isWms(p)) {
+      assert.match(
+        p.matrixSet,
+        new RegExp(`_Level${p.maximumLevel}$`),
+        `${p.key}: matrixSet ${p.matrixSet} disagrees with maximumLevel ${p.maximumLevel}`,
+      );
+    }
     if (p.cadence === 'daily') {
       assert.ok(
         Number.isInteger(p.lagDays) && p.lagDays >= 0,
@@ -112,6 +116,73 @@ test('a daylight-only band is flagged, because night is not a failure', () => {
     productFor('imagery-goes', 'goes-east-geo').daylightOnly,
     true,
   );
+});
+
+test('EUMETView products resolve to a WMS provider, addressed by instant', async () => {
+  const wmsCalls = [];
+  const viewer = fakeViewer();
+  const layer = createImageryOverlayLayer({
+    descriptor: IMAGERY_OVERLAYS.find((d) => d.id === 'imagery-goes'),
+    now: () => Date.parse('2026-09-18T17:05:00Z'),
+    surface: createSurfaceCoordinator(),
+    providerFactory: (url) => ({ url }),
+    wmsProviderFactory: (opts) => {
+      wmsCalls.push(opts);
+      return opts;
+    },
+    imageryLayerFactory: (provider, opts) => ({ provider, opts }),
+  });
+  layer.init(viewer);
+  await layer.setSensor('georing-natural');
+  await layer.enable(viewer);
+  assert.equal(
+    wmsCalls.length,
+    1,
+    'a WMS product must not go through the tile path',
+  );
+  const call = wmsCalls[0];
+  assert.match(call.url, /view\.eumetsat\.int/);
+  assert.equal(call.layers, 'mumi:wideareacoverage_rgb_natural');
+  assert.equal(call.parameters.transparent, true);
+  // Never the server's advertised `default` — that frame is not always there.
+  assert.match(call.parameters.TIME, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  assert.notEqual(call.parameters.TIME, 'default');
+
+  // Switching back to a GIBS product returns to the tile-template path.
+  await layer.setSensor('goes-east-geo');
+  assert.equal(wmsCalls.length, 1);
+});
+
+test('WMS time steps back a safety margin and lands on a scan boundary', () => {
+  const at = Date.parse('2026-09-18T17:07:00Z');
+  // 10-minute scan, 30-minute lag: 17:07 - 30min = 16:37, floored to 16:30.
+  assert.equal(
+    wmsTimeFor({ scanMinutes: 10, lagMinutes: 30 }, at),
+    '2026-09-18T16:30:00Z',
+  );
+  // The multimission ring scans every 3 hours, so its floor is much coarser.
+  assert.equal(
+    wmsTimeFor({ scanMinutes: 180, lagMinutes: 240 }, at),
+    '2026-09-18T12:00:00Z',
+  );
+  // Missing fields fall back rather than producing an invalid instant.
+  assert.match(wmsTimeFor({}, at), /^2026-09-18T\d{2}:\d{2}:00Z$/);
+});
+
+test('the geostationary slot now covers the whole ring, not just the Americas', () => {
+  const geo = IMAGERY_SLOTS['imagery-goes'].products;
+  const platforms = geo.map((p) => p.platform).join(' ');
+  assert.match(platforms, /GOES/);
+  assert.match(platforms, /Himawari/, 'west Pacific');
+  assert.match(platforms, /Meteosat/, 'Europe, Africa and the Indian Ocean');
+  // Every EUMETView product must name a WMS layer and a scan interval, or its
+  // time cannot be computed and it silently serves blanks.
+  for (const p of geo.filter(isWms)) {
+    assert.ok(p.wmsLayer, `${p.key} needs a wmsLayer`);
+    assert.ok(Number.isFinite(p.scanMinutes), `${p.key} needs scanMinutes`);
+    assert.ok(Number.isFinite(p.lagMinutes), `${p.key} needs lagMinutes`);
+    assert.equal(p.cadence, 'rolling');
+  }
 });
 
 test('URL codes are unique within each slot', () => {

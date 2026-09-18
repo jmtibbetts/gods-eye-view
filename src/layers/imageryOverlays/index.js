@@ -1,12 +1,15 @@
 import * as Cesium from 'cesium';
 import {
+  EUMETVIEW_WMS,
   IMAGERY_OVERLAYS,
   IMAGERY_SLOTS,
   clampToAvailable,
   gibsTileUrl,
   isArchived,
+  isWms,
   liveTimeFor,
   productFor,
+  wmsTimeFor,
 } from './policy.js';
 import { imagerySurface } from './surface.js';
 
@@ -41,6 +44,8 @@ export function createImageryOverlayLayer({
     new Cesium.ImageryLayer(provider, options),
   providerFactory = (url, options) =>
     new Cesium.UrlTemplateImageryProvider({ url, ...options }),
+  wmsProviderFactory = (options) =>
+    new Cesium.WebMapServiceImageryProvider(options),
   surface = imagerySurface,
 } = {}) {
   if (!descriptor?.id)
@@ -89,6 +94,23 @@ export function createImageryOverlayLayer({
     }
     // A pinned day only means anything for an archived product; a scrubbed
     // date on a rolling feed would address a frame that does not exist.
+    // EUMETView speaks WMS rather than serving a REST tile template, and it
+    // is addressed by instant rather than by day, so it takes its own path.
+    if (isWms(current)) {
+      return {
+        wms: {
+          url: EUMETVIEW_WMS,
+          layers: current.wmsLayer,
+          credit: descriptor.attribution,
+          maximumLevel: current.maximumLevel,
+          parameters: {
+            format: 'image/png',
+            transparent: true,
+            TIME: wmsTimeFor(current, now()),
+          },
+        },
+      };
+    }
     const time =
       _displayDate && isArchived(current)
         ? clampToAvailable(current, _displayDate, now())
@@ -112,11 +134,13 @@ export function createImageryOverlayLayer({
       const config = await resolveConfig();
       if (!_enabled || token !== _request || !_viewer?.imageryLayers)
         return false;
-      const { url, frameTime, credit, ...providerOptions } = config;
-      const provider = providerFactory(url, {
-        ...providerOptions,
-        credit: credit || descriptor.attribution,
-      });
+      const { url, frameTime, credit, wms, ...providerOptions } = config;
+      const provider = wms
+        ? wmsProviderFactory(wms)
+        : providerFactory(url, {
+            ...providerOptions,
+            credit: credit || descriptor.attribution,
+          });
       const layerObj = imageryLayerFactory(provider, { alpha: alpha() });
       // Add the fresh layer, then drop the old one — no flicker between frames,
       // and no blank globe while a switched sensor's first tiles are in flight.

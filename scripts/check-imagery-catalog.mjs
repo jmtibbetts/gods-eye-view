@@ -19,8 +19,11 @@
 import { createHash } from 'node:crypto';
 import {
   ALL_IMAGERY_PRODUCTS,
+  EUMETVIEW_WMS,
   gibsTileUrl,
+  isWms,
   liveTimeFor,
+  wmsTimeFor,
 } from '../src/layers/imageryOverlays/catalog.js';
 
 const VERBOSE = process.argv.includes('--verbose');
@@ -78,7 +81,69 @@ function probeTile(product) {
 const MIN_BYTES = 2_000;
 const MIN_BYTES_SPARSE = 700;
 
+/**
+ * A bounding box the product's satellite can actually see, in Web Mercator.
+ * A geostationary satellite is parked over one longitude, so probing Meteosat
+ * over the Pacific proves nothing except where it is not pointing.
+ */
+function wmsBBox(product) {
+  const l = product.wmsLayer || '';
+  if (l.startsWith('mumi:')) return '-20037508,-15000000,20037508,15000000';
+  if (l.includes('iodc')) return '4000000,-3000000,9000000,4000000';
+  return '-2000000,-2000000,4000000,7000000'; // Europe / Africa
+}
+
+async function probeWms(product) {
+  const time = wmsTimeFor(product);
+  const url =
+    `${EUMETVIEW_WMS}?service=WMS&version=1.3.0&request=GetMap` +
+    `&layers=${encodeURIComponent(product.wmsLayer)}&styles=` +
+    `&format=image/png&transparent=true&CRS=EPSG:3857` +
+    `&BBOX=${wmsBBox(product)}&WIDTH=320&HEIGHT=320&TIME=${time}`;
+  try {
+    const response = await fetch(url, {
+      headers: { 'user-agent': 'gods-eye-view/imagery-catalog-check' },
+    });
+    if (!response.ok)
+      return { ok: false, product, time, url, why: `HTTP ${response.status}` };
+    const type = response.headers.get('content-type') || '';
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (type.includes('xml'))
+      return { ok: false, product, time, url, why: 'service exception' };
+    if (bytes.length < 6_000) {
+      // Daylight-only products go dark over their own night side, which is the
+      // instrument working rather than the feed failing.
+      if (product.daylightOnly)
+        return {
+          ok: true,
+          product,
+          time,
+          url,
+          size: bytes.length,
+          night: true,
+        };
+      return {
+        ok: false,
+        product,
+        time,
+        url,
+        why: `featureless tile (${bytes.length}B) at ${time}`,
+      };
+    }
+    return { ok: true, product, time, url, size: bytes.length };
+  } catch (error) {
+    return {
+      ok: false,
+      product,
+      time,
+      url,
+      why: error?.message || 'fetch failed',
+    };
+  }
+}
+
 async function probe(product) {
+  if (isWms(product)) return probeWms(product);
   const time = liveTimeFor(product);
   const { z, y, x } = probeTile(product);
   const url = gibsTileUrl(product, time)
