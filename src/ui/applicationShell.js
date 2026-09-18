@@ -803,7 +803,7 @@ export class StyleManager extends ShellFacade {
 
   /** Wire the Scanners, SDR and ATC panels and the in-map receiver dock. */
   _initAudioPanels() {
-    const { scannerLayer, sdrLayer, atcLayer } = this.services;
+    const { scannerLayer, sdrLayer, atcLayer, satellitesLayer } = this.services;
     this._audioDock?.destroy();
     this._audioDock = new AudioDock({
       elements: {
@@ -844,6 +844,9 @@ export class StyleManager extends ShellFacade {
     };
     sdrLayer?.setSdrUrlOpener?.(openInDock);
     atcLayer?.setAtcUrlOpener?.(openInDock);
+    // The ISS live stream frames cleanly, so it uses the dock rather than the
+    // named-tab path LiveATC needs.
+    satellitesLayer?.setIssStreamOpener?.(openInDock);
     const actionsFor = (id) => ({
       isRegistered: () => this._dataManager?.layers?.has(id),
       isEnabled: () => this._dataManager?.isEnabled(id),

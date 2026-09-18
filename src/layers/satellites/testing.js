@@ -197,6 +197,20 @@ export function createTesting({ state: layerState, services, parts, source }) {
     parts.labels._syncIssOverlay();
   }
 
+  /**
+   * Put the ISS in the catalog and nothing else.
+   *
+   * The row-control tests need only "is the ISS known to this layer", which
+   * the full lifecycle seeder answers at the cost of a viewer, a satrec, a
+   * point and an overlay host it does not otherwise need.
+   */
+
+  function _seedIssCatalogForTest() {
+    layerState._catalog = new Map([
+      [ISS_NORAD, { name: 'ISS (ZARYA)', satrec: null, group: 'stations' }],
+    ]);
+  }
+
   /** Exercise production ISS tracking from the cached catalog and point. */
 
   function _trackIssForTest() {
@@ -242,6 +256,7 @@ export function createTesting({ state: layerState, services, parts, source }) {
     _clearDenseCatalogStateForTest,
     _catalogGroupForTest,
     _setSatelliteLabelLifecycleStateForTest,
+    _seedIssCatalogForTest,
     _trackIssForTest,
     _pendingSatelliteTrackingRestoreForTest,
     _applyPendingSatelliteTrackingRestoreForTest,

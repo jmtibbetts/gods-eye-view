@@ -4,10 +4,25 @@ import {
   satelliteClassLegend,
 } from '../../data/satelliteClass.js';
 import * as Cesium from 'cesium';
-import { ISS_NORAD, POINT_STYLES } from './policy.js';
+import {
+  ISS_NORAD,
+  ISS_STREAM_NOTE,
+  ISS_STREAM_TITLE,
+  ISS_STREAM_URL,
+  POINT_STYLES,
+} from './policy.js';
 
 export function createControls({ state: layerState, services, parts, source }) {
   const { isExplicitLayerStateOrigin } = services.layerState;
+
+  /**
+   * Hand-off for the ISS live stream, installed by the shell.
+   *
+   * The layer does not open windows or frames itself, for the same reason the
+   * SDR layer does not: where a page opens is the shell's business, and a layer
+   * that reaches for `window` is a layer that cannot be tested headlessly.
+   */
+  let _issStreamOpener = null;
 
   /**
    * Resolve the canonical point style for a satellite.
@@ -501,8 +516,29 @@ export function createControls({ state: layerState, services, parts, source }) {
       else if (active)
         title =
           'Showing the full Starlink shell — click for the core catalog only';
+      const chips = [];
+      // Only offered when the ISS is actually in the loaded catalog: a chip
+      // promising a live feed from a satellite this layer is not tracking
+      // would be a button for something that is not on screen.
+      if (_issStreamOpener && layerState._catalog?.has?.(ISS_NORAD)) {
+        chips.push({
+          id: 'iss-stream',
+          label: 'ISS LIVE',
+          active: false,
+          title: `${ISS_STREAM_TITLE} — ${ISS_STREAM_NOTE}`,
+          onClick: () =>
+            _issStreamOpener(ISS_STREAM_URL, {
+              kind: 'video',
+              layerId: 'satellites',
+              title: ISS_STREAM_TITLE,
+              subtitle: 'NASA',
+              note: ISS_STREAM_NOTE,
+            }),
+        });
+      }
       return {
         chips: [
+          ...chips,
           {
             id: 'catalog',
             label: loading ? 'DENSE ···' : failed ? 'DENSE ✕' : 'DENSE',
@@ -522,6 +558,16 @@ export function createControls({ state: layerState, services, parts, source }) {
         ],
         legend: satelliteClassLegend(_classTally()),
       };
+    },
+
+    /**
+     * Install the shell's stream hand-off. Until this is called the ISS chip is
+     * not offered at all, so a headless or embedded host simply does not show
+     * a control it could not honour.
+     */
+    setIssStreamOpener(open) {
+      _issStreamOpener = typeof open === 'function' ? open : null;
+      _notifyRowControls();
     },
 
     /**

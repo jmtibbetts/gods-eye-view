@@ -51,6 +51,7 @@ export function createSatellitesLayer({ services, source }) {
       _catalogGroupForTest: parts.testing._catalogGroupForTest,
       _setSatelliteLabelLifecycleStateForTest:
         parts.testing._setSatelliteLabelLifecycleStateForTest,
+      _seedIssCatalogForTest: parts.testing._seedIssCatalogForTest,
       _trackIssForTest: parts.testing._trackIssForTest,
       _pendingSatelliteTrackingRestoreForTest:
         parts.testing._pendingSatelliteTrackingRestoreForTest,

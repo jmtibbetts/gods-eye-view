@@ -15,6 +15,38 @@ import { satelliteClassColor } from '../../data/satelliteClass.js';
 
 export const ISS_NORAD = 25544;
 
+/**
+ * NASA's live stream from the International Space Station.
+ *
+ * WHAT THIS ACTUALLY IS, because the obvious name for it would overclaim. The
+ * HDEV experiment — the dedicated external Earth-viewing cameras that ran a
+ * continuous downward view — was decommissioned years ago. What NASA streams
+ * now alternates between external views, mission coverage and, between
+ * broadcasts, a holding card. So this is labelled a live stream rather than a
+ * camera: a reader who opens it expecting a guaranteed view of the Earth below
+ * and gets a press conference has been misled by the button, not by NASA.
+ *
+ * The embed host is youtube-nocookie.com, which is the tracking-free variant
+ * and already the allowlisted host elsewhere in this project.
+ *
+ * ROT RISK: NASA re-creates this stream periodically and the video id changes
+ * with it. When that happens the dock shows YouTube's own unavailable card and
+ * its POP OUT button still reaches the channel, so the failure is visible and
+ * escapable rather than silent. ISS_STREAM_CHANNEL_URL below is the rot-proof
+ * alternative — it follows whatever NASA has live — at the cost of showing
+ * general NASA coverage rather than the ISS feed specifically.
+ */
+export const ISS_STREAM_URL =
+  'https://www.youtube-nocookie.com/embed/awQzjn72bI0';
+
+/** NASA's channel live feed: survives id rotation, less specific. */
+export const ISS_STREAM_CHANNEL_URL =
+  'https://www.youtube-nocookie.com/embed/live_stream?channel=UCLA_DiR1FfKNvjuUpBHmylQ';
+
+export const ISS_STREAM_TITLE = 'NASA ISS LIVE STREAM';
+export const ISS_STREAM_NOTE =
+  'NASA’s live feed — external views when available, mission coverage otherwise.';
+
 export const ISS_OVERLAY_SOURCE_ID = 'satellites-iss';
 
 export const ISS_OVERLAY_SOURCE_OPTIONS = Object.freeze({
