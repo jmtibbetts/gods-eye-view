@@ -26,6 +26,7 @@ import { createApplicationWeatherAlerts } from './layers/weatherAlerts.js';
 import { createApplicationStormReports } from './layers/stormReports.js';
 import { createApplicationTropical } from './layers/tropical.js';
 import { createApplicationAviationHazards } from './layers/aviationHazards.js';
+import { createApplicationConflictReports } from './layers/conflictReports.js';
 import { createApplicationDrought } from './layers/drought.js';
 import { createApplicationLightning } from './layers/lightning.js';
 import { createApplicationRiverFlood } from './layers/riverFlood.js';
@@ -66,6 +67,7 @@ const SOURCE_METHODS = Object.freeze({
   stormReports: ['getSnapshot'],
   tropical: ['fetchTropical'],
   aviationHazards: ['fetchSigmets'],
+  conflictReports: ['fetchReports'],
   drought: ['fetchDrought'],
   lightning: ['fetchFlashes'],
   riverFlood: ['fetchGauges'],
@@ -150,6 +152,9 @@ export function createApplicationCatalog({
         createApplicationTropical({ source: sources.tropical }),
         createApplicationAviationHazards({
           source: sources.aviationHazards,
+        }),
+        createApplicationConflictReports({
+          source: sources.conflictReports,
         }),
         createApplicationDrought({ source: sources.drought }),
         createApplicationLightning({ source: sources.lightning }),

@@ -23,6 +23,7 @@ test('reference factories retain compatibility without starting acquisition or s
     'volcanoes',
     'tropical',
     'aviationHazards',
+    'conflictReports',
     'drought',
     'lightning',
     'riverFlood',
