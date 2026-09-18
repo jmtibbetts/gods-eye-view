@@ -10,6 +10,8 @@ Photorealistic 3D globe. Live aircraft, ships, satellites, earthquakes, traffic,
 
 _No place left behind._
 
+🛠️ **This fork adds** live police / fire / EMS scanners · web SDR receivers · ATC frequencies · NWS weather alerts · SPC storm reports · USGS volcano alerts · weather radar & satellite overlays · region monitors · contact watchlists · sanctioned-and-dark ship detection · an imagery timeline · snapshot export — **[see what's new →](#-what-this-fork-adds)**
+
 ![Orbital HUD, a tracked live globe, FLIR terrain — then OPEN SOURCED](docs/media/hero-open-source-reveal.gif)
 
 <a href="https://www.youtube.com/@bilawalsidhu">
@@ -37,6 +39,46 @@ _“pretty cool”_ — [Brendan Eich](https://x.com/BrendanEich/status/20945920
 **[Quick Start](#-quick-start) · [First Five Minutes](#-the-first-five-minutes) · [Talk to It](#-talk-to-it) · [What's Live](#-whats-on-the-globe) · [Under the Hood](#-under-the-hood) · [Keys & Costs](#-api-keys)**
 
 </div>
+
+---
+
+## 🆕 What This Fork Adds
+
+This is [**jmtibbetts/gods-eye-view**](https://github.com/jmtibbetts/gods-eye-view), a fork of [bilawalsidhu/gods-eye-view](https://github.com/bilawalsidhu/gods-eye-view). Everything above and below is the upstream project; this section is what has been built on top of it — seven new data layers and six new tools, all keyless.
+
+**Listen to the world**
+
+| Added | What it does |
+| ----- | ------------ |
+| 🚨 **Scanners** | Live police, fire and EMS radio — 460+ trunked systems across the US, Canada and Australia, playing back like a desk scanner. Where OpenMHz has no local system, it links that state's Broadcastify feeds instead of showing an empty map |
+| 📡 **SDR Receivers** | 1,300+ public web SDRs with bands and antennas. Pick a band, press LISTEN, and the nearest receiver that covers it opens in a window on the map — waterfall and all |
+| 🛫 **ATC** | 13,600 airports with published tower/ground/approach/ATIS frequencies and 700+ Center sites. **FOLLOW PLANE** retunes Ground → Tower → Approach → Center as the selected aircraft moves |
+
+**Watch the weather and the ground**
+
+| Added | What it does |
+| ----- | ------------ |
+| 🌩️ **Weather Alerts** | Active NWS watches and warnings as severity-coloured polygons, clickable for headline, instructions and expiry |
+| 🌪️ **Storm Reports** | Preliminary NOAA SPC tornado, damaging-wind and hail reports over a rolling two days, hail sized in inches and wind in knots |
+| 🌋 **Volcano Alerts** | Every US-monitored volcano above background, with the aviation colour code and the ground alert level shown side by side, because they move independently |
+| 🌀 **Weather & Satellite Imagery** | Three stackable tile overlays: NEXRAD radar, GOES-East GeoColor, and VIIRS true-colour |
+
+**Make sense of it**
+
+| Added | What it does |
+| ----- | ------------ |
+| 🎯 **MONITOR** | Draw a watch circle anywhere and every enabled layer reports what is inside it, flagging new arrivals as they appear |
+| 📌 **WATCHLIST** | Pin an aircraft callsign or ICAO24, or a vessel MMSI or name, and it turns green the moment that contact shows up on any layer |
+| 🚢 **VESSEL WATCH** | Which ships in view are on the OFAC sanctions list — matched by MMSI, never by name — and which tracked ships have stopped transmitting |
+| 🕰️ **TIMELINE** | Scrub daily satellite imagery back through a fortnight of archive, or press PLAY and watch it run forward |
+| 🧩 **Layer combinations** | One press stacks the layers that only work together, like radar under live flights |
+| 📸 **Snapshot** | One click saves the current view as a captioned PNG stamped with coordinates and UTC time |
+
+![Live flights over the continental United States with weather radar beneath them and active NWS warning polygons](docs/media/20-storm-and-air.png)
+
+_**STORM + AIR** in one press: NEXRAD radar under the live fleet with active NWS warnings on top. Screenshots throughout this README are live captures, reproducible with `node scripts/capture-readme-shots.mjs`._
+
+Every addition is keyless, unit tested, and documented in the sections below — the layer table lists them alongside the original layers, and the capability list covers the tools.
 
 ---
 
