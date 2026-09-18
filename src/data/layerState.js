@@ -305,6 +305,15 @@ const OPTION_GROUPS = Object.freeze({
   // `imageryOption` below asserts they stay unique within a slot.
   // Owner key IS the owning layer's id — the encoder resolves owners through
   // REGISTRY_BY_ID, so a friendlier name here would silently encode nothing.
+  // Which drought product is showing: current conditions, or one of the two
+  // CPC outlooks.
+  drought: Object.freeze([
+    enumOption('product', 'p', 'current', ['current', 'monthly', 'seasonal'], {
+      current: 'c',
+      monthly: 'm',
+      seasonal: 's',
+    }),
+  ]),
   // Which forecast horizon the river-gauge layer is showing. Codes are the
   // horizon keys' own shape: 'n' for now, then the hour count, so a shared
   // link still reads as a time when someone looks at the URL.
@@ -431,6 +440,15 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     optionOwner: 'cctv',
   }),
   Object.freeze({ id: 'directions', token: 'n', disposition: 'enabled-only' }),
+  Object.freeze({
+    id: 'drought',
+    // Two characters: the single-char space filled up at thirty-five layers.
+    // The codec splits on its separators and looks tokens up by exact string,
+    // so a wider token cannot collide with the 'd' already in use.
+    token: 'dr',
+    disposition: 'enabled+options',
+    optionOwner: 'drought',
+  }),
   Object.freeze({ id: 'earthquakes', token: 'e', disposition: 'enabled-only' }),
   Object.freeze({
     id: 'flights',

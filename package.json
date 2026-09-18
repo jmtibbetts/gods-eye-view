@@ -231,6 +231,7 @@
     "./layers/imageryOverlays": "./src/layers/imageryOverlays/index.js",
     "./layers/stormReports": "./src/layers/stormReports/index.js",
     "./layers/tropical": "./src/layers/tropical/index.js",
+    "./layers/drought": "./src/layers/drought/index.js",
     "./layers/riverFlood": "./src/layers/riverFlood/index.js",
     "./layers/severeOutlook": "./src/layers/severeOutlook/index.js",
     "./layers/airQuality": "./src/layers/airQuality/index.js",
