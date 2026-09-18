@@ -21,6 +21,14 @@
  *   'static'  A fixed composite that never moves. Labelled with its vintage so
  *             nobody reads a 2016 mosaic as tonight's pass.
  *
+ * `sparse` marks a product that does NOT cover the globe on any given day.
+ * The swath products image strips as the satellite passes, so most of the
+ * world is transparent in any one day's layer and that is correct rather than
+ * broken. It matters in two places: the panel says so, instead of letting an
+ * empty ocean read as a failed load, and the catalog check relaxes its
+ * blank-tile threshold, which would otherwise fail a working product for
+ * looking exactly like the thing it is designed to detect absence of.
+ *
  * WHY `lagDays` EXISTS. The obvious move is to ask GIBS for the time token
  * `default` and let it pick. That is right for 'rolling' feeds and WRONG for
  * 'daily' ones: for a daily product `default` means TODAY, and today's mosaic
@@ -45,8 +53,13 @@ export const GIBS_BASE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
  */
 export const GIBS_LATEST = 'default';
 
-/** How far back `liveTimeFor` may look before giving up. */
-export const MAX_LAG_DAYS = 10;
+/**
+ * How far back `liveTimeFor` may look before giving up. Generous because the
+ * OPERA products are not daily mosaics: they are processed swaths that land
+ * weeks after the pass, and clamping them to a daily product's lag would ask
+ * for a date they have not published.
+ */
+export const MAX_LAG_DAYS = 40;
 
 /**
  * The time token for a product's LIVE frame.
@@ -235,6 +248,25 @@ const orbital = [
       'Last night, by its own light: cities, gas flares, fishing fleets, fire glow, lightning.',
   },
   {
+    key: 'opera-sar',
+    code: 'j',
+    label: 'Sentinel-1 · Radar (SAR)',
+    platform: 'Sentinel-1',
+    instrument: 'OPERA RTC SAR',
+    gibsId: 'OPERA_L2_Radiometric_Terrain_Corrected_SAR_Sentinel-1',
+    matrixSet: 'GoogleMapsCompatible_Level12',
+    ext: 'png',
+    maximumLevel: 12,
+    cadence: 'daily',
+    lagDays: 10,
+    archive: '2026-01-05',
+    // Radar, not a camera: it makes its own illumination, so cloud and night
+    // are irrelevant to it. The catch is coverage - see `sparse`.
+    sparse: true,
+    reveals:
+      'Radar that makes its own light: sees through cloud and works at night, at four times the detail of anything else here.',
+  },
+  {
     key: 'black-marble',
     code: 'i',
     label: 'Black Marble · 2016',
@@ -294,6 +326,9 @@ const geostationary = [
     maximumLevel: 7,
     cadence: 'rolling',
     archive: null,
+    // A visible band sees nothing at night. Its disc goes black for half of
+    // every day, which is the instrument working, not the feed failing.
+    daylightOnly: true,
     reveals:
       'The Asia-Pacific disc the GOES pair cannot see — typhoon alley, daylight only.',
   },
@@ -473,6 +508,24 @@ const science = [
     reveals:
       'Ground temperature, not air temperature — urban heat islands read hot.',
     opacity: 0.8,
+  },
+  {
+    key: 'flood-extent',
+    code: 'g',
+    label: 'Flood & Surface Water',
+    platform: 'Sentinel-1',
+    instrument: 'OPERA DSWx',
+    gibsId: 'OPERA_L3_Dynamic_Surface_Water_Extent-Sentinel-1',
+    matrixSet: 'GoogleMapsCompatible_Level12',
+    ext: 'png',
+    maximumLevel: 12,
+    cadence: 'daily',
+    lagDays: 23,
+    archive: '2025-10-24',
+    sparse: true,
+    reveals:
+      'Where water is standing that normally is not — flood extent mapped by radar, so cloud over the flood does not hide it.',
+    opacity: 0.85,
   },
   {
     key: 'sea-ice',

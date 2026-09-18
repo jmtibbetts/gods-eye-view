@@ -41,6 +41,17 @@ export function cadenceText(product) {
   return lag === 1 ? '1 day behind' : `${lag} days behind`;
 }
 
+/**
+ * "partial coverage" for a product that does not cover the globe on a given day.
+ *
+ * Without this, a swath product reads as broken: you turn it on, most of the
+ * world stays empty, and nothing tells you that is the correct result.
+ */
+export function coverageText(product) {
+  if (!product?.sparse) return '';
+  return 'partial coverage';
+}
+
 /** "archive to 2000" when a product has real history worth scrubbing. */
 export function archiveText(product) {
   if (!product?.archive) return '';
@@ -192,6 +203,7 @@ export class ImageryPanel {
       const meta = [
         product.instrument,
         cadenceText(product),
+        coverageText(product),
         archiveText(product),
       ]
         .filter(Boolean)

@@ -84,6 +84,36 @@ test('every catalog product is completely and consistently described', () => {
   }
 });
 
+test('the deep radar products are declared sparse and lagged in weeks', () => {
+  const sar = productFor('imagery-viirs', 'opera-sar');
+  const flood = productFor('imagery-science', 'flood-extent');
+  // Sentinel-1 images strips, not the globe, and OPERA processing lands weeks
+  // after the pass - both have to be declared or they read as broken.
+  for (const p of [sar, flood]) {
+    assert.equal(p.sparse, true, `${p.key} must declare partial coverage`);
+    assert.ok(p.lagDays >= 10, `${p.key} lag is in weeks, not days`);
+    assert.equal(p.maximumLevel, 12, `${p.key} is the deep-zoom product`);
+  }
+  // The lag ceiling must not clamp them to a date they have not published.
+  assert.equal(
+    liveTimeFor(flood, Date.parse('2026-09-18T16:45:00Z')),
+    '2026-08-26',
+  );
+  assert.equal(
+    liveTimeFor(sar, Date.parse('2026-09-18T16:45:00Z')),
+    '2026-09-08',
+  );
+});
+
+test('a daylight-only band is flagged, because night is not a failure', () => {
+  assert.equal(productFor('imagery-goes', 'himawari-vis').daylightOnly, true);
+  // GeoColor switches to infrared after dark, so it is not daylight-limited.
+  assert.notEqual(
+    productFor('imagery-goes', 'goes-east-geo').daylightOnly,
+    true,
+  );
+});
+
 test('URL codes are unique within each slot', () => {
   for (const slotId of IMAGERY_SLOT_ORDER) {
     const { codes, values, defaultKey } = slotCodec(slotId);

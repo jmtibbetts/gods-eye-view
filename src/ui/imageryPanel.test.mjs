@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ImageryPanel, archiveText, cadenceText } from './imageryPanel.js';
 import {
+  ImageryPanel,
+  archiveText,
+  cadenceText,
+  coverageText,
+} from './imageryPanel.js';
+import {
+  ALL_IMAGERY_PRODUCTS as ALL,
   IMAGERY_SLOTS,
   IMAGERY_SLOT_ORDER,
   productFor,
@@ -22,6 +28,18 @@ test('archive text names the year, and stays silent when there is no archive', (
   assert.equal(archiveText({ archive: '2000-02-24' }), 'archive to 2000');
   assert.equal(archiveText({ archive: null }), '');
   assert.equal(archiveText(null), '');
+});
+
+test('a swath product says its coverage is partial', () => {
+  // Turning on a swath product leaves most of the globe empty. Unless the
+  // panel says so, that reads as a failed load rather than as the instrument
+  // imaging strips, which is what it actually does.
+  assert.equal(coverageText({ sparse: true }), 'partial coverage');
+  assert.equal(coverageText({ sparse: false }), '');
+  assert.equal(coverageText(null), '');
+  const sparse = ALL.filter((p) => p.sparse).map((p) => p.key);
+  assert.ok(sparse.includes('opera-sar'), 'Sentinel-1 SAR images in swaths');
+  assert.ok(sparse.includes('flood-extent'));
 });
 
 test('every product renders a non-empty, non-duplicated description line', () => {
