@@ -19,12 +19,16 @@ const PENDING_TRACKING_POLL_MS = 1_000;
  */
 const TRACKING_ID_GRAMMAR = /^[0-9a-z~_-]{1,16}$/;
 /**
- * Ceilings for the untrusted v2 layer fields. Both are far above any legitimate
- * payload (16 one-character tokens; a dozen short option assignments), so a
- * value past them is malformed or hostile. Reject the WHOLE payload, matching
- * the unknown-token rule — never salvage a prefix.
+ * Ceiling for the untrusted `lo=` field: far above a dozen short option
+ * assignments, so a value past it is malformed or hostile. Reject the WHOLE
+ * payload, matching the unknown-token rule — never salvage a prefix.
+ *
+ * The matching ceiling for `l=` is DERIVED from the registry further down,
+ * because a hardcoded one goes stale. This was 64, written when there were
+ * sixteen layers; at thirty-four a link with every layer enabled encodes to 67
+ * characters and was rejected in full, handing the recipient default state with
+ * nothing to say it had discarded anything.
  */
-const MAX_ENABLED_LAYERS_CHARS = 64;
 const MAX_LAYER_OPTIONS_CHARS = 512;
 export const LAYER_STATE_STORAGE_KEY = 'gev:layer-state:v2';
 export const LAYER_RESTORE_ORIGINS = Object.freeze({
@@ -503,6 +507,19 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   }),
 ]);
 
+/**
+ * The longest legitimate `l=` payload: every layer enabled at once, which is
+ * every token joined by a separator. Derived rather than written down, so
+ * adding a layer can never quietly push a valid link past the limit again.
+ *
+ * The margin is deliberate but small — enough that the check still rejects
+ * obvious junk, while no honest link can trip it.
+ */
+const MAX_ENABLED_LAYERS_CHARS =
+  LAYER_STATE_REGISTRY.reduce((total, entry) => total + entry.token.length, 0) +
+  LAYER_STATE_REGISTRY.length + // separators, plus one spare
+  16;
+
 export const REGISTERED_LAYER_IDS = Object.freeze(
   LAYER_STATE_REGISTRY.map((entry) => entry.id),
 );
@@ -561,7 +578,14 @@ export function validateLayerStateRegistry(registry = LAYER_STATE_REGISTRY) {
     if (ids.has(entry.id))
       throw new Error(`Duplicate layer-state id: ${entry.id}`);
     ids.add(entry.id);
-    if (!/^[a-z0-9]$/.test(entry.token || ''))
+    // One to three characters. The codec splits `l=` on '.' and `lo=` on '_'
+    // then '.', and looks tokens up by exact string, so width never mattered
+    // to it — only this check insisted on one. Single characters ran out at
+    // thirty-five layers, and the alternative was renaming existing tokens,
+    // which would change what every share link already in the wild means.
+    // Separators stay excluded, and lookup is exact so no token can be
+    // mistaken for the prefix of another.
+    if (!/^[a-z0-9]{1,3}$/.test(entry.token || ''))
       throw new Error(`Invalid layer-state token: ${entry.id}`);
     if (tokens.has(entry.token))
       throw new Error(`Duplicate layer-state token: ${entry.token}`);

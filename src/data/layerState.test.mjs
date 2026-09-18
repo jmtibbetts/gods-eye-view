@@ -190,6 +190,64 @@ test('production registry is exact, canonical, and rejects incomplete contracts'
   assert.equal(qaManager.layers.has('radio'), false);
 });
 
+test('a link with EVERY layer enabled round-trips', () => {
+  // This is the check that was missing. The `l=` ceiling was written for
+  // sixteen layers and stayed at 64 characters; at thirty-four, a link with
+  // everything on encodes to 67 and the decoder rejected the WHOLE payload,
+  // handing the recipient default state with nothing to say it had discarded
+  // anything. The ceiling is derived from the registry now, so adding a layer
+  // cannot quietly reintroduce it — but only this test proves that.
+  const every = REGISTERED_LAYER_IDS.slice();
+  const params = new URLSearchParams();
+  params.set('v', '2');
+  encodeLayerStateParams(params, { enabledLayerIds: every, options: {} });
+  const decoded = decodeLayerStateParams(new URLSearchParams(params.toString()));
+  assert.ok(decoded, 'a maximal link must decode, not be rejected wholesale');
+  assert.deepEqual([...decoded.enabledLayerIds].sort(), [...every].sort());
+});
+
+test('an oversized or junk layer payload is still rejected whole', () => {
+  // Raising the ceiling must not turn the check off: a hostile or corrupt
+  // payload still fails closed rather than decoding a salvaged prefix.
+  assert.equal(
+    decodeLayerStateParams(new URLSearchParams(`v=2&l=${'a.'.repeat(400)}`)),
+    null,
+  );
+  assert.equal(
+    decodeLayerStateParams(new URLSearchParams(`v=2&l=e&lo=${'x'.repeat(600)}`)),
+    null,
+  );
+});
+
+test('layer tokens may be wider than one character', () => {
+  // Single characters ran out at thirty-five layers. The codec never cared
+  // about width - it splits on separators and matches whole strings - so the
+  // registry may use up to three, and existing one-character tokens keep the
+  // exact meaning every share link already in the wild depends on.
+  assert.equal(
+    validateLayerStateRegistry([
+      { id: 'a-layer', token: 'ab', disposition: 'enabled-only' },
+      { id: 'b-layer', token: 'a', disposition: 'enabled-only' },
+    ]),
+    true,
+  );
+  // Separators and over-long tokens stay out.
+  assert.throws(
+    () =>
+      validateLayerStateRegistry([
+        { id: 'a-layer', token: 'a.b', disposition: 'enabled-only' },
+      ]),
+    /Invalid layer-state token/,
+  );
+  assert.throws(
+    () =>
+      validateLayerStateRegistry([
+        { id: 'a-layer', token: 'abcd', disposition: 'enabled-only' },
+      ]),
+    /Invalid layer-state token/,
+  );
+});
+
 test('v2 codec distinguishes absent from empty and keeps canonical deterministic ordering', () => {
   assert.equal(decodeLayerStateParams(new URLSearchParams('lat=1&lon=2')), null);
   assert.equal(decodeLayerStateParams(new URLSearchParams('v=1&l=e')), null);
