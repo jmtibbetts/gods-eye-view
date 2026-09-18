@@ -73,6 +73,7 @@
   "src/tooling/spaceProviders.test.mjs",
   "server/providers/terrain.js",
   "server/providers/traffic.js",
+  "server/providers/copernicus.js",
   "server/providers/firms.js",
   "server/providers/gbfs.js",
   "src/data/gbfsSource.js",

@@ -156,6 +156,8 @@ test('doctor describes the credential ladder without exposing values', () => {
     TOMTOM_API_KEY: { configured: false },
     OPENSKY_CLIENT_ID: { configured: false },
     OPENSKY_CLIENT_SECRET: { configured: false },
+    COPERNICUS_CLIENT_ID: { configured: false },
+    COPERNICUS_CLIENT_SECRET: { configured: false },
     LL2_API_TOKEN: { configured: true, source: 'environment' },
   };
   const capabilities = buildCapabilitySummary(credentials);

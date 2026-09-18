@@ -31,6 +31,20 @@ export const CREDENTIALS = Object.freeze([
       ['client_secret', 'client-secret', 'secret'].map((account) => [service, account])
     )),
   },
+  {
+    name: 'COPERNICUS_CLIENT_ID',
+    label: 'Copernicus client ID',
+    keychain: ['copernicus-dataspace', 'copernicus'].flatMap((service) =>
+      ['client_id', 'client-id', 'client'].map((account) => [service, account]),
+    ),
+  },
+  {
+    name: 'COPERNICUS_CLIENT_SECRET',
+    label: 'Copernicus client secret',
+    keychain: ['copernicus-dataspace', 'copernicus'].flatMap((service) =>
+      ['client_secret', 'client-secret', 'secret'].map((account) => [service, account]),
+    ),
+  },
   { name: 'LL2_API_TOKEN', label: 'Launch Library 2', keychain: [] },
 ]);
 
@@ -143,6 +157,11 @@ export function buildCapabilitySummary(credentials) {
     flights: configured('OPENSKY_CLIENT_ID') && configured('OPENSKY_CLIENT_SECRET')
       ? 'OpenSky OAuth credentials present (runtime mode and validity not verified)'
       : 'OpenSky OAuth credentials not configured',
+    // Optional by design: every other imagery product is keyless, so an
+    // unconfigured Copernicus is a missing sensor, not a broken globe.
+    sentinel2: configured('COPERNICUS_CLIENT_ID') && configured('COPERNICUS_CLIENT_SECRET')
+      ? 'Copernicus OAuth credentials present (validity not verified)'
+      : 'Copernicus not configured — Sentinel-2 10 m sensor stays hidden; all other imagery is keyless',
     voice: configured('OPENAI_API_KEY') ? 'available' : 'off until an OpenAI key is added',
     vessels: configured('AISSTREAM_API_KEY') ? 'live AISStream feed' : 'off until an AISStream key is added',
     fires: configured('FIRMS_MAP_KEY') ? 'live NASA FIRMS feed' : 'off until a FIRMS key is added',
@@ -206,8 +225,10 @@ export function formatSetupReport(report, { readyMessage } = {}) {
     '',
     'Configured providers:',
     ...CREDENTIALS.map((spec) => {
+      // A spec with no state is "not configured", not a crash: the registry
+      // and a caller's credential map can legitimately drift.
       const state = report.credentials[spec.name];
-      return state.configured
+      return state?.configured
         ? `  [OK] ${spec.label} (${state.source})`
         : `  [--] ${spec.label}`;
     }),

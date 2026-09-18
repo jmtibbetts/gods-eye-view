@@ -69,6 +69,46 @@ export class ImageryPanel {
     this._busy = false;
     this._rendered = false;
     this._unsubscribe = null;
+    /** Keyed service -> usable right now. Absent means "not yet checked". */
+    this._keyed = new Map();
+    this._keyedChecked = false;
+  }
+
+  /**
+   * Which keyed services are actually usable right now.
+   *
+   * A sensor that needs credentials is hidden until they exist, rather than
+   * listed and failing when clicked. An offered control that cannot work is
+   * worse than an absent one: the user cannot tell a missing key from a broken
+   * feed, and goes looking for the fault in the wrong place.
+   *
+   * Availability is asked once and cached. A failed check means "not
+   * available", never "assume yes" — an optimistic default would put the
+   * broken control back.
+   */
+  async _checkKeyedServices() {
+    if (this._keyedChecked) return;
+    this._keyedChecked = true;
+    try {
+      const response = await fetch('/api/copernicus/status', {
+        cache: 'no-store',
+      });
+      const status = await response.json();
+      this._keyed.set('copernicus', status?.ready === true);
+    } catch {
+      this._keyed.set('copernicus', false);
+    }
+    if (!this.destroyed) this.render();
+  }
+
+  /** Products this slot can actually offer, given configured credentials. */
+  _availableSensors(layer) {
+    const all = layer.listSensors();
+    return all.filter((product) => {
+      const needs = product?.requiresKey;
+      if (!needs) return true;
+      return this._keyed.get(needs) === true;
+    });
   }
 
   connect() {
@@ -78,6 +118,7 @@ export class ImageryPanel {
       { signal: this._abort.signal },
     );
     this._ensureSubscribed();
+    void this._checkKeyedServices();
     this.render();
   }
 
@@ -190,7 +231,7 @@ export class ImageryPanel {
     group.append(el('p', 'imagery-slot-blurb', slot.blurb));
 
     const list = el('div', 'imagery-sensor-list');
-    for (const product of layer.listSensors()) {
+    for (const product of this._availableSensors(layer)) {
       const active = enabled && product.key === activeKey;
       const btn = el('button', 'imagery-sensor');
       btn.type = 'button';

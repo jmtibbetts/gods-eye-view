@@ -99,7 +99,9 @@ export function createImageryOverlayLayer({
     if (isWms(current)) {
       return {
         wms: {
-          url: EUMETVIEW_WMS,
+          // A product may route through our own proxy instead of calling a
+          // service directly — that is how the keyed one keeps its secret.
+          url: current.wmsUrl || EUMETVIEW_WMS,
           layers: current.wmsLayer,
           credit: descriptor.attribution,
           maximumLevel: current.maximumLevel,

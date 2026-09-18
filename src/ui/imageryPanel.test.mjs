@@ -260,6 +260,80 @@ test('the panel follows toggles made somewhere else', async () => {
   });
 });
 
+test('a keyed sensor stays hidden until its credentials exist', async () => {
+  await withFakeDom(async () => {
+    const priorFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ json: async () => ({ ready: false }) });
+    try {
+      const dm = fakeManager();
+      const { panel, elements } = panelWith(dm);
+      panel.connect();
+      await new Promise((r) => setTimeout(r, 0));
+      panel.render();
+      const rendered = elements.list.children
+        .flatMap((slot) => slot.children)
+        .flatMap((node) => node.children || [])
+        .map((b) => b.dataset?.sensor)
+        .filter(Boolean);
+      assert.ok(
+        !rendered.includes('sentinel2-true'),
+        'offering a control that cannot work is worse than not offering it',
+      );
+      panel.destroy();
+    } finally {
+      globalThis.fetch = priorFetch;
+    }
+  });
+});
+
+test('a keyed sensor appears once its credentials are configured', async () => {
+  await withFakeDom(async () => {
+    const priorFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ json: async () => ({ ready: true }) });
+    try {
+      const dm = fakeManager();
+      const { panel, elements } = panelWith(dm);
+      panel.connect();
+      await new Promise((r) => setTimeout(r, 0));
+      panel.render();
+      const rendered = elements.list.children
+        .flatMap((slot) => slot.children)
+        .flatMap((node) => node.children || [])
+        .map((b) => b.dataset?.sensor)
+        .filter(Boolean);
+      assert.ok(rendered.includes('sentinel2-true'));
+      panel.destroy();
+    } finally {
+      globalThis.fetch = priorFetch;
+    }
+  });
+});
+
+test('a failed availability check hides the sensor rather than assuming yes', async () => {
+  await withFakeDom(async () => {
+    const priorFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new Error('offline');
+    };
+    try {
+      const dm = fakeManager();
+      const { panel, elements } = panelWith(dm);
+      panel.connect();
+      await new Promise((r) => setTimeout(r, 0));
+      panel.render();
+      const rendered = elements.list.children
+        .flatMap((slot) => slot.children)
+        .flatMap((node) => node.children || [])
+        .map((b) => b.dataset?.sensor)
+        .filter(Boolean);
+      assert.ok(!rendered.includes('sentinel2-true'));
+      panel.destroy();
+    } finally {
+      globalThis.fetch = priorFetch;
+    }
+  });
+});
+
 test('a destroyed panel stops responding', async () => {
   await withFakeDom(async () => {
     const dm = fakeManager();

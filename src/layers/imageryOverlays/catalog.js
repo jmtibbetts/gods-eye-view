@@ -117,7 +117,12 @@ export function wmsTimeFor(product, now = Date.now()) {
 
 /** True when a product is served by EUMETView WMS rather than GIBS tiles. */
 export function isWms(product) {
-  return product?.service === 'eumetview';
+  return product?.service === 'eumetview' || product?.service === 'copernicus';
+}
+
+/** Products that cannot be offered until their credentials are configured. */
+export function requiresKey(product) {
+  return typeof product?.requiresKey === 'string' ? product.requiresKey : null;
 }
 
 /**
@@ -307,6 +312,27 @@ const orbital = [
     sparse: true,
     reveals:
       'Radar that makes its own light: sees through cloud and works at night, at four times the detail of anything else here.',
+  },
+  {
+    key: 'sentinel2-true',
+    code: 'k',
+    label: 'Sentinel-2 · 10 m True Colour',
+    platform: 'Sentinel-2',
+    instrument: 'MSI',
+    service: 'copernicus',
+    // Proxied, never called directly: the OAuth secret stays server side and
+    // the browser only ever sees rendered tiles. See server/providers/copernicus.js.
+    wmsUrl: '/api/copernicus/wms',
+    wmsLayer: 'TRUE-COLOR-S2L2A',
+    maximumLevel: 15,
+    cadence: 'rolling',
+    scanMinutes: 1440,
+    lagMinutes: 4320,
+    // The only product here behind a key. Hidden unless configured, rather
+    // than offered and failing when clicked.
+    requiresKey: 'copernicus',
+    reveals:
+      'Individual buildings, field boundaries, single vessels — roughly a thousand times the detail of the daily global mosaics.',
   },
   {
     key: 'black-marble',

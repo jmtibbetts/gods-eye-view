@@ -142,25 +142,49 @@ async function probeWms(product) {
   }
 }
 
-async function probe(product) {
-  if (isWms(product)) return probeWms(product);
-  const time = liveTimeFor(product);
-  const { z, y, x } = probeTile(product);
+/**
+ * Candidate tiles for a sparse product, tried until one carries data.
+ *
+ * A swath product's footprint moves day to day, so any single tile is a
+ * coin-flip: the tile that returned 117 KB on one run returned 671 B on the
+ * next, same date, same URL. One tile therefore tests where the satellite
+ * happened to fly, not whether the product works. "Does this serve data
+ * anywhere" is the question that actually separates a live product from a
+ * retired one.
+ */
+function sparseCandidates(product) {
+  const id = product.gibsId || '';
+  if (/OPERA_L2/i.test(id))
+    return [
+      { z: 3, y: 2, x: 5 },
+      { z: 3, y: 2, x: 4 },
+      { z: 3, y: 2, x: 1 },
+      { z: 2, y: 1, x: 2 },
+    ];
+  return [
+    { z: 3, y: 4, x: 0 },
+    { z: 3, y: 2, x: 7 },
+    { z: 3, y: 1, x: 6 },
+    { z: 2, y: 1, x: 0 },
+  ];
+}
+
+/** Fetch one tile and judge whether it carries anything. */
+async function probeAt(product, time, tile) {
   const url = gibsTileUrl(product, time)
-    .replace('{z}', z)
-    .replace('{y}', y)
-    .replace('{x}', x);
+    .replace('{z}', tile.z)
+    .replace('{y}', tile.y)
+    .replace('{x}', tile.x);
   try {
     const response = await fetch(url, {
       headers: { 'user-agent': 'gods-eye-view/imagery-catalog-check' },
     });
-    if (!response.ok) {
+    if (!response.ok)
       return { ok: false, product, time, url, why: `HTTP ${response.status}` };
-    }
     const bytes = Buffer.from(await response.arrayBuffer());
     const digest = createHash('sha1').update(bytes).digest('hex').slice(0, 8);
     const floor = product.sparse ? MIN_BYTES_SPARSE : MIN_BYTES;
-    if (bytes.length < floor) {
+    if (bytes.length < floor)
       return {
         ok: false,
         product,
@@ -168,7 +192,6 @@ async function probe(product) {
         url,
         why: `featureless tile (${bytes.length}B) — the product likely moved or has not published ${time}`,
       };
-    }
     return { ok: true, product, time, url, size: bytes.length, digest };
   } catch (error) {
     return {
@@ -181,6 +204,30 @@ async function probe(product) {
   }
 }
 
+async function probe(product) {
+  // A keyed product cannot be verified from here and its absence is not a
+  // fault — the catalog hides it until credentials exist.
+  if (product.requiresKey)
+    return {
+      ok: true,
+      product,
+      time: 'n/a',
+      url: '',
+      skipped: product.requiresKey,
+    };
+  if (isWms(product)) return probeWms(product);
+  const time = liveTimeFor(product);
+  if (product.sparse) {
+    let last = null;
+    for (const tile of sparseCandidates(product)) {
+      last = await probeAt(product, time, tile);
+      if (last.ok) return last;
+    }
+    return last;
+  }
+  return probeAt(product, time, probeTile(product));
+}
+
 const results = [];
 for (let i = 0; i < ALL_IMAGERY_PRODUCTS.length; i += 6) {
   results.push(
@@ -190,7 +237,11 @@ for (let i = 0; i < ALL_IMAGERY_PRODUCTS.length; i += 6) {
 
 const failures = results.filter((r) => !r.ok);
 for (const r of results) {
-  if (r.ok && VERBOSE)
+  if (r.ok && r.skipped && VERBOSE)
+    console.log(
+      `  skip ${r.product.key.padEnd(20)} needs ${r.skipped} credentials`,
+    );
+  else if (r.ok && VERBOSE)
     console.log(`  ok   ${r.product.key.padEnd(20)} ${r.time}  ${r.size}B`);
   if (!r.ok) {
     console.error(`  FAIL ${r.product.key.padEnd(20)} ${r.why}`);
@@ -201,7 +252,11 @@ for (const r of results) {
 console.log(
   JSON.stringify({
     products: results.length,
-    ok: results.length - failures.length,
+    ok:
+      results.length -
+      failures.length -
+      results.filter((r) => r.skipped).length,
+    skipped: results.filter((r) => r.skipped).length,
     failed: failures.length,
   }),
 );
