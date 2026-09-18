@@ -2,6 +2,7 @@ import { openSkyProxy } from './aircraft/opensky.js';
 import { celestrakProxy, rocketLaunchesProxy } from './space.js';
 import { tomtomProxy } from './traffic.js';
 import { firmsProxy } from './firms.js';
+import { aviationProxy } from './aviation.js';
 import { copernicusProxy } from './copernicus.js';
 import { satnogsProxy } from './satnogs.js';
 import { tropicalProxy } from './tropical.js';
@@ -31,6 +32,7 @@ function localProviderPlugins() {
     celestrakProxy(),
     tomtomProxy(),
     firmsProxy(),
+    aviationProxy(),
     copernicusProxy(),
     satnogsProxy(),
     tropicalProxy(),

@@ -21,6 +21,8 @@
  *   GET /api/satnogs/observations → trimmed recent observations
  */
 
+import { cachedJsonEndpoint, listOf } from './cachedEndpoint.js';
+
 const STATIONS_URL = 'https://network.satnogs.org/api/stations/?format=json';
 const OBSERVATIONS_URL =
   'https://network.satnogs.org/api/observations/?format=json';
@@ -91,84 +93,23 @@ function trimObservation(o) {
   };
 }
 
-/**
- * One cached upstream endpoint.
- * @param {string} url
- * @param {number} ttlMs
- * @param {(row: any) => any} trim
- * @param {string} label
- */
-function endpoint(url, ttlMs, trim, label) {
-  /** @type {?{at:number, body:string}} */
-  let cache = null;
-  /** @type {?Promise<?string>} */
-  let inflight = null;
-
-  async function load() {
-    if (inflight) return inflight;
-    inflight = (async () => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      try {
-        const response = await fetch(url, {
-          signal: controller.signal,
-          headers: { 'user-agent': 'gods-eye-view/satnogs' },
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const payload = await response.json();
-        // Validate the SHAPE before caching. A proxy error page parses as JSON
-        // perfectly well and would then be served confidently as an empty
-        // network for the whole TTL.
-        if (!Array.isArray(payload))
-          throw new Error('upstream did not return a list');
-        const body = JSON.stringify(payload.map(trim));
-        cache = { at: Date.now(), body };
-        return body;
-      } catch (error) {
-        console.warn(`[SatNOGS] ${label} fetch failed: ${error?.message}`);
-        return null;
-      } finally {
-        clearTimeout(timer);
-        inflight = null;
-      }
-    })();
-    return inflight;
-  }
-
-  return async function handle(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    const fresh = cache && Date.now() - cache.at < ttlMs;
-    const body = fresh ? cache.body : await load();
-    if (body) {
-      res.setHeader('Cache-Control', 'public, max-age=60');
-      res.end(body);
-      return;
-    }
-    // Serve stale rather than nothing: a station list a few minutes old beats
-    // an empty globe, and the layer reports its own last-update time.
-    if (cache) {
-      res.setHeader('X-Gev-Stale', '1');
-      res.end(cache.body);
-      return;
-    }
-    res.statusCode = 503;
-    res.end(JSON.stringify({ error: 'upstream_failed' }));
-  };
-}
-
 export function satnogsProxy() {
-  const stations = endpoint(
-    STATIONS_URL,
-    STATIONS_TTL_MS,
-    trimStation,
-    'stations',
-  );
-  const observations = endpoint(
-    OBSERVATIONS_URL,
-    OBSERVATIONS_TTL_MS,
-    trimObservation,
-    'observations',
-  );
+  const stations = cachedJsonEndpoint({
+    url: STATIONS_URL,
+    ttlMs: STATIONS_TTL_MS,
+    label: 'SatNOGS stations',
+    agent: 'gods-eye-view/satnogs',
+    timeoutMs: TIMEOUT_MS,
+    shape: listOf(trimStation),
+  });
+  const observations = cachedJsonEndpoint({
+    url: OBSERVATIONS_URL,
+    ttlMs: OBSERVATIONS_TTL_MS,
+    label: 'SatNOGS observations',
+    agent: 'gods-eye-view/satnogs',
+    timeoutMs: TIMEOUT_MS,
+    shape: listOf(trimObservation),
+  });
 
   function installMiddleware(server) {
     server.middlewares.use('/api/satnogs/stations', stations);

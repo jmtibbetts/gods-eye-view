@@ -25,6 +25,7 @@ import { createApplicationImageryOverlays } from './layers/imageryOverlays.js';
 import { createApplicationWeatherAlerts } from './layers/weatherAlerts.js';
 import { createApplicationStormReports } from './layers/stormReports.js';
 import { createApplicationTropical } from './layers/tropical.js';
+import { createApplicationAviationHazards } from './layers/aviationHazards.js';
 import { createApplicationDrought } from './layers/drought.js';
 import { createApplicationRiverFlood } from './layers/riverFlood.js';
 import { createApplicationSatnogs } from './layers/satnogs.js';
@@ -63,6 +64,7 @@ const SOURCE_METHODS = Object.freeze({
   weatherAlerts: ['getSnapshot'],
   stormReports: ['getSnapshot'],
   tropical: ['fetchTropical'],
+  aviationHazards: ['fetchSigmets'],
   drought: ['fetchDrought'],
   riverFlood: ['fetchGauges'],
   satnogs: ['fetchStations'],
@@ -144,6 +146,9 @@ export function createApplicationCatalog({
         createApplicationWeatherAlerts({ source: sources.weatherAlerts }),
         createApplicationStormReports({ source: sources.stormReports }),
         createApplicationTropical({ source: sources.tropical }),
+        createApplicationAviationHazards({
+          source: sources.aviationHazards,
+        }),
         createApplicationDrought({ source: sources.drought }),
         createApplicationRiverFlood({ source: sources.riverFlood }),
         createApplicationSatnogs({ source: sources.satnogs }),

@@ -305,6 +305,24 @@ const OPTION_GROUPS = Object.freeze({
   // `imageryOption` below asserts they stay unique within a slot.
   // Owner key IS the owning layer's id — the encoder resolves owners through
   // REGISTRY_BY_ID, so a friendlier name here would silently encode nothing.
+  // Which aviation hazard class the SIGMET layer is showing, or all of them.
+  'aviation-hazards': Object.freeze([
+    enumOption(
+      'hazard',
+      'h',
+      'all',
+      ['all', 'ash', 'storm', 'cyclone', 'turbulence', 'ice', 'wave'],
+      {
+        all: 'a',
+        ash: 'v',
+        storm: 't',
+        cyclone: 'c',
+        turbulence: 'b',
+        ice: 'i',
+        wave: 'w',
+      },
+    ),
+  ]),
   // Which drought product is showing: current conditions, or one of the two
   // CPC outlooks.
   drought: Object.freeze([
@@ -431,6 +449,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     disposition: 'enabled-only',
   }),
   Object.freeze({ id: 'atc', token: 'y', disposition: 'enabled-only' }),
+  Object.freeze({
+    id: 'aviation-hazards',
+    token: 'av',
+    disposition: 'enabled+options',
+    optionOwner: 'aviation-hazards',
+  }),
   Object.freeze({
     id: 'bhote-koshi-2026',
     token: 'h',
