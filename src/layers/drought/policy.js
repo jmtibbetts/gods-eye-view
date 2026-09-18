@@ -18,6 +18,8 @@
  * dropping it, so an outlook shows only where something is expected to change.
  */
 
+import { feedNumber } from '../../data/feedNumbers.js';
+
 export const DROUGHT_LAYER_ID = 'drought';
 export const DROUGHT_ENTITY_PREFIX = 'drought:';
 
@@ -147,11 +149,8 @@ const CLASS_BY_CODE = new Map(DROUGHT_CLASSES.map((c) => [c.code, c]));
  * be drawn as D0 Abnormally Dry, inventing a drought reading from missing data.
  */
 export function droughtClassFor(code) {
-  if (code === null || code === undefined || typeof code === 'boolean')
-    return null;
-  if (typeof code === 'string' && code.trim() === '') return null;
-  const n = Number(code);
-  return CLASS_BY_CODE.get(Number.isFinite(n) ? n : -1) || null;
+  const n = feedNumber(code);
+  return n === null ? null : CLASS_BY_CODE.get(n) || null;
 }
 
 /**

@@ -1,3 +1,8 @@
+import {
+  feedCount,
+  feedLatitude,
+  feedLongitude,
+} from '../../data/feedNumbers.js';
 import { stationState, withinScope } from './policy.js';
 
 const text = (value, max = 120) => {
@@ -5,27 +10,6 @@ const text = (value, max = 120) => {
     .replace(/\s+/g, ' ')
     .trim();
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
-};
-
-/**
- * A coordinate, or null.
- *
- * Rejects blank, null and boolean BEFORE converting, because `Number(null)`,
- * `Number('')` and `Number(false)` are all 0 — a perfectly valid latitude. A
- * station with no latitude on file would otherwise be placed on the equator
- * at its real longitude, which looks like a site rather than a gap.
- */
-const coord = (value) => {
-  if (value === null || value === undefined || typeof value === 'boolean')
-    return null;
-  if (typeof value === 'string' && value.trim() === '') return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-};
-
-const count = (value) => {
-  const n = Number(value);
-  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
 };
 
 /**
@@ -43,10 +27,9 @@ export function parseStations(payload, scope, now = Date.now()) {
   const out = [];
   const seen = new Set();
   for (const row of rows) {
-    const lat = coord(row?.lat);
-    const lon = coord(row?.lng);
-    if (lat === null || Math.abs(lat) > 90) continue;
-    if (lon === null || Math.abs(lon) > 180) continue;
+    const lat = feedLatitude(row?.lat);
+    const lon = feedLongitude(row?.lng);
+    if (lat === null || lon === null) continue;
     // A station at exactly 0,0 is an unset location, not a buoy in the
     // Atlantic: SatNOGS stations are somebody's roof.
     if (lat === 0 && lon === 0) continue;
@@ -64,14 +47,14 @@ export function parseStations(payload, scope, now = Date.now()) {
       meaning: state.meaning,
       color: state.color,
       rank: state.rank,
-      observations: count(row.observations),
-      future: count(row.future),
+      observations: feedCount(row.observations),
+      future: feedCount(row.future),
       // A success rate of 0 is a real reading, so it must survive the
       // null-versus-falsy distinction that `||` would collapse.
-      successRate: count(row.successRate),
+      successRate: feedCount(row.successRate),
       bands: Array.isArray(row.bands) ? row.bands.map((b) => text(b, 12)) : [],
       lastSeen: text(row.lastSeen, 32),
-      altitude: count(row.altitude),
+      altitude: feedCount(row.altitude),
       lat,
       lon,
     });

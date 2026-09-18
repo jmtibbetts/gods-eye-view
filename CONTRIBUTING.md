@@ -79,13 +79,25 @@ when adding an export or expanding a component. See
 [formatting and component boundaries](docs/CODE-BOUNDARIES.md) for the current
 ownership and adoption process.
 
+## Installing dependencies
+
+`npm install` — but note that this repo ships a `.npmrc` setting `omit=`, and
+it is load-bearing. devDependencies are required to build, test and lint:
+vite, the test runner and the gate scripts all live there. A user-level
+`~/.npmrc` carrying `omit=dev`, or `NODE_ENV=production` in your environment,
+otherwise makes a plain `npm install` silently prune the dev tree — on one
+machine it removed 82 packages including vite, and the build stayed broken
+until they were reinstalled. The repo file is more specific than the
+user-level one, so it wins here without changing anything else on your system.
+
 ## Pull requests
 
 1. Branch off `main`.
 2. Keep `npm run build`, `npm test`, and `npm run test:track` green and avoid new console errors.
 3. If you change runtime behavior, update `docs/CURRENT-STATE.md` and `CHANGELOG.md` in the same PR.
 4. If you add or change a data source, update [DATA_SOURCES.md](DATA_SOURCES.md) with its license and attribution. **Don't add data you don't have the right to redistribute** — fetch it at runtime instead.
-5. Describe what you changed and how you verified it (screenshots welcome for anything visual).
+5. If you read a number out of an external feed, use `src/data/feedNumbers.js` rather than `Number()`. `Number('')`, `Number(null)` and `Number(false)` are all `0`, and `0` is a valid latitude, flight level and class code — so a bare `Number()` turns a MISSING field into one that confidently says zero. That has produced a drought polygon with no class drawn as "Abnormally Dry", a ground station placed on the equator, and an ash advisory with no reported base drawn as reaching the ground.
+6. Describe what you changed and how you verified it (screenshots welcome for anything visual).
 
 ## Maintainers
 

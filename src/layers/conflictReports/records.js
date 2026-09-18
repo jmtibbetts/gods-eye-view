@@ -1,3 +1,8 @@
+import {
+  feedCount,
+  feedLatitude,
+  feedLongitude,
+} from '../../data/feedNumbers.js';
 import { intensityFor } from './policy.js';
 
 const text = (value, max = 120) => {
@@ -7,20 +12,17 @@ const text = (value, max = 120) => {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 };
 
-const count = (value) => {
-  const n = Number(value);
-  return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0;
-};
+/** A feed tally, defaulting to 0 — these are counts, and absent means none. */
+const count = (value) => feedCount(value) ?? 0;
 
 /** Flatten a [[lon,lat],…] ring, rejecting the whole ring on a bad vertex. */
 function flatRing(ring) {
   if (!Array.isArray(ring) || ring.length < 3) return null;
   const flat = [];
   for (const point of ring) {
-    const lon = Number(point?.[0]);
-    const lat = Number(point?.[1]);
-    if (!Number.isFinite(lat) || Math.abs(lat) > 90) return null;
-    if (!Number.isFinite(lon) || Math.abs(lon) > 180) return null;
+    const lon = feedLongitude(point?.[0]);
+    const lat = feedLatitude(point?.[1]);
+    if (lat === null || lon === null) return null;
     flat.push(lon, lat);
   }
   return flat.length >= 6 ? flat : null;

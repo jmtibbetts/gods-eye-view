@@ -1972,7 +1972,8 @@
       "src/ui/vesselWatchEngine.js",
       "src/ui/timelinePanel.js",
       "src/ui/imageryPanel.js",
-      "src/ui/timelineEngine.js"
+      "src/ui/timelineEngine.js",
+      "src/data/feedNumbers.js"
     ],
     "external": [
       "@mapbox/vector-tile",
@@ -2451,7 +2452,8 @@
       "src/layers/conflictReports/index.js",
       "src/layers/aviationHazards/index.js",
       "src/layers/airQuality/index.js",
-      "src/layers/volcanoes/index.js"
+      "src/layers/volcanoes/index.js",
+      "src/data/feedNumbers.js"
     ],
     "external": [
       "cesium",
@@ -2768,7 +2770,8 @@
       "src/layers/airQuality/source.js",
       "src/layers/volcanoes/policy.js",
       "src/layers/volcanoes/records.js",
-      "src/layers/volcanoes/source.js"
+      "src/layers/volcanoes/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -2813,7 +2816,8 @@
       "src/layers/airQuality/source.js",
       "src/layers/volcanoes/policy.js",
       "src/layers/volcanoes/records.js",
-      "src/layers/volcanoes/source.js"
+      "src/layers/volcanoes/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": []
   },
@@ -2864,7 +2868,8 @@
       "src/layers/aviationHazards/index.js",
       "src/layers/aviationHazards/policy.js",
       "src/layers/aviationHazards/records.js",
-      "src/layers/aviationHazards/source.js"
+      "src/layers/aviationHazards/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -2874,7 +2879,8 @@
       "src/layers/conflictReports/index.js",
       "src/layers/conflictReports/policy.js",
       "src/layers/conflictReports/records.js",
-      "src/layers/conflictReports/source.js"
+      "src/layers/conflictReports/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -2884,7 +2890,8 @@
       "src/layers/drought/index.js",
       "src/layers/drought/policy.js",
       "src/layers/drought/records.js",
-      "src/layers/drought/source.js"
+      "src/layers/drought/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -2894,7 +2901,8 @@
       "src/layers/lightning/index.js",
       "src/layers/lightning/policy.js",
       "src/layers/lightning/records.js",
-      "src/layers/lightning/source.js"
+      "src/layers/lightning/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -2904,7 +2912,8 @@
       "src/layers/riverFlood/index.js",
       "src/layers/riverFlood/policy.js",
       "src/layers/riverFlood/records.js",
-      "src/layers/riverFlood/source.js"
+      "src/layers/riverFlood/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -2914,7 +2923,8 @@
       "src/layers/satnogs/index.js",
       "src/layers/satnogs/policy.js",
       "src/layers/satnogs/records.js",
-      "src/layers/satnogs/source.js"
+      "src/layers/satnogs/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -3021,7 +3031,8 @@
       "src/layers/airQuality/index.js",
       "src/layers/volcanoes/index.js",
       "src/data/inputOwnership.js",
-      "src/data/pickRegistry.js"
+      "src/data/pickRegistry.js",
+      "src/data/feedNumbers.js"
     ],
     "external": ["cesium"]
   },
@@ -3063,7 +3074,8 @@
       "src/layers/airQuality/source.js",
       "src/layers/volcanoes/policy.js",
       "src/layers/volcanoes/records.js",
-      "src/layers/volcanoes/source.js"
+      "src/layers/volcanoes/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": []
   },
@@ -3157,7 +3169,8 @@
       "src/layers/airQuality/source.js",
       "src/layers/volcanoes/policy.js",
       "src/layers/volcanoes/records.js",
-      "src/layers/volcanoes/source.js"
+      "src/layers/volcanoes/source.js",
+      "src/data/feedNumbers.js"
     ],
     "external": []
   },

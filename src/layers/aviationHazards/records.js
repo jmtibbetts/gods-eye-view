@@ -1,3 +1,4 @@
+import { feedNumber } from '../../data/feedNumbers.js';
 import { QUALIFIERS, TRENDS, hazardClassFor, inForce } from './policy.js';
 
 const text = (value, max = 120) => {
@@ -7,16 +8,9 @@ const text = (value, max = 120) => {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 };
 
-const number = (value) => {
-  if (value === null || value === undefined || typeof value === 'boolean')
-    return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-};
-
 /** An epoch-second time as an ISO minute, or ''. */
 export function isoMinute(seconds) {
-  const n = number(seconds);
+  const n = feedNumber(seconds);
   if (n === null) return '';
   const d = new Date(n * 1000);
   return Number.isNaN(d.getTime())
@@ -97,10 +91,10 @@ export function parseSigmets(payload, filter, now = Date.now()) {
         trend: TRENDS[text(row.trend, 8).toUpperCase()] || '',
         // Flight levels in feet. Zero is a real base — an ash cloud reaching the
         // surface — so it must survive rather than read as absent.
-        low: number(row.low),
-        high: number(row.high),
-        dir: number(row.dir),
-        speed: number(row.speed),
+        low: feedNumber(row.low),
+        high: feedNumber(row.high),
+        dir: feedNumber(row.dir),
+        speed: feedNumber(row.speed),
         from: isoMinute(row.from),
         to: isoMinute(row.to),
         raw: text(row.raw, 400),

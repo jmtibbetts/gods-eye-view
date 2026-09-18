@@ -160,6 +160,28 @@ test('altitudes read as flight levels and a surface base survives', () => {
   assert.equal(altitudeText({ low: NaN, high: NaN }), '');
 });
 
+test('an unreported base is not drawn as ash reaching the ground', () => {
+  // `Number('')` is 0, and 0 is a real base — an ash cloud at the surface. A
+  // SIGMET whose base is simply unreported once read "surface to FL150",
+  // indistinguishable from ash genuinely reaching the ground. The two must
+  // stay distinguishable.
+  const [unreported] = parseSigmets(
+    [sigmet({ hazard: 'VA', qualifier: 'FUEGO', low: '', high: 15000 })],
+    ALL,
+    NOW,
+  );
+  assert.equal(unreported.low, null);
+  assert.equal(altitudeText(unreported), 'up to FL150');
+
+  const [surface] = parseSigmets(
+    [sigmet({ hazard: 'VA', qualifier: 'FUEGO', low: 0, high: 15000 })],
+    ALL,
+    NOW,
+  );
+  assert.equal(surface.low, 0);
+  assert.equal(altitudeText(surface), 'surface to FL150');
+});
+
 test('a filter shows only its own class', () => {
   const rows = [
     sigmet({ id: 'a', hazard: 'VA', qualifier: 'FUEGO' }),

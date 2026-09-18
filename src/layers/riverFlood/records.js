@@ -1,3 +1,8 @@
+import {
+  feedLatitude,
+  feedLongitude,
+  feedNumber,
+} from '../../data/feedNumbers.js';
 import { SCALE_TOLERANCE, statusFor, statusRank } from './policy.js';
 
 const text = (value, max = 120) => {
@@ -8,12 +13,7 @@ const text = (value, max = 120) => {
 };
 
 /** A stage reading, or null. A gauge with no reading is not a gauge at zero. */
-function stage(value) {
-  const raw = String(value ?? '').trim();
-  if (!raw) return null;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
-}
+const stage = feedNumber;
 
 /**
  * Whether a reading and the gauge's own flood thresholds are on the same scale.
@@ -62,9 +62,10 @@ export function parseGauges(geojson, horizon) {
     const p = feature?.properties || {};
     const status = statusFor(p.status);
     if (!status) continue;
-    const [lon, lat] = feature?.geometry?.coordinates || [];
-    if (!Number.isFinite(lat) || Math.abs(lat) > 90) continue;
-    if (!Number.isFinite(lon) || Math.abs(lon) > 180) continue;
+    const [rawLon, rawLat] = feature?.geometry?.coordinates || [];
+    const lat = feedLatitude(rawLat);
+    const lon = feedLongitude(rawLon);
+    if (lat === null || lon === null) continue;
     // One row per gauge per horizon; the service can repeat a gauge.
     const gaugeId = text(p.gaugelid, 16) || `${lat},${lon}`;
     const key = `${horizon.key}:${gaugeId}`;

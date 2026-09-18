@@ -1,21 +1,9 @@
+import {
+  feedLatitude,
+  feedLongitude,
+  feedNumber,
+} from '../../data/feedNumbers.js';
 import { energyBand, satelliteName } from './policy.js';
-
-/**
- * A finite number, or null.
- *
- * Blank strings, null and booleans are rejected BEFORE the conversion, because
- * `Number('')`, `Number(null)` and `Number(false)` are all 0 — a valid latitude
- * and a valid longitude. Without this a flash with a missing coordinate is
- * drawn in the Gulf of Guinea, which is both a plausible place for lightning
- * and the wrong one.
- */
-const number = (value) => {
-  if (value === null || value === undefined || typeof value === 'boolean')
-    return null;
-  if (typeof value === 'string' && value.trim() === '') return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-};
 
 /**
  * Parse the proxy's flash list.
@@ -28,11 +16,10 @@ export function parseFlashes(payload) {
   const rows = Array.isArray(payload?.flashes) ? payload.flashes : [];
   const out = [];
   for (const [index, row] of rows.entries()) {
-    const lat = number(row?.lat);
-    const lon = number(row?.lon);
-    if (lat === null || Math.abs(lat) > 90) continue;
-    if (lon === null || Math.abs(lon) > 180) continue;
-    const energy = number(row?.energy) ?? 0;
+    const lat = feedLatitude(row?.lat);
+    const lon = feedLongitude(row?.lon);
+    if (lat === null || lon === null) continue;
+    const energy = feedNumber(row?.energy) ?? 0;
     const band = energyBand(energy);
     out.push({
       id: `${row?.sat || 'x'}:${index}`,
@@ -51,7 +38,7 @@ export function parseFlashes(payload) {
   Object.defineProperty(out, 'meta', {
     value: {
       at: String(payload?.at || ''),
-      windowSeconds: number(payload?.windowSeconds) ?? 0,
+      windowSeconds: feedNumber(payload?.windowSeconds) ?? 0,
       satellites: Array.isArray(payload?.satellites) ? payload.satellites : [],
       missing: Array.isArray(payload?.missing) ? payload.missing : [],
     },
