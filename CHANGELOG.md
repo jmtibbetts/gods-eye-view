@@ -1,5 +1,14 @@
 # Changelog
 
+- The LAUNCH, SENSORS and IMAGERY sections now fold like the rest of the
+  Context rail. They were missing from the collapse rules the other
+  sections carry, so a "collapsed" section kept its full body on screen —
+  forty-one imagery sensors painting through the folded Context tab and
+  over the DISPLAY and CCTV panels — and the +/− button seemed dead. The
+  long bodies also scroll inside their own section now, so TIMELINE
+  stays a short drag below IMAGERY, and all three hide in clean view and
+  recording mode with their siblings.
+
 - Web SDR receivers are pinned where their names say they are, or say so.
   The directory's coordinates are wherever an operator dropped the marker,
   and one KiwiSDR named "Camden, South Carolina" sat sixty kilometres from
