@@ -30,6 +30,7 @@ import { createApplicationTfr } from './layers/tfr.js';
 import { createApplicationConflictReports } from './layers/conflictReports.js';
 import { createApplicationDrought } from './layers/drought.js';
 import { createApplicationSpaceWeather } from './layers/spaceWeather.js';
+import { createApplicationConjunctions } from './layers/conjunctions.js';
 import { createApplicationLightning } from './layers/lightning.js';
 import { createApplicationRiverFlood } from './layers/riverFlood.js';
 import { createApplicationSatnogs } from './layers/satnogs.js';
@@ -79,6 +80,7 @@ const SOURCE_METHODS = Object.freeze({
   airQuality: ['fetchAirQuality'],
   volcanoes: ['getSnapshot'],
   spaceWeather: ['fetchSpaceWeather'],
+  conjunctions: ['fetchConjunctions'],
 });
 
 /** Construct the current catalog without choosing any source provider.
@@ -175,6 +177,7 @@ export function createApplicationCatalog({
         createApplicationAlpr({ surface, source: sources.alpr }),
         satellites,
         createApplicationLaunches({ source: sources.launches, satellites }),
+        createApplicationConjunctions({ source: sources.conjunctions }),
         createApplicationTraffic({ source: sources.traffic }),
         createApplicationCctv({ surface, source: sources.cctv }),
         createApplicationRadio({ surface, source: sources.radio }),

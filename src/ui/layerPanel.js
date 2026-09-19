@@ -49,6 +49,7 @@ const PANEL_GROUPS = [
     label: 'Events',
     ids: [
       'rocket-launches',
+      'conjunctions',
       'earthquakes',
       'volcanoes',
       'local-firms',
@@ -104,6 +105,7 @@ const PANEL_LABELS = {
   'tropical-cyclones': 'Tropical Cyclones',
   'aviation-hazards': 'Aviation Hazards',
   tfr: 'Flight Restrictions',
+  conjunctions: 'Conjunctions',
   'conflict-reports': 'Conflict Reporting',
   drought: 'Drought',
   'space-weather': 'Space Weather',

@@ -256,6 +256,14 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     url: 'https://aviationweather.gov',
   }),
   Object.freeze({
+    id: 'celestrak-socrates',
+    layers: Object.freeze(['conjunctions']),
+    title: 'CELESTRAK SOCRATES',
+    feeds:
+      'Conjunctions — the week’s closest approaches and highest probabilities, placed at closest approach',
+    url: 'https://celestrak.org/SOCRATES/',
+  }),
+  Object.freeze({
     id: 'faa-tfr',
     layers: Object.freeze(['tfr']),
     title: 'FAA TEMPORARY FLIGHT RESTRICTIONS',

@@ -323,6 +323,14 @@ const OPTION_GROUPS = Object.freeze({
       },
     ),
   ]),
+  // Which conjunctions are drawn: every kept one, the high band, the crewed.
+  conjunctions: Object.freeze([
+    enumOption('show', 's', 'all', ['all', 'high', 'crewed'], {
+      all: 'a',
+      high: 'h',
+      crewed: 'c',
+    }),
+  ]),
   // Which restriction class the TFR layer is showing, or all of them.
   tfr: Object.freeze([
     enumOption(
@@ -493,6 +501,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     id: 'conflict-reports',
     token: 'cr',
     disposition: 'enabled-only',
+  }),
+  Object.freeze({
+    id: 'conjunctions',
+    token: 'cj',
+    disposition: 'enabled+options',
+    optionOwner: 'conjunctions',
   }),
   Object.freeze({ id: 'directions', token: 'n', disposition: 'enabled-only' }),
   Object.freeze({

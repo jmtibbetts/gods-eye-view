@@ -282,6 +282,7 @@ const READOUT_CONTEXT_LAYERS = new Set([
   'satnogs',
   'aviation-hazards',
   'tfr',
+  'conjunctions',
   'lightning',
   'conflict-reports',
 ]);

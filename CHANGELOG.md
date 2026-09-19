@@ -1,5 +1,24 @@
 # Changelog
 
+- Conjunctions: where the week's close calls will be. A new layer, the
+  43rd, reads CelesTrak's SOCRATES — a hundred and fifty thousand
+  predicted close approaches, seventeen megabytes, eight times a day —
+  through a proxy that keeps the few dozen worth drawing: the highest
+  collision probabilities, the tightest misses, and everything involving
+  the ISS, Tiangong or a vehicle flying to them. Docked pairs are set
+  aside (a Soyuz on the station reads as probability one at no relative
+  speed) and the station's several catalog numbers fold into one. Each
+  pair is placed by propagating both objects' elements to the time of
+  closest approach, over the ground it will be over at that instant;
+  debris is in no group the satellites layer loads, so the proxy fetches
+  elements one object at a time into a cache that outlives the process,
+  serves the list at once, and the layer asks again every forty-five
+  seconds until nothing is pending. Markers sit on a stalk to the ground,
+  sized and coloured by probability band, with chips for the high band
+  and the crewed ones, and every card calls the number SOCRATES's maximum
+  probability — a screening figure from public elements, not an
+  operator's assessment.
+
 - Launch day, all of it. A new Flight Restrictions layer, the 42nd, draws
   every FAA temporary flight restriction in force as the polygon it closes,
   coloured by kind with the launch closures on top and chips to show one

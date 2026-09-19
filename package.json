@@ -234,6 +234,7 @@
     "./layers/tropical": "./src/layers/tropical/index.js",
     "./layers/aviationHazards": "./src/layers/aviationHazards/index.js",
     "./layers/tfr": "./src/layers/tfr/index.js",
+    "./layers/conjunctions": "./src/layers/conjunctions/index.js",
     "./layers/conflictReports": "./src/layers/conflictReports/index.js",
     "./layers/drought": "./src/layers/drought/index.js",
     "./layers/space-weather": "./src/layers/spaceWeather/index.js",

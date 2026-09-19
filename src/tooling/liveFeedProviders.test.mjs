@@ -23,6 +23,17 @@ import {
   tfrPageUrl,
   windowFromTitle,
 } from '../../server/providers/tfr.js';
+import {
+  conjunctionId,
+  createElementStore,
+  createSocratesEndpoint,
+  isCoOrbiting,
+  parseCsv,
+  parseSocrates,
+  parseTleBody,
+  selectConjunctions,
+  splitName,
+} from '../../server/providers/space/socrates.js';
 import { aggregate } from '../../server/providers/conflict.js';
 import { hourPrefix } from '../../server/providers/lightning.js';
 import {
@@ -528,6 +539,197 @@ test('the loader fetches the list and shapes, details for space operations only,
     fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }),
   });
   await assert.rejects(() => down(), /HTTP 503/);
+});
+
+// ---------------------------------------------------------------------- socrates
+
+const SOCRATES_CSV = [
+  'NORAD_CAT_ID_1,OBJECT_NAME_1,DSE_1,NORAD_CAT_ID_2,OBJECT_NAME_2,DSE_2,TCA,TCA_RANGE,TCA_RELATIVE_SPEED,MAX_PROB,DILUTION',
+  '57139,STARLINK-5355 [+],5.662,1883,TITAN 3C TRANSTAGE DEB [-],6.080,2026-09-24 02:08:18.268,0.005,7.729,1.000E+00,0.000',
+  '25544,ISS (ZARYA) [+],1.0,100057,SOYUZ-MS 29 [+],1.0,2026-09-21 04:31:10.666,0.006,0.000,1.000E+00,0.000',
+  '25575,ISS (UNITY) [+],1.0,100057,SOYUZ-MS 29 [+],1.0,2026-09-21 04:31:10.666,0.006,0.000,1.000E+00,0.000',
+  '25544,ISS (ZARYA) [+],1.0,44444,COSMOS 2251 DEB [-],1.0,2026-09-22 04:31:10.666,1.2,14.1,2.000E-05,0.100',
+  '26400,ISS (ZVEZDA) [+],1.0,44444,COSMOS 2251 DEB [-],1.0,2026-09-22 04:31:10.666,1.2,14.1,2.000E-05,0.100',
+  '48274,CSS (TIANHE) [+],1.0,55555,"FENGYUN 1C DEB, PIECE [-]",1.0,2026-09-21 00:00:00.000,3.0,10.0,1.000E-06,0.5',
+  '11111,OLD SAT [P],1.0,22222,OLDER SAT [B],1.0,2026-09-18 00:00:00.000,0.1,9.0,5.000E-04,0.1',
+  '33333,GEO A [+],1.0,33334,GEO B [+],1.0,2026-09-23 00:00:00.000,4.9,0.01,3.000E-03,0.1',
+  '100060,CREW DRAGON 12 [+],1.0,44444,COSMOS 2251 DEB [-],1.0,2026-09-22 04:31:10.700,1.2,14.1,1.000E-06,0.100',
+].join('\r\n');
+const SOCRATES_NOW = Date.parse('2026-09-19T22:00:00Z');
+
+test('SOCRATES rows parse with their statuses, and the station pieces fold onto the station', () => {
+  assert.deepEqual(parseCsv('a,b\n"c, d",e\r\n'), [
+    ['a', 'b'],
+    ['c, d', 'e'],
+  ]);
+  assert.deepEqual(splitName('STARLINK-5355 [+]'), {
+    name: 'STARLINK-5355',
+    status: 'active',
+  });
+  assert.deepEqual(splitName('OLD SAT [P]'), {
+    name: 'OLD SAT',
+    status: 'partially operational',
+  });
+  assert.deepEqual(splitName('NO STATUS'), {
+    name: 'NO STATUS',
+    status: 'unknown',
+  });
+  const records = parseSocrates(SOCRATES_CSV);
+  assert.equal(records.length, 9);
+  assert.equal(records[0].tca, '2026-09-24T02:08:18.268Z');
+  assert.equal(records[0].maxProbability, 1);
+  assert.equal(records[0].objects[1].status, 'inactive');
+  assert.equal(records[2].objects[0].noradId, 25544, 'UNITY is the ISS');
+  assert.equal(records[2].objects[0].station, 'ISS');
+  assert.equal(
+    records[5].objects[1].name,
+    'FENGYUN 1C DEB, PIECE',
+    'a quoted comma survives',
+  );
+  assert.throws(() => parseSocrates('X,Y\n1,2'), /header/);
+});
+
+test('selection keeps the future, drops docked pairs, folds duplicates, and always keeps the crewed', () => {
+  const records = parseSocrates(SOCRATES_CSV);
+  assert.equal(isCoOrbiting(records[1]), true, 'Soyuz on the ISS at 0 km/s');
+  assert.equal(
+    isCoOrbiting(records[7]),
+    true,
+    'two GEO birds drifting at 10 m/s',
+  );
+  const chosen = selectConjunctions(records, SOCRATES_NOW);
+  assert.deepEqual(
+    chosen.map((c) => c.id),
+    [
+      '48274-55555-2026-09-21T00:00:00',
+      '25544-44444-2026-09-22T04:31:10',
+      '1883-57139-2026-09-24T02:08:18',
+    ],
+    'soonest first',
+  );
+  assert.equal(chosen.past, 1, 'OLD SAT was yesterday');
+  assert.equal(
+    chosen.coOrbiting,
+    4,
+    'two docked Soyuz rows, the GEO drift, and the Dragon riding the ISS',
+  );
+  assert.equal(chosen.total, 3);
+  assert.ok(
+    !chosen.some((c) => c.id.startsWith('44444-100060')),
+    'a docked Dragon is the station’s conjunction, not its own',
+  );
+  const iss = chosen.find((c) => c.id.startsWith('25544'));
+  assert.equal(iss.crewed, true);
+  assert.ok(iss.why.includes('crewed'));
+  assert.equal(
+    conjunctionId(records[4]),
+    conjunctionId(records[3]),
+    'ZVEZDA and ZARYA are one conjunction',
+  );
+  // A tight budget still keeps every crewed one.
+  const tight = selectConjunctions(records, SOCRATES_NOW, {
+    byProbability: 1,
+    byRange: 0,
+  });
+  assert.ok(tight.some((c) => c.id.startsWith('25544')));
+  assert.ok(tight.some((c) => c.id.startsWith('48274')));
+});
+
+test('the element store fetches one object at a time, remembers misses, and reports what is pending', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'gev-socrates-'));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('CATNR=404'))
+      return { ok: false, status: 404, text: async () => 'No GP data found' };
+    return {
+      ok: true,
+      status: 200,
+      text: async () =>
+        'TITAN 3C TRANSTAGE DEB  \r\n1 01883U 65082EY  26261.99072198  .00004755  00000+0  18475-3 0  9991\r\n2 01883  32.0917 144.2856 0013039 296.3981  63.5343 15.24572891279622\r\n',
+    };
+  };
+  const store = createElementStore({
+    file: join(dir, 'el.json'),
+    fetchImpl,
+    concurrency: 1,
+    log: () => {},
+  });
+  await store.prime();
+  assert.equal(store.get(1883), null, 'not yet: queued');
+  assert.equal(store.get(404), null);
+  assert.equal(store.pending(), 2);
+  for (let i = 0; i < 20 && store.pending(); i++)
+    await new Promise((r) => setTimeout(r, 5));
+  assert.equal(store.pending(), 0);
+  assert.equal(calls.length, 2, 'one request per object, once');
+  assert.deepEqual(
+    store.get(1883).lines.map((l) => l.slice(0, 7)),
+    ['1 01883', '2 01883'],
+  );
+  assert.equal(store.get(1883).name, 'TITAN 3C TRANSTAGE DEB');
+  assert.deepEqual(
+    store.get(404).lines,
+    null,
+    'a 404 is remembered as no elements, not retried every call',
+  );
+  assert.equal(parseTleBody('nothing here'), null);
+  await new Promise((r) => setTimeout(r, 20));
+  const persisted = JSON.parse(await readFile(join(dir, 'el.json'), 'utf8'));
+  assert.ok(persisted['1883'].lines);
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('the endpoint serves the cut list at once with the elements it has, and says how many are pending', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'gev-socrates-'));
+  const fetchImpl = async (url) => {
+    const u = String(url);
+    if (u.includes('SOCRATES'))
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        body: null,
+        text: async () => SOCRATES_CSV,
+      };
+    return {
+      ok: true,
+      status: 200,
+      text: async () =>
+        `X\n1 ${u.match(/CATNR=(\d+)/)[1].padStart(5, '0')}U 65082EY  26261.99072198  .00004755  00000+0  18475-3 0  9991\n2 ${u.match(/CATNR=(\d+)/)[1].padStart(5, '0')}  32.0917 144.2856 0013039 296.3981  63.5343 15.24572891279622\n`,
+    };
+  };
+  const elements = createElementStore({
+    file: join(dir, 'el.json'),
+    fetchImpl,
+    concurrency: 2,
+    log: () => {},
+  });
+  const handle = createSocratesEndpoint({
+    fetchImpl,
+    cacheDir: dir,
+    now: () => SOCRATES_NOW,
+    elements,
+    log: () => {},
+  });
+  const first = await call(handle);
+  const body = JSON.parse(first.body);
+  assert.equal(body.conjunctions.length, 3);
+  assert.equal(body.total, 3);
+  assert.equal(body.coOrbiting, 4);
+  assert.ok(body.pending > 0, 'elements are still on their way');
+  assert.equal(body.conjunctions[0].objects[0].tle, null);
+  for (let i = 0; i < 40 && elements.pending(); i++)
+    await new Promise((r) => setTimeout(r, 5));
+  const second = JSON.parse((await call(handle)).body);
+  assert.equal(second.pending, 0);
+  assert.ok(
+    second.conjunctions.every((c) =>
+      c.objects.every((o) => Array.isArray(o.tle)),
+    ),
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  await rm(dir, { recursive: true, force: true });
 });
 
 // -------------------------------------------------------------------- conflict

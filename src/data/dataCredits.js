@@ -219,6 +219,13 @@ export const DATA_CREDITS = [
       '(public domain; audio delivered directly by each broadcaster)',
   },
   {
+    key: 'celestrak-socrates',
+    html:
+      'Conjunctions: ' +
+      '<a href="https://celestrak.org/SOCRATES/" target="_blank" rel="noopener">CelesTrak SOCRATES</a> ' +
+      '(T.S. Kelso, Center for Space Standards &amp; Innovation)',
+  },
+  {
     key: 'faa-tfr',
     html:
       'Temporary flight restrictions: ' +

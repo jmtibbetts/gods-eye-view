@@ -32,12 +32,14 @@ test('reference factories retain compatibility without starting acquisition or s
     'severeOutlook',
     'airQuality',
     'spaceWeather',
+    'conjunctions',
   ]);
   assert.notEqual(first.scanner, second.scanner);
   assert.notEqual(first.spaceWeather, second.spaceWeather);
   assert.equal(typeof first.spaceWeather.fetchSpaceWeather, 'function');
   assert.notEqual(first.tfr, second.tfr);
   assert.equal(typeof first.tfr.fetchTfrs, 'function');
+  assert.equal(typeof first.conjunctions.fetchConjunctions, 'function');
   assert.notEqual(first.sdr, second.sdr);
   assert.equal(typeof first.scanner.getSeed, 'function');
   assert.equal(typeof first.sdr.getSnapshot, 'function');
