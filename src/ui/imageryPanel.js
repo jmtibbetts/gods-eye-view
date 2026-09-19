@@ -21,6 +21,15 @@
 
 import { IMAGERY_SLOT_ORDER } from '../layers/imageryOverlays/catalog.js';
 
+/** The surface coordinator's "I took the globe back" signal (see surface.js). */
+export const IMAGERY_SURFACE_RECLAIMED_EVENT = 'gev:imagery-surface-reclaimed';
+
+/** What to tell the user when Google 3D would not stay. */
+export function surfaceReclaimedText(holders) {
+  const n = Number.isFinite(holders) && holders > 0 ? holders : 1;
+  return `Google 3D hides satellite imagery — back on the 2D globe while ${n} imagery overlay${n === 1 ? ' is' : 's are'} on. Press CLEAR in IMAGERY to use Google 3D.`;
+}
+
 /** Slot ids, in panel order. */
 const SLOT_IDS = IMAGERY_SLOT_ORDER;
 
@@ -71,8 +80,14 @@ export function archiveText(product) {
 }
 
 export class ImageryPanel {
-  constructor({ elements, dataManager, onToast } = {}) {
+  constructor({
+    elements,
+    dataManager,
+    onToast,
+    windowRef = globalThis.window,
+  } = {}) {
     this.elements = elements || {};
+    this._window = windowRef;
     this._resolveDataManager =
       typeof dataManager === 'function' ? dataManager : () => dataManager;
     this.onToast = typeof onToast === 'function' ? onToast : () => {};
@@ -139,6 +154,17 @@ export class ImageryPanel {
     this.elements.clearBtn?.addEventListener(
       'click',
       () => void this.clearAll(),
+      { signal: this._abort.signal },
+    );
+    // A stack switch that hid the globe was reversed underneath the user;
+    // say so, or the tray chip jumping back reads as a bug.
+    this._window?.addEventListener?.(
+      IMAGERY_SURFACE_RECLAIMED_EVENT,
+      (event) => {
+        if (this.destroyed) return;
+        this.onToast(surfaceReclaimedText(event?.detail?.holders));
+        this.render();
+      },
       { signal: this._abort.signal },
     );
     this._ensureSubscribed();

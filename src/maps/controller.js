@@ -112,6 +112,11 @@ export class MapSourceController {
         this._onError?.(activation.fallbackMessage, stack);
       }
       this._requestRender('map-stack');
+      // Settle before announcing: a listener that switches again from
+      // inside 'ready' (the imagery surface taking the globe back) reads
+      // the state synchronously, and must not see this switch as still
+      // in flight.
+      this._isSwitching = false;
       if (!silent) this._emitChange('ready');
     } catch (error) {
       if (gen !== this._switchGen) return this.getState();
@@ -134,6 +139,7 @@ export class MapSourceController {
           this._onError?.(this._lastError, recovery);
         }
       }
+      this._isSwitching = false;
       if (!silent) this._emitChange('error');
     } finally {
       if (gen === this._switchGen) this._isSwitching = false;

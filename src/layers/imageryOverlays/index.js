@@ -15,7 +15,11 @@ import {
 import { imagerySurface } from './surface.js';
 
 export * from './policy.js';
-export { createSurfaceCoordinator, imagerySurface } from './surface.js';
+export {
+  createSurfaceCoordinator,
+  imagerySurface,
+  IMAGERY_SURFACE_RECLAIMED_EVENT,
+} from './surface.js';
 
 /**
  * Wrap one imagery-overlay descriptor as a data-layer-contract object. It adds

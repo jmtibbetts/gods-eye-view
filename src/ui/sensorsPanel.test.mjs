@@ -154,9 +154,11 @@ function panelWith(options = {}) {
   const active = new Map();
   const windowRef = fakeWindow();
   const expanded = [];
+  const toasts = [];
   const panel = new SensorsPanel({
     elements,
     satellites: () => options.satellites || null,
+    onToast: (m) => toasts.push(m),
     selectSensor: async (slotId, key) => {
       selected.push([slotId, key]);
       active.set(slotId, key);
@@ -169,8 +171,49 @@ function panelWith(options = {}) {
     expandPanel: (id) => expanded.push(id),
     windowRef,
   });
-  return { panel, elements, selected, toggled, active, windowRef, expanded };
+  return {
+    panel,
+    elements,
+    selected,
+    toggled,
+    active,
+    windowRef,
+    expanded,
+    toasts,
+  };
 }
+
+test('a band picked here becomes the one on the globe: the other slots are set aside', async () => {
+  // The slots stack. A science ramp drawn over the picked product hides it
+  // completely, and "I clicked a band and nothing changed" was exactly that.
+  await withFakeDom(async () => {
+    const sats = fakeSatellites([43013]);
+    const { panel, elements, selected, toggled, windowRef, toasts } =
+      panelWith({ satellites: sats });
+    // Science and radar are on before the pick.
+    toggled.push(['imagery-science', true], ['imagery-radar', true]);
+    panel.connect();
+    windowRef.fire('gev:awareness-subject-selected', {
+      layerId: 'satellites',
+      id: 43013,
+    });
+    const buttons = findAll(elements.body, 'imagery-sensor');
+    buttons[0].click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.deepEqual(
+      toggled.slice(2),
+      [
+        ['imagery-science', false],
+        ['imagery-radar', false],
+      ],
+      'the slots above the picked one are turned off first',
+    );
+    assert.equal(selected[0][0], 'imagery-viirs');
+    assert.match(toasts.at(-1), /2 other imagery overlays set aside/);
+    assert.match(toasts.at(-1), /IMAGERY brings them back/);
+    panel.destroy();
+  });
+});
 
 test('with nothing tracked, the imaging fleet on the globe is listed with TRACK buttons', async () => {
   await withFakeDom(() => {
@@ -205,9 +248,10 @@ test('with the satellites layer off, the panel says how to get the fleet', async
 test('tracking an imaging satellite shows its instruments and every band the globe can draw', async () => {
   await withFakeDom(async () => {
     const sats = fakeSatellites([43013]);
-    const { panel, elements, selected, windowRef, expanded } = panelWith({
-      satellites: sats,
-    });
+    const { panel, elements, selected, windowRef, expanded, toasts } =
+      panelWith({
+        satellites: sats,
+      });
     panel.connect();
     windowRef.fire('gev:awareness-subject-selected', {
       layerId: 'satellites',
@@ -230,6 +274,7 @@ test('tracking an imaging satellite shows its instruments and every band the glo
     await new Promise((r) => setTimeout(r, 0));
     assert.equal(selected.length, 1);
     assert.equal(selected[0][1], buttons[0].dataset.key);
+    assert.equal(toasts.length, 0, 'nothing else was on: nothing set aside');
     const after = findAll(elements.body, 'imagery-sensor');
     const pressed = after.filter((b) => b.className.includes('active'));
     assert.equal(pressed.length, 1);

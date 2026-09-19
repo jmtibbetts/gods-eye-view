@@ -8,6 +8,7 @@ import {
   TRACK_VIEW_FROM_GEO_IMAGER,
   TRACK_VIEW_FROM_GEO_IMAGER_FRAME,
   TRACK_VIEW_FROM_HIGH_SCALE,
+  TRACK_VIEW_FROM_IMAGER_SCALE,
   TRACK_VIEW_FROM_LEO,
 } from './policy.js';
 
@@ -427,14 +428,18 @@ export function createTracking({ state: layerState, services, parts, source }) {
     // "slightly zoomed out" framing — no stutter, label reads cleanly), scaled
     // up for MEO/GEO so the camera doesn't land on top of a high-orbit dot.
     const initialPos = parts.orbits.propagatePosition(sat.satrec, new Date());
+    const platform = imagingPlatformFor(noradId);
+    // A polar imager sits further back than a plain LEO dot so its swath has
+    // edges in frame; a parked imager is framed from straight out, looking
+    // back through the satellite at the disk it images; everything else
+    // keeps the along-track framing that reads a moving dot.
     const viewScale =
       initialPos && initialPos.altitude > HIGH_ORBIT_ALTITUDE_M
         ? TRACK_VIEW_FROM_HIGH_SCALE
-        : 1;
-    // A parked imager is framed from straight out, looking back through the
-    // satellite at the disk it images; everything else keeps the along-track
-    // framing that reads a moving dot.
-    const geoImager = imagingPlatformFor(noradId)?.orbit === 'geostationary';
+        : platform?.orbit === 'polar'
+          ? TRACK_VIEW_FROM_IMAGER_SCALE
+          : 1;
+    const geoImager = platform?.orbit === 'geostationary';
     const viewFrom = geoImager
       ? TRACK_VIEW_FROM_GEO_IMAGER
       : Cesium.Cartesian3.multiplyByScalar(

@@ -31,17 +31,33 @@ const PREFERRED_STACKS = Object.freeze([
   'bing-labels',
 ]);
 
+/** Fired on the event target when the surface had to be taken back. */
+export const IMAGERY_SURFACE_RECLAIMED_EVENT = 'gev:imagery-surface-reclaimed';
+
 /**
  * Create a surface coordinator. Exported for tests; the module-level
  * `imagerySurface` is the one the layers share.
+ *
+ * Borrowing once is not enough: a share-link restore, a saved visual state
+ * or the map tray can put the photoreal stack back while overlays are still
+ * on, and every one of them then draws nothing, silently, with healthy
+ * stats. So the coordinator also listens for stack changes and, while it
+ * holds the surface, takes it back the moment the globe is hidden — and
+ * announces that it did, so the user learns why Google 3D will not stay.
+ * @param {{eventTarget?: EventTarget|null}} [options] Where stack-change
+ *   events arrive and the reclaimed event is dispatched (the window).
  */
-export function createSurfaceCoordinator() {
+export function createSurfaceCoordinator({
+  eventTarget = globalThis.window ?? null,
+} = {}) {
   let controller = null;
   let holders = 0;
   /** The stack we switched away from, or null when we did not switch. */
   let restoreTo = null;
   /** The stack we switched TO, so we never fight a later manual change. */
   let borrowed = null;
+  let reconciling = false;
+  let listening = false;
 
   function globeHidden() {
     try {
@@ -72,10 +88,55 @@ export function createSurfaceCoordinator() {
     }
   }
 
+  /**
+   * The surface was taken away while overlays hold it: borrow it again.
+   * Not silent — the map tray's lit chip must follow the stack that is
+   * actually active, or the user is lied to twice.
+   * @returns {Promise<{reclaimed: boolean, from: string|null, to: string|null}>}
+   */
+  async function reconcile() {
+    if (reconciling || holders === 0 || !controller || !globeHidden())
+      return { reclaimed: false, from: null, to: null };
+    reconciling = true;
+    try {
+      const from = controller.getActiveId?.() ?? null;
+      const to = pickStack();
+      if (!to || to === from) return { reclaimed: false, from, to: null };
+      await controller.setStack(to);
+      restoreTo = from;
+      borrowed = to;
+      if (typeof CustomEvent === 'function')
+        eventTarget?.dispatchEvent?.(
+          new CustomEvent(IMAGERY_SURFACE_RECLAIMED_EVENT, {
+            detail: { from, to, holders },
+          }),
+        );
+      return { reclaimed: true, from, to };
+    } catch {
+      return { reclaimed: false, from: null, to: null };
+    } finally {
+      reconciling = false;
+    }
+  }
+
+  function listen() {
+    if (listening || !eventTarget?.addEventListener) return;
+    listening = true;
+    eventTarget.addEventListener('gev:map-stack-changed', (event) => {
+      // 'switching' fires before the globe changes; 'ready' is the truth.
+      const status = event?.detail?.status;
+      if (status && status !== 'ready') return;
+      void reconcile();
+    });
+  }
+
   return {
     attach(next) {
       controller = next || null;
+      listen();
     },
+
+    reconcile,
 
     /** Test seam. */
     _state() {

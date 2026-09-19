@@ -617,6 +617,70 @@ test('a basemap the user chose by hand is never yanked back', async () => {
   assert.deepEqual(ctrl.calls, ['esri-imagery', 'osm'], 'their choice stands');
 });
 
+test('a stack switch that hides the globe while imagery is on is taken back, and said', async () => {
+  // A share-link restore, a saved visual state or the map tray can put
+  // Google 3D back with overlays still on; every overlay then draws nothing
+  // with healthy stats. That is exactly "switching bands changes nothing".
+  const events = new EventTarget();
+  const surface = createSurfaceCoordinator({ eventTarget: events });
+  const ctrl = fakeStackController({ active: 'photoreal' });
+  const reclaimed = [];
+  events.addEventListener('gev:imagery-surface-reclaimed', (e) =>
+    reclaimed.push(e.detail),
+  );
+  surface.attach(ctrl);
+  await surface.retain();
+  await surface.retain();
+  assert.deepEqual(ctrl.calls, ['esri-imagery']);
+  // The user (or a restore) picks Google 3D; the controller announces it.
+  await ctrl.setStack('photoreal');
+  events.dispatchEvent(
+    new CustomEvent('gev:map-stack-changed', {
+      detail: { status: 'switching', activeId: 'esri-imagery' },
+    }),
+  );
+  await tick();
+  assert.deepEqual(
+    ctrl.calls,
+    ['esri-imagery', 'photoreal'],
+    'switching is not yet the truth',
+  );
+  events.dispatchEvent(
+    new CustomEvent('gev:map-stack-changed', {
+      detail: { status: 'ready', activeId: 'photoreal' },
+    }),
+  );
+  await tick();
+  await tick();
+  assert.deepEqual(
+    ctrl.calls,
+    ['esri-imagery', 'photoreal', 'esri-imagery'],
+    'the globe is borrowed again',
+  );
+  assert.equal(ctrl.viewer.scene.globe.show, true);
+  assert.deepEqual(reclaimed, [
+    { from: 'photoreal', to: 'esri-imagery', holders: 2 },
+  ]);
+  // With the globe showing, the same event is a no-op.
+  events.dispatchEvent(
+    new CustomEvent('gev:map-stack-changed', { detail: { status: 'ready' } }),
+  );
+  await tick();
+  assert.equal(ctrl.calls.length, 3);
+  // Once nothing holds the surface, Google 3D is left alone.
+  await surface.release();
+  await surface.release();
+  await tick();
+  assert.deepEqual(ctrl.calls.at(-1), 'photoreal', 'the last release restores');
+  await ctrl.setStack('photoreal');
+  events.dispatchEvent(
+    new CustomEvent('gev:map-stack-changed', { detail: { status: 'ready' } }),
+  );
+  await tick();
+  assert.equal(ctrl.calls.filter((c) => c === 'esri-imagery').length, 2);
+  assert.equal(reclaimed.length, 1);
+});
+
 test('starting on a globe stack costs nothing', async () => {
   const surface = createSurfaceCoordinator();
   const ctrl = fakeStackController({ active: 'esri-imagery' });

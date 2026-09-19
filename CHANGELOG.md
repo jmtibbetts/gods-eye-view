@@ -1,5 +1,35 @@
 # Changelog
 
+- Make the imagery you picked the imagery you see. Three things could make
+  a band chosen in SENSORS change nothing on the globe, and all three are
+  fixed. First, the imagery overlays draw on the 2D globe, which the
+  photoreal stack hides — the first overlay to turn on borrowed a globe
+  stack, but a saved visual state, a share-link restore or a tray click
+  could put Google 3D back with overlays still on, and every one of them
+  then drew nothing with healthy stats. The surface coordinator now listens
+  for stack changes and, while any overlay holds the surface, takes the
+  globe back the moment it is hidden, lights the right chip, and says why:
+  "Google 3D hides satellite imagery — back on the 2D globe while N imagery
+  overlays are on. Press CLEAR in IMAGERY to use Google 3D." The map
+  controller settles a switch before announcing it, so a listener that
+  switches again from inside the announcement does not leave the tray
+  reading "..." for good. Second, the slots stack, so a science ramp or
+  radar drawn over the picked band hid it completely; a band picked in
+  SENSORS now sets the other slots aside and the toast says how many.
+  Third, a polar imager is tracked from ~2,500 km rather than 726 km, so
+  its 3,000 km swath has edges in frame and reads as a strip being laid
+  down instead of a tint over everything.
+
+- Let the ISS stream, and every YouTube webcast, actually play in the
+  receiver dock. The dock's frame sent no referrer — right for a web
+  receiver, which has no business knowing which globe a listener came from
+  — but YouTube's embedded player refuses to start without one ("Video
+  player configuration error", code 153), so the ISS LIVE chip opened a
+  window that could not play. A video page is now told the origin and
+  nothing more; receivers still get nothing. The frame also allows
+  encrypted media, picture-in-picture and fullscreen, which a player wants
+  and a receiver never asks for.
+
 - Watch a launch go, and hear what the range is saying. A LAUNCH panel in
   the Context rail lists the next dozen launches from Launch Library 2 as
   live countdowns — in flight, on hold, flown — with the operator's latest

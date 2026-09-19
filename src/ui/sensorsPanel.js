@@ -474,11 +474,26 @@ export class SensorsPanel {
     return wrap;
   }
 
+  /**
+   * Show one band. The imagery slots stack — a science ramp or radar drawn
+   * over the picked product hides it completely, which reads as "nothing
+   * changed" — so a band chosen here is made the one on the globe: every
+   * other slot is set aside, and the toast says how many. IMAGERY brings
+   * them back.
+   */
   async _select(slotId, key) {
     if (this._busy || this.destroyed) return;
     this._busy = true;
     try {
+      const others = [...IMAGERY_SLOT_ORDER, 'imagery-radar'].filter(
+        (id) => id !== slotId && this._isLayerEnabled(id),
+      );
+      for (const id of others) await this._setLayerEnabled?.(id, false);
       await this._selectSensor?.(slotId, key);
+      if (others.length)
+        this.onToast(
+          `${others.length} other imagery overlay${others.length === 1 ? '' : 's'} set aside so this band is the one on the globe — IMAGERY brings ${others.length === 1 ? 'it' : 'them'} back.`,
+        );
     } finally {
       this._busy = false;
       this.render();

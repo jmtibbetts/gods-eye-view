@@ -435,3 +435,48 @@ test('a failed recovery reports its error and leaves switching settled', async (
   assert.equal(env.imagery.length, 0);
   env.controller.destroy();
 });
+
+test('a listener that switches again from inside ready sees a settled state, and the row settles too', async () => {
+  // The imagery surface takes the globe back from inside the 'ready'
+  // announcement. It reads controller.getState() synchronously there; a
+  // switch still flagged as in flight would leave the tray reading "..."
+  // for good, because nothing else fires after the nested switch lands.
+  const seen = [];
+  let nested = false;
+  const env = fixture(
+    {
+      defaultId: 'first',
+      sources: [
+        {
+          descriptor: descriptor('first'),
+          imagery: async () => ({ id: 'first' }),
+        },
+        {
+          descriptor: descriptor('second'),
+          imagery: async () => ({ id: 'second' }),
+        },
+      ],
+    },
+    {
+      onChange: (state) => {
+        seen.push(`${state.activeId}:${state.status}`);
+        if (state.status === 'ready' && state.activeId === 'first' && !nested) {
+          nested = true;
+          assert.equal(
+            env.controller.getState().status,
+            'ready',
+            'the announced switch is settled when it is announced',
+          );
+          void env.controller.setStack('second');
+        }
+      },
+    },
+  );
+  const outer = await env.controller.setStack('first');
+  await settle();
+  assert.equal(env.controller.getActiveId(), 'second');
+  assert.equal(env.controller.getState().status, 'ready');
+  assert.equal(seen.at(-1), 'second:ready');
+  assert.notEqual(outer.status, 'error');
+  env.controller.destroy();
+});

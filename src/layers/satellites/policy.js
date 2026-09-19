@@ -37,7 +37,7 @@ export const ISS_NORAD = 25544;
  * general NASA coverage rather than the ISS feed specifically.
  */
 export const ISS_STREAM_URL =
-  'https://www.youtube-nocookie.com/embed/awQzjn72bI0';
+  'https://www.youtube-nocookie.com/embed/awQzjn72bI0?autoplay=1';
 
 /** NASA's channel live feed: survives id rotation, less specific. */
 export const ISS_STREAM_CHANNEL_URL =
@@ -119,6 +119,14 @@ export const HIGH_ORBIT_ALTITUDE_M = 2000000;
 
 export const TRACK_VIEW_FROM_HIGH_SCALE = 4;
 // ≈ 2900 km back for MEO/GEO
+
+/**
+ * A polar IMAGER is framed from further back than a plain LEO dot: its swath
+ * is ~3,000 km wide, and from the 726 km LEO framing the strip fills the
+ * whole view and reads as a tint rather than a strip. From ~2,500 km the
+ * strip's edges are in frame and the eye sees the ground being laid down.
+ */
+export const TRACK_VIEW_FROM_IMAGER_SCALE = 3.5;
 
 /**
  * Tracked-camera offset for a geostationary IMAGER, east-north-up metres in

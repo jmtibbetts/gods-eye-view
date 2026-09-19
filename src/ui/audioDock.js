@@ -35,6 +35,16 @@ function setText(el, value) {
   if (el) el.textContent = value;
 }
 
+/**
+ * The referrer a framed page is given. Receivers get none; a video player
+ * gets the origin, because YouTube will not start an embed without one.
+ * @param {string|null|undefined} kind
+ * @returns {'no-referrer'|'strict-origin-when-cross-origin'}
+ */
+export function frameReferrerPolicy(kind) {
+  return kind === 'video' ? 'strict-origin-when-cross-origin' : 'no-referrer';
+}
+
 /** Only http(s) pages are framed; anything else is refused. */
 export function audioDockUrl(value) {
   try {
@@ -292,6 +302,14 @@ export class AudioDock {
         e.frame.setAttribute('src', 'about:blank');
       if (changed) this.openTab(safe, EXTERNAL_TAB_NAME);
     } else if (e.frame && (changed || e.frame.getAttribute('src') !== safe)) {
+      // Receiver pages get no referrer: which globe a listener came from is
+      // nobody's business. A video player is the opposite case — YouTube's
+      // embed refuses to play without one ("Video player configuration
+      // error", code 153) — so it is told the origin and nothing more.
+      e.frame.setAttribute(
+        'referrerpolicy',
+        frameReferrerPolicy(this._state.kind),
+      );
       e.frame.setAttribute('src', safe);
     }
     this._render();

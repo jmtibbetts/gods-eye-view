@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  IMAGERY_SURFACE_RECLAIMED_EVENT,
   ImageryPanel,
   archiveText,
   cadenceText,
   coverageText,
+  surfaceReclaimedText,
   zoomText,
 } from './imageryPanel.js';
+import { IMAGERY_SURFACE_RECLAIMED_EVENT as SURFACE_EVENT } from '../layers/imageryOverlays/index.js';
 import {
   ALL_IMAGERY_PRODUCTS as ALL,
   IMAGERY_SLOTS,
@@ -347,6 +350,47 @@ test('a failed availability check hides the sensor rather than assuming yes', as
     } finally {
       globalThis.fetch = priorFetch;
     }
+  });
+});
+
+test('when the globe is taken back from Google 3D the panel says why', async () => {
+  // The panel cannot import the coordinator (package boundary), so it
+  // carries the event name itself; the two must never drift apart.
+  assert.equal(IMAGERY_SURFACE_RECLAIMED_EVENT, SURFACE_EVENT);
+  assert.match(surfaceReclaimedText(1), /1 imagery overlay is on/);
+  assert.match(surfaceReclaimedText(3), /3 imagery overlays are on/);
+  assert.match(surfaceReclaimedText(undefined), /CLEAR/);
+  await withFakeDom(() => {
+    const dm = fakeManager();
+    const toasts = [];
+    const elements = {
+      list: makeElement('div'),
+      layerState: makeElement('span'),
+      clearBtn: makeElement('button'),
+      note: makeElement('p'),
+    };
+    const events = new EventTarget();
+    const panel = new ImageryPanel({
+      elements,
+      dataManager: dm,
+      onToast: (m) => toasts.push(m),
+      windowRef: events,
+    });
+    panel.connect();
+    events.dispatchEvent(
+      new CustomEvent(IMAGERY_SURFACE_RECLAIMED_EVENT, {
+        detail: { from: 'photoreal', to: 'esri-imagery', holders: 2 },
+      }),
+    );
+    assert.match(toasts.at(-1), /Google 3D hides satellite imagery/);
+    assert.match(toasts.at(-1), /2 imagery overlays are on/);
+    panel.destroy();
+    events.dispatchEvent(
+      new CustomEvent(IMAGERY_SURFACE_RECLAIMED_EVENT, {
+        detail: { holders: 1 },
+      }),
+    );
+    assert.equal(toasts.length, 1, 'a destroyed panel is silent');
   });
 });
 

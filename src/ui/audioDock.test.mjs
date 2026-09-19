@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AudioDock, audioDockUrl } from './audioDock.js';
+import { AudioDock, audioDockUrl, frameReferrerPolicy } from './audioDock.js';
 
 test('only plain http(s) pages are framed', () => {
   assert.equal(
@@ -89,6 +89,11 @@ test('the dock opens, retargets in place, records state and closes to about:blan
   );
   assert.equal(elements.title.textContent, 'Westy RX');
   assert.equal(elements.kind.textContent, 'SDR');
+  assert.equal(
+    elements.frame.getAttribute('referrerpolicy'),
+    'no-referrer',
+    'a receiver is not told where the listener came from',
+  );
   assert.equal(elements.note.hidden, false);
   assert.equal(elements.root.dataset.kind, 'sdr');
   dock.open('https://www.liveatc.net/search/?icao=KAUS', {
@@ -128,5 +133,21 @@ test('the dock opens, retargets in place, records state and closes to about:blan
   assert.equal(elements.frame.getAttribute('src'), 'about:blank');
   assert.equal(elements.root.hidden, true);
   assert.deepEqual(seen, [false, true, true, false]);
+  // A video player is the one page that needs a referrer: YouTube refuses to
+  // start an embed without one (player configuration error 153), which is
+  // how the ISS stream came up as a dead frame.
+  dock.open('https://www.youtube-nocookie.com/embed/awQzjn72bI0', {
+    kind: 'video',
+    title: 'ISS',
+  });
+  assert.equal(
+    elements.frame.getAttribute('referrerpolicy'),
+    'strict-origin-when-cross-origin',
+  );
+  dock.open('http://rx.example/?f=121000amz8', { kind: 'sdr', title: 'RX' });
+  assert.equal(elements.frame.getAttribute('referrerpolicy'), 'no-referrer');
+  assert.equal(frameReferrerPolicy('video'), 'strict-origin-when-cross-origin');
+  assert.equal(frameReferrerPolicy('sdr'), 'no-referrer');
+  assert.equal(frameReferrerPolicy(undefined), 'no-referrer');
   dock.destroy();
 });

@@ -15,6 +15,8 @@ import {
   FOOTPRINT_TRAIL_STEPS,
   TRACK_VIEW_FROM_GEO_IMAGER,
   TRACK_VIEW_FROM_GEO_IMAGER_FRAME,
+  TRACK_VIEW_FROM_IMAGER_SCALE,
+  TRACK_VIEW_FROM_LEO,
 } from './policy.js';
 import * as Cesium from 'cesium';
 import * as picking from '../../data/pickRegistry.js';
@@ -309,6 +311,18 @@ test('a geostationary imager is framed from straight out, in ENU; a polar one ke
   const polar = viewer.trackedEntity;
   assert.ok(polar && polar !== geo);
   assert.notDeepEqual(polar.viewFrom.getValue(), TRACK_VIEW_FROM_GEO_IMAGER);
+  // A polar imager is framed from further back than a plain LEO dot, so its
+  // 3,000 km swath has edges in frame instead of tinting the whole view.
+  const polarView = polar.viewFrom.getValue();
+  assert.ok(TRACK_VIEW_FROM_IMAGER_SCALE > 2);
+  assert.equal(
+    polarView.z,
+    TRACK_VIEW_FROM_LEO.z * TRACK_VIEW_FROM_IMAGER_SCALE,
+  );
+  assert.equal(
+    polarView.x,
+    TRACK_VIEW_FROM_LEO.x * TRACK_VIEW_FROM_IMAGER_SCALE,
+  );
   assert.notEqual(polar.trackingReferenceFrame, TRACK_VIEW_FROM_GEO_IMAGER_FRAME);
   assert.equal(viewer.entities.values.filter((e) => e.ellipse).length, 0);
   assert.equal(viewer.entities.values.filter((e) => e.polygon).length, 1);
