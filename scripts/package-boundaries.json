@@ -1973,7 +1973,8 @@
       "src/ui/timelinePanel.js",
       "src/ui/imageryPanel.js",
       "src/ui/timelineEngine.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js"
     ],
     "external": [
       "@mapbox/vector-tile",
@@ -2453,7 +2454,8 @@
       "src/layers/aviationHazards/index.js",
       "src/layers/airQuality/index.js",
       "src/layers/volcanoes/index.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js"
     ],
     "external": [
       "cesium",
@@ -2858,7 +2860,10 @@
       "src/layers/airQuality/index.js",
       "src/layers/airQuality/policy.js",
       "src/layers/airQuality/records.js",
-      "src/layers/airQuality/source.js"
+      "src/layers/airQuality/source.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2869,7 +2874,10 @@
       "src/layers/aviationHazards/policy.js",
       "src/layers/aviationHazards/records.js",
       "src/layers/aviationHazards/source.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2880,7 +2888,10 @@
       "src/layers/conflictReports/policy.js",
       "src/layers/conflictReports/records.js",
       "src/layers/conflictReports/source.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2891,7 +2902,10 @@
       "src/layers/drought/policy.js",
       "src/layers/drought/records.js",
       "src/layers/drought/source.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2902,7 +2916,10 @@
       "src/layers/lightning/policy.js",
       "src/layers/lightning/records.js",
       "src/layers/lightning/source.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2913,7 +2930,10 @@
       "src/layers/riverFlood/policy.js",
       "src/layers/riverFlood/records.js",
       "src/layers/riverFlood/source.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2924,7 +2944,10 @@
       "src/layers/satnogs/policy.js",
       "src/layers/satnogs/records.js",
       "src/layers/satnogs/source.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2934,7 +2957,10 @@
       "src/layers/severeOutlook/index.js",
       "src/layers/severeOutlook/policy.js",
       "src/layers/severeOutlook/records.js",
-      "src/layers/severeOutlook/source.js"
+      "src/layers/severeOutlook/source.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -2944,7 +2970,10 @@
       "src/layers/tropical/index.js",
       "src/layers/tropical/policy.js",
       "src/layers/tropical/records.js",
-      "src/layers/tropical/source.js"
+      "src/layers/tropical/source.js",
+      "src/data/layerSelection.js",
+      "src/data/pickRegistry.js",
+      "src/data/inputOwnership.js"
     ],
     "external": ["cesium"]
   },
@@ -3032,7 +3061,8 @@
       "src/layers/volcanoes/index.js",
       "src/data/inputOwnership.js",
       "src/data/pickRegistry.js",
-      "src/data/feedNumbers.js"
+      "src/data/feedNumbers.js",
+      "src/data/layerSelection.js"
     ],
     "external": ["cesium"]
   },

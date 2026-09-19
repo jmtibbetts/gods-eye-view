@@ -33,6 +33,19 @@ export function createBrowserViteConfig({
       'import.meta.env.GOOGLE_MAPS_API_KEY': JSON.stringify(googleApiKey),
       'import.meta.env.CESIUM_ION_TOKEN': JSON.stringify(cesiumToken),
     },
+    optimizeDeps: {
+      // egm96-universal is reached only through a dynamic import in
+      // src/data/geoid.js, so a freshly started dev server does not know about
+      // it until the first flight is tracked. Vite then discovers it, re-runs
+      // dependency optimisation, and answers the in-flight request with 504
+      // "Outdated Optimize Dep" while a browser is expected to reload. A
+      // headless run does not reload, so `npm run test:track` against a cold
+      // server failed on that one request every time — and passed against a
+      // long-lived dev server that had already discovered the module. Naming
+      // it here pre-bundles it up front, so the cold case behaves like the
+      // warm one.
+      include: ['egm96-universal'],
+    },
     build: { chunkSizeWarningLimit: 1500 },
   };
 }

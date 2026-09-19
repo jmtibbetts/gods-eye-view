@@ -308,7 +308,10 @@ test('a failed load keeps its error through the disable the manager triggers', a
       },
     },
   });
-  await layer.enable();
+  layer.enable();
+  // enable() no longer fetches — the manager calls update() right after it,
+  // and fetching in both pulled every feed twice. Mirror the manager here.
+  await layer.update();
   const failed = layer;
   assert.match(failed.getStats().error ?? '', /upstream exploded/);
   layer.disable();

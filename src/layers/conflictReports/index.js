@@ -1,5 +1,9 @@
 import * as Cesium from 'cesium';
 import {
+  createLayerSelection,
+  flatRingCentroid,
+} from '../../data/layerSelection.js';
+import {
   CONFLICT_REPORTS_ENTITY_PREFIX,
   CONFLICT_REPORTS_LAYER_ID,
   CONFLICT_UPDATE_MS,
@@ -48,7 +52,12 @@ export function countryLabelText(area, summary) {
  * @param {{fetchReports: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createConflictReportsLayer({ source, context = null } = {}) {
+export function createConflictReportsLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchReports !== 'function')
     throw new TypeError('Conflict reports layer requires a source');
 
@@ -62,6 +71,32 @@ export function createConflictReportsLayer({ source, context = null } = {}) {
   let _summary = summarizeReports(Object.assign([], { unmapped: [] }), null);
   /** @type {Map<string, object>} */
   const _areas = new Map();
+
+  const selection = createLayerSelection({
+    layerId: CONFLICT_REPORTS_LAYER_ID,
+    layerName: 'Conflict Reporting',
+    source: 'GDELT Project',
+    entityPrefix: CONFLICT_REPORTS_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _areas.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (area) => {
+      const c = flatRingCentroid(area.positions) || { lat: 0, lon: 0 };
+      return {
+        label: countryLabelText(area, _summary),
+        latitude: c.lat,
+        longitude: c.lon,
+        properties: {
+          country: area.country,
+          events: area.events,
+          band: area.bandName,
+          centroidShare: centroidShare(area),
+        },
+      };
+    },
+    screenSpaceEventHandlerFactory,
+  });
 
   function notifyRowControls() {
     try {
@@ -102,6 +137,7 @@ export function createConflictReportsLayer({ source, context = null } = {}) {
       };
       _areas.set(area.id, area);
     }
+    selection.reconcile();
     _summary = summarizeReports(areas, areas.payload);
   }
 
@@ -120,7 +156,7 @@ export function createConflictReportsLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${CONFLICT_REPORTS_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:ConflictReports] load error:`, error);
       _lastError = error?.message || 'Conflict reporting unavailable';
       notifyRowControls();
       return false;
@@ -139,20 +175,25 @@ export function createConflictReportsLayer({ source, context = null } = {}) {
         throw new Error(`${CONFLICT_REPORTS_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(CONFLICT_REPORTS_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${CONFLICT_REPORTS_LAYER_ID}] Initialized`);
+      console.log(`[Data:ConflictReports] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -217,10 +258,6 @@ export function createConflictReportsLayer({ source, context = null } = {}) {
             ? 'unavailable'
             : 'no violent events in the last update',
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

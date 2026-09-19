@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { createLayerSelection } from '../../data/layerSelection.js';
 import {
   DEFAULT_HORIZON,
   FLOOD_HORIZONS,
@@ -65,7 +66,12 @@ export function gaugeLabelText(gauge) {
  * @param {{fetchGauges: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createRiverFloodLayer({ source, context = null } = {}) {
+export function createRiverFloodLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchGauges !== 'function')
     throw new TypeError('River flood layer requires an NWPS source');
 
@@ -80,6 +86,32 @@ export function createRiverFloodLayer({ source, context = null } = {}) {
   let _summary = summarizeGauges([], horizonFor(DEFAULT_HORIZON));
   /** @type {Map<string, object>} */
   const _gauges = new Map();
+
+  const selection = createLayerSelection({
+    layerId: RIVER_FLOOD_LAYER_ID,
+    layerName: 'River Flood',
+    source: 'NOAA National Water Prediction Service',
+    entityPrefix: RIVER_FLOOD_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _gauges.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (gauge) => ({
+      label: gaugeLabelText(gauge),
+      latitude: gauge.lat,
+      longitude: gauge.lon,
+      properties: {
+        status: gauge.statusName,
+        location: gauge.location,
+        waterbody: gauge.waterbody,
+        state: gauge.state,
+        stage: gauge.stage,
+        floodStage: gauge.floodStage,
+        horizon: gauge.horizonLabel,
+      },
+    }),
+    screenSpaceEventHandlerFactory,
+  });
 
   function notifyRowControls() {
     try {
@@ -126,6 +158,7 @@ export function createRiverFloodLayer({ source, context = null } = {}) {
       };
       _gauges.set(gauge.id, gauge);
     }
+    selection.reconcile();
     _summary = summarizeGauges(gauges, horizon);
   }
 
@@ -147,7 +180,7 @@ export function createRiverFloodLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${RIVER_FLOOD_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:RiverFlood] load error:`, error);
       _lastError = error?.message || 'NWPS gauges unavailable';
       notifyRowControls();
       return false;
@@ -166,20 +199,25 @@ export function createRiverFloodLayer({ source, context = null } = {}) {
         throw new Error(`${RIVER_FLOOD_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(RIVER_FLOOD_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${RIVER_FLOOD_LAYER_ID}] Initialized`);
+      console.log(`[Data:RiverFlood] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -262,10 +300,6 @@ export function createRiverFloodLayer({ source, context = null } = {}) {
             ? `${horizon.chip} · unavailable`
             : `${horizon.chip} · no gauges at or above action stage`,
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

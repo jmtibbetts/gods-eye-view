@@ -45,6 +45,12 @@ export const LAYER_PRESETS = Object.freeze([
     hint: 'Live AIS vessels under radar and GOES cloud',
     ids: Object.freeze(['ais-live-vessels', 'imagery-radar', 'imagery-goes']),
   }),
+  Object.freeze({
+    id: 'air-hazards',
+    label: 'AIR + HAZARDS',
+    hint: 'Live flights over every SIGMET in force and the last minute of lightning — a SIGMET is literally an advisory to aircraft, so the two only mean something together',
+    ids: Object.freeze(['flights', 'aviation-hazards', 'lightning']),
+  }),
 ]);
 
 /**

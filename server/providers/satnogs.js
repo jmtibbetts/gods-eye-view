@@ -16,17 +16,14 @@
  * It trims fields and nothing else: which stations are worth DRAWING is the
  * layer's decision, not the proxy's, so nothing is filtered out here.
  *
- * Routes:
- *   GET /api/satnogs/stations     → trimmed station list
- *   GET /api/satnogs/observations → trimmed recent observations
+ * Route:
+ *   GET /api/satnogs/stations → trimmed station list
  */
 
 import { join } from 'node:path';
 import { cachedJsonEndpoint, listOf } from './cachedEndpoint.js';
 
 const STATIONS_URL = 'https://network.satnogs.org/api/stations/?format=json';
-const OBSERVATIONS_URL =
-  'https://network.satnogs.org/api/observations/?format=json';
 
 /**
  * Stations heartbeat on the order of minutes and the upstream sets a one-hour
@@ -34,8 +31,6 @@ const OBSERVATIONS_URL =
  * well short of what would count as hammering a volunteer-run network.
  */
 const STATIONS_TTL_MS = 10 * 60_000;
-/** Observations land continuously; a shorter window is worth it here. */
-const OBSERVATIONS_TTL_MS = 2 * 60_000;
 
 /**
  * Generous, because the upstream is a volunteer network serving an unpaginated
@@ -57,7 +52,7 @@ const TIMEOUT_MS = 90_000;
 const CACHE_DIR = join(process.cwd(), 'node_modules', '.cache', 'gev');
 
 /** The only station fields the globe reads. */
-function trimStation(s) {
+export function trimStation(s) {
   return {
     id: s.id,
     name: s.name,
@@ -92,26 +87,6 @@ function trimStation(s) {
   };
 }
 
-/** The only observation fields the globe reads. */
-function trimObservation(o) {
-  return {
-    id: o.id,
-    start: o.start,
-    end: o.end,
-    station: o.ground_station,
-    stationName: o.station_name,
-    lat: o.station_lat,
-    lng: o.station_lng,
-    norad: o.norad_cat_id,
-    satId: o.sat_id,
-    status: o.status,
-    mode: o.transmitter_mode,
-    downlink: o.transmitter_downlink_low,
-    waterfall: Boolean(o.waterfall),
-    demod: Array.isArray(o.demoddata) ? o.demoddata.length : 0,
-  };
-}
-
 export function satnogsProxy() {
   const stations = cachedJsonEndpoint({
     url: STATIONS_URL,
@@ -122,18 +97,9 @@ export function satnogsProxy() {
     shape: listOf(trimStation),
     diskCache: join(CACHE_DIR, 'satnogs-stations.json'),
   });
-  const observations = cachedJsonEndpoint({
-    url: OBSERVATIONS_URL,
-    ttlMs: OBSERVATIONS_TTL_MS,
-    label: 'SatNOGS observations',
-    agent: 'gods-eye-view/satnogs',
-    timeoutMs: TIMEOUT_MS,
-    shape: listOf(trimObservation),
-  });
 
   function installMiddleware(server) {
     server.middlewares.use('/api/satnogs/stations', stations);
-    server.middlewares.use('/api/satnogs/observations', observations);
   }
 
   return {

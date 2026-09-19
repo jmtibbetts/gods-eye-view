@@ -62,7 +62,7 @@ function flattenRing(coords) {
  * Sniffing the structure rather than trusting `geom` keeps this working if the
  * flag and the payload ever disagree.
  */
-function polygonParts(coords) {
+export function polygonParts(coords) {
   if (!Array.isArray(coords) || coords.length === 0) return [];
   const nested = Array.isArray(coords[0]);
   const rings = nested ? coords : [coords];
@@ -103,7 +103,7 @@ function base(row, origin, seq) {
  * Per-key occurrence counter, so two polygons that agree on every identifying
  * field still get distinct ids rather than one silently replacing the other.
  */
-function sequencer() {
+export function sequencer() {
   const seen = new Map();
   return (key) => {
     const n = (seen.get(key) || 0) + 1;
@@ -112,7 +112,7 @@ function sequencer() {
   };
 }
 
-function trimInternational(row, seq) {
+export function trimInternational(row, seq) {
   return {
     ...base(row, 'international', seq),
     region: row.firName || row.firId || '',
@@ -129,7 +129,7 @@ function trimInternational(row, seq) {
   };
 }
 
-function trimDomestic(row, seq) {
+export function trimDomestic(row, seq) {
   return {
     ...base(row, 'domestic', seq),
     region: row.icaoId || '',

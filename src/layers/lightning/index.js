@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { createLayerSelection } from '../../data/layerSelection.js';
 import {
   LIGHTNING_ENTITY_PREFIX,
   LIGHTNING_LAYER_ID,
@@ -34,7 +35,12 @@ export function flashLabelText(flash) {
  * @param {{fetchFlashes: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createLightningLayer({ source, context = null } = {}) {
+export function createLightningLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchFlashes !== 'function')
     throw new TypeError('Lightning layer requires a flash source');
 
@@ -47,6 +53,28 @@ export function createLightningLayer({ source, context = null } = {}) {
   let _summary = summarizeFlashes(Object.assign([], { meta: null }));
   /** @type {Map<string, object>} */
   const _flashes = new Map();
+
+  const selection = createLayerSelection({
+    layerId: LIGHTNING_LAYER_ID,
+    layerName: 'Lightning',
+    source: 'NOAA GOES Geostationary Lightning Mapper',
+    entityPrefix: LIGHTNING_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _flashes.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (flash) => ({
+      label: flashLabelText(flash),
+      latitude: flash.lat,
+      longitude: flash.lon,
+      properties: {
+        band: flash.bandName,
+        energy: flash.energy,
+        satellite: flash.satelliteName,
+      },
+    }),
+    screenSpaceEventHandlerFactory,
+  });
 
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
@@ -73,6 +101,7 @@ export function createLightningLayer({ source, context = null } = {}) {
       });
       _flashes.set(flash.id, flash);
     }
+    selection.reconcile();
     _summary = summarizeFlashes(flashes);
   }
 
@@ -90,7 +119,7 @@ export function createLightningLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${LIGHTNING_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:Lightning] load error:`, error);
       _lastError = error?.message || 'Lightning unavailable';
       return false;
     }
@@ -107,20 +136,25 @@ export function createLightningLayer({ source, context = null } = {}) {
       if (_viewer) throw new Error(`${LIGHTNING_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(LIGHTNING_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${LIGHTNING_LAYER_ID}] Initialized`);
+      console.log(`[Data:Lightning] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -161,10 +195,6 @@ export function createLightningLayer({ source, context = null } = {}) {
           ? 'unavailable'
           : `${_summary.flashes} in ${_summary.windowSeconds}s · ${coverageText(_summary)}`,
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

@@ -2515,6 +2515,32 @@ its criteria cannot be silently ignored.
 | Dams ▰ | OpenInfraMap/OSM extract (bundled) | `src/data/localLayers.js` | — | static |
 | Submarine Cables ◠ | TeleGeography public map (bundled) | `src/data/telegeographySubmarineCables.js` | — | static |
 | FIRMS Active Fires ▲ | NASA FIRMS live (VIIRS ×3 NRT, trailing 24h) | `src/data/firmsHeatmap.js` | `/api/firms` (`FIRMS_MAP_KEY`) | 10 min (proxy TTL 30 min) |
+| Scanners 🚨 | OpenMHz trunked systems (bundled catalog) + Broadcastify links | `src/layers/scanner/` via `src/app/layers/scanner.js` | — | 5 min |
+| SDR Receivers 📡 | receiverbook.de + curated WebSDR lists (bundled snapshot) | `src/layers/sdr/` via `src/app/layers/sdr.js` | — | 6 h |
+| ATC 🛫 | FAA NASR + OurAirports (bundled) | `src/layers/atc/` via `src/app/layers/atc.js` | — | 6 h |
+| Imagery Overlays 🛰️ (4 slots) | NASA GIBS, EUMETSAT EUMETView, RainViewer, Copernicus Sentinel Hub (BYOK) | `src/layers/imageryOverlays/` | `/api/copernicus/*` (Sentinel-2 only) | per product |
+| Weather Alerts 🌩️ | NWS `api.weather.gov/alerts/active` | `src/layers/weatherAlerts/` via `src/app/layers/weatherAlerts.js` | — | 3 min |
+| Storm Reports 🌪️ | NOAA SPC preliminary reports | `src/layers/stormReports/` via `src/app/layers/stormReports.js` | — | 5 min |
+| Volcano Alerts 🌋 | USGS HANS volcano API | `src/layers/volcanoes/` via `src/app/layers/volcanoes.js` | — | 10 min |
+| Tropical Cyclones 🌀 | NHC CurrentStorms.json + NOAA tropical map service | `src/layers/tropical/` via `src/app/layers/tropical.js` | `/api/nhc/storms` (bulletin only; NHC sends no CORS) | 10 min |
+| Severe Outlook ⛈️ | NOAA SPC convective outlooks (map service) | `src/layers/severeOutlook/` via `src/app/layers/severeOutlook.js` | — | 15 min |
+| Air Quality 😷 | EPA AirNow (ArcGIS map service) | `src/layers/airQuality/` via `src/app/layers/airQuality.js` | — | 15 min |
+| River Flood 🌊 | NOAA NWPS river gauges (observed + 24/48/72 h forecast layers) | `src/layers/riverFlood/` via `src/app/layers/riverFlood.js` | — | 15 min |
+| Drought 🏜️ | US Drought Monitor (ArcGIS, server-side generalized) + NOAA CPC outlooks | `src/layers/drought/` via `src/app/layers/drought.js` | — | 60 min |
+| SatNOGS 📡 | network.satnogs.org stations | `src/layers/satnogs/` via `src/app/layers/satnogs.js` | `/api/satnogs/stations` (no CORS upstream; trims 3.75 MB → 1.2 MB; disk-cached) | 10 min |
+| Aviation Hazards ⚠️ | aviationweather.gov international + US domestic SIGMETs | `src/layers/aviationHazards/` via `src/app/layers/aviationHazards.js` | `/api/aviation/sigmets` (merges two schemas; no CORS upstream) | 5 min |
+| Lightning ⚡ | GOES-19 East + GOES-18 West GLM L2 (NOAA Open Data on S3) | `src/layers/lightning/` via `src/app/layers/lightning.js` | `/api/lightning/flashes` (parses netCDF-4 server side via h5wasm) | 30 s |
+| Conflict Reporting 📰 | GDELT 2.0 events (15-min export), aggregated per country | `src/layers/conflictReports/` via `src/app/layers/conflictReports.js` | `/api/conflict/reports` | 10 min |
+
+The sixteen fork layers from Scanners down share one contract beyond the
+manager's own: click-to-select through `src/data/layerSelection.js` (the
+storm-reports pattern, extracted once nine layers were carrying it), numeric
+coercion of feed fields through `src/data/feedNumbers.js` (so a missing field
+never becomes a confident zero), and — for every proxied upstream —
+`server/providers/cachedEndpoint.js` (TTL, coalesced misses, shape validation
+before caching, serve-stale on failure, optional disk persistence). A failed
+load keeps its error through the disable the manager triggers, and reports
+"unavailable" rather than asserting that nothing is happening.
 
 Directions is a keyless front end to the routing the voice agent already
 uses. Its row chips are the whole interface: DRIVE / WALK / BIKE pick the

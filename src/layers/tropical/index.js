@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { createLayerSelection } from '../../data/layerSelection.js';
 import {
   TROPICAL_ENTITY_PREFIX,
   TROPICAL_LAYER_ID,
@@ -60,7 +61,12 @@ export function disturbanceLabelText(disturbance) {
  * @param {{fetchTropical: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createTropicalLayer({ source, context = null } = {}) {
+export function createTropicalLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchTropical !== 'function')
     throw new TypeError('Tropical layer requires an NHC source');
 
@@ -76,6 +82,66 @@ export function createTropicalLayer({ source, context = null } = {}) {
   const _storms = new Map();
   /** @type {Map<string, object>} */
   const _disturbances = new Map();
+
+  /**
+   * Resolve a clicked entity id to its storm or disturbance.
+   *
+   * A storm draws several entities besides its own point — the forecast cone
+   * as `id:cone:N`, past and forecast track segments as `id:past:N` and
+   * `id:fcst:N`. Clicking any of them should select the storm they belong to,
+   * not clear whatever was selected. Disturbance ids carry their own colon
+   * (`disturbance:123`), so exact matches are tried before the storm prefix.
+   */
+  function recordFor(id) {
+    if (_storms.has(id)) return _storms.get(id);
+    if (_disturbances.has(id)) return _disturbances.get(id);
+    const stormId = String(id).split(':')[0];
+    return _storms.get(stormId) || null;
+  }
+
+  function entityFor(id) {
+    const record = recordFor(id);
+    if (!record) return null;
+    return _dataSource?.entities.getById(entityId(record.id)) || null;
+  }
+
+  const selection = createLayerSelection({
+    layerId: TROPICAL_LAYER_ID,
+    layerName: 'Tropical Cyclones',
+    source: 'NOAA National Hurricane Center',
+    entityPrefix: TROPICAL_ENTITY_PREFIX,
+    context,
+    getRecord: recordFor,
+    getEntity: entityFor,
+    getDataSource: () => _dataSource,
+    describe: (record) =>
+      _storms.has(record.id)
+        ? {
+            label: stormLabelText(record),
+            latitude: record.lat,
+            longitude: record.lon,
+            properties: {
+              name: record.name,
+              classification: record.classificationLabel,
+              category: record.category,
+              knots: record.knots,
+              pressureMb: record.pressureMb,
+              advisory: record.advisoryNumber,
+            },
+          }
+        : {
+            label: disturbanceLabelText(record),
+            latitude: record.lat,
+            longitude: record.lon,
+            properties: {
+              basin: record.basin,
+              twoDay: record.prob2day,
+              sevenDay: record.prob7day,
+              risk: record.risk7day,
+            },
+          },
+    screenSpaceEventHandlerFactory,
+  });
 
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
@@ -210,6 +276,7 @@ export function createTropicalLayer({ source, context = null } = {}) {
     for (const disturbance of data.disturbances) addDisturbance(disturbance);
     for (const storm of data.storms)
       addStorm(storm, data.geometry?.get(storm.id));
+    selection.reconcile();
     _summary = summarize(data);
     _outlookOnly = data.storms.length === 0 && data.disturbances.length > 0;
   }
@@ -230,7 +297,7 @@ export function createTropicalLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${TROPICAL_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:TropicalCyclones] load error:`, error);
       _lastError = error?.message || 'Tropical feed unavailable';
       return false;
     }
@@ -247,20 +314,25 @@ export function createTropicalLayer({ source, context = null } = {}) {
       if (_viewer) throw new Error(`${TROPICAL_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(TROPICAL_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${TROPICAL_LAYER_ID}] Initialized`);
+      console.log(`[Data:TropicalCyclones] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -309,10 +381,6 @@ export function createTropicalLayer({ source, context = null } = {}) {
     /** Whether the only content right now is the outlook, not storms. */
     isOutlookOnly() {
       return _outlookOnly;
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

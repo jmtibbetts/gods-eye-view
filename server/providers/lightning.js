@@ -55,7 +55,7 @@ function dayOfYear(date) {
   return Math.floor((date.getTime() - start) / 86_400_000);
 }
 
-function hourPrefix(date) {
+export function hourPrefix(date) {
   const yyyy = date.getUTCFullYear();
   const ddd = String(dayOfYear(date)).padStart(3, '0');
   const hh = String(date.getUTCHours()).padStart(2, '0');

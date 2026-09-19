@@ -1,5 +1,9 @@
 import * as Cesium from 'cesium';
 import {
+  createLayerSelection,
+  flatRingCentroid,
+} from '../../data/layerSelection.js';
+import {
   AVIATION_HAZARDS_ENTITY_PREFIX,
   AVIATION_HAZARDS_LAYER_ID,
   AVIATION_UPDATE_MS,
@@ -53,7 +57,12 @@ export function sigmetLabelText(area) {
  * @param {{fetchSigmets: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createAviationHazardsLayer({ source, context = null } = {}) {
+export function createAviationHazardsLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchSigmets !== 'function')
     throw new TypeError('Aviation hazards layer requires a SIGMET source');
 
@@ -68,6 +77,35 @@ export function createAviationHazardsLayer({ source, context = null } = {}) {
   let _summary = summarizeSigmets([], filterFor(DEFAULT_FILTER));
   /** @type {Map<string, object>} */
   const _areas = new Map();
+
+  const selection = createLayerSelection({
+    layerId: AVIATION_HAZARDS_LAYER_ID,
+    layerName: 'Aviation Hazards',
+    source: 'NOAA Aviation Weather Center',
+    entityPrefix: AVIATION_HAZARDS_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _areas.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (area) => {
+      const c = flatRingCentroid(area.positions) || { lat: 0, lon: 0 };
+      return {
+        label: sigmetLabelText(area),
+        latitude: c.lat,
+        longitude: c.lon,
+        properties: {
+          hazard: area.name,
+          region: area.region,
+          volcano: area.volcano,
+          intensity: area.intensity,
+          altitude: altitudeText(area),
+          from: area.from,
+          to: area.to,
+        },
+      };
+    },
+    screenSpaceEventHandlerFactory,
+  });
 
   function notifyRowControls() {
     try {
@@ -111,6 +149,7 @@ export function createAviationHazardsLayer({ source, context = null } = {}) {
       };
       _areas.set(area.id, area);
     }
+    selection.reconcile();
     _summary = summarizeSigmets(areas, filter);
   }
 
@@ -132,7 +171,7 @@ export function createAviationHazardsLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${AVIATION_HAZARDS_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:AviationHazards] load error:`, error);
       _lastError = error?.message || 'SIGMETs unavailable';
       notifyRowControls();
       return false;
@@ -151,20 +190,25 @@ export function createAviationHazardsLayer({ source, context = null } = {}) {
         throw new Error(`${AVIATION_HAZARDS_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(AVIATION_HAZARDS_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${AVIATION_HAZARDS_LAYER_ID}] Initialized`);
+      console.log(`[Data:AviationHazards] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -247,10 +291,6 @@ export function createAviationHazardsLayer({ source, context = null } = {}) {
             ? `${filter.chip} · unavailable`
             : `${filter.chip} · none in force`,
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

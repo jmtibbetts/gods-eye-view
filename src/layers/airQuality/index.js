@@ -1,5 +1,9 @@
 import * as Cesium from 'cesium';
 import {
+  createLayerSelection,
+  flatRingCentroid,
+} from '../../data/layerSelection.js';
+import {
   AIR_QUALITY_ENTITY_PREFIX,
   AIR_QUALITY_LAYER_ID,
   AIR_QUALITY_UPDATE_MS,
@@ -40,7 +44,12 @@ export function airQualityLabelText(area) {
  * @param {{fetchAirQuality: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createAirQualityLayer({ source, context = null } = {}) {
+export function createAirQualityLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchAirQuality !== 'function')
     throw new TypeError('Air quality layer requires an AirNow source');
 
@@ -53,6 +62,27 @@ export function createAirQualityLayer({ source, context = null } = {}) {
   let _summary = summarizeAirQuality([]);
   /** @type {Map<string, object>} */
   const _areas = new Map();
+
+  const selection = createLayerSelection({
+    layerId: AIR_QUALITY_LAYER_ID,
+    layerName: 'Air Quality',
+    source: 'EPA AirNow',
+    entityPrefix: AIR_QUALITY_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _areas.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (area) => {
+      const c = flatRingCentroid(area.positions) || { lat: 0, lon: 0 };
+      return {
+        label: airQualityLabelText(area),
+        latitude: c.lat,
+        longitude: c.lon,
+        properties: { category: area.name, range: area.range },
+      };
+    },
+    screenSpaceEventHandlerFactory,
+  });
 
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
@@ -94,6 +124,7 @@ export function createAirQualityLayer({ source, context = null } = {}) {
       };
       _areas.set(area.id, area);
     }
+    selection.reconcile();
     _summary = summarizeAirQuality(areas);
   }
 
@@ -111,7 +142,7 @@ export function createAirQualityLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${AIR_QUALITY_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:AirQuality] load error:`, error);
       _lastError = error?.message || 'AirNow unavailable';
       return false;
     }
@@ -129,20 +160,25 @@ export function createAirQualityLayer({ source, context = null } = {}) {
         throw new Error(`${AIR_QUALITY_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(AIR_QUALITY_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${AIR_QUALITY_LAYER_ID}] Initialized`);
+      console.log(`[Data:AirQuality] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -192,10 +228,6 @@ export function createAirQualityLayer({ source, context = null } = {}) {
           ? `worst: ${_summary.worst}`
           : 'no contours reported',
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

@@ -1,5 +1,9 @@
 import * as Cesium from 'cesium';
 import {
+  createLayerSelection,
+  flatRingCentroid,
+} from '../../data/layerSelection.js';
+import {
   DEFAULT_PRODUCT,
   DROUGHT_ENTITY_PREFIX,
   DROUGHT_LAYER_ID,
@@ -44,7 +48,12 @@ export function droughtLabelText(band) {
  * @param {{fetchDrought: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createDroughtLayer({ source, context = null } = {}) {
+export function createDroughtLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchDrought !== 'function')
     throw new TypeError('Drought layer requires a drought source');
 
@@ -59,6 +68,32 @@ export function createDroughtLayer({ source, context = null } = {}) {
   let _summary = summarizeDrought([], productFor(DEFAULT_PRODUCT));
   /** @type {Map<string, object>} */
   const _bands = new Map();
+
+  const selection = createLayerSelection({
+    layerId: DROUGHT_LAYER_ID,
+    layerName: 'Drought',
+    source: 'US Drought Monitor · NOAA CPC',
+    entityPrefix: DROUGHT_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _bands.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (band) => {
+      const c = flatRingCentroid(band.positions) || { lat: 0, lon: 0 };
+      return {
+        label: droughtLabelText(band),
+        latitude: c.lat,
+        longitude: c.lon,
+        properties: {
+          product: band.productLabel,
+          category: band.name,
+          valid: band.valid,
+          issued: band.issued,
+        },
+      };
+    },
+    screenSpaceEventHandlerFactory,
+  });
 
   function notifyRowControls() {
     try {
@@ -109,6 +144,7 @@ export function createDroughtLayer({ source, context = null } = {}) {
       };
       _bands.set(band.id, band);
     }
+    selection.reconcile();
     _summary = summarizeDrought(bands, product);
   }
 
@@ -130,7 +166,7 @@ export function createDroughtLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${DROUGHT_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:Drought] load error:`, error);
       _lastError = error?.message || 'Drought data unavailable';
       notifyRowControls();
       return false;
@@ -148,20 +184,25 @@ export function createDroughtLayer({ source, context = null } = {}) {
       if (_viewer) throw new Error(`${DROUGHT_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(DROUGHT_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${DROUGHT_LAYER_ID}] Initialized`);
+      console.log(`[Data:Drought] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -244,10 +285,6 @@ export function createDroughtLayer({ source, context = null } = {}) {
             ? `${product.chip} · unavailable`
             : `${product.chip} · nothing drawn`,
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

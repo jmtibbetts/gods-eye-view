@@ -47,31 +47,37 @@ const PANEL_GROUPS = [
   },
   {
     label: 'Events',
-    ids: ['rocket-launches', 'earthquakes', 'volcanoes', 'local-firms'],
+    ids: [
+      'rocket-launches',
+      'earthquakes',
+      'volcanoes',
+      'local-firms',
+      'conflict-reports',
+    ],
   },
   {
+    // Ordered from "what is happening now" to "what is forecast": live
+    // warnings and observations first, imagery in the middle, outlooks last.
     label: 'Imagery & Weather',
     ids: [
       'weather-alerts',
       'storm-reports',
+      'lightning',
+      'aviation-hazards',
+      'river-flood',
+      'air-quality',
       'imagery-radar',
       'imagery-goes',
       'imagery-viirs',
       'imagery-science',
       'tropical-cyclones',
-      'aviation-hazards',
-      'conflict-reports',
-      'drought',
-      'lightning',
-      'river-flood',
-      'satnogs',
       'severe-outlook',
-      'air-quality',
+      'drought',
     ],
   },
   {
     label: 'Utilities',
-    ids: ['directions', 'radio', 'scanner', 'sdr', 'atc'],
+    ids: ['directions', 'radio', 'scanner', 'sdr', 'atc', 'satnogs'],
   },
 ];
 const PANEL_ORDER = PANEL_GROUPS.flatMap(({ label, ids }) =>

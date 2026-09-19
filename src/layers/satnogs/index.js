@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { createLayerSelection } from '../../data/layerSelection.js';
 import {
   DEFAULT_SCOPE,
   SATNOGS_ENTITY_PREFIX,
@@ -41,7 +42,12 @@ export function stationLabelText(station, now = Date.now()) {
  * @param {{fetchStations: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createSatnogsLayer({ source, context = null } = {}) {
+export function createSatnogsLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchStations !== 'function')
     throw new TypeError('SatNOGS layer requires a station source');
 
@@ -56,6 +62,30 @@ export function createSatnogsLayer({ source, context = null } = {}) {
   let _summary = summarizeStations([], scopeFor(DEFAULT_SCOPE));
   /** @type {Map<string, object>} */
   const _stations = new Map();
+
+  const selection = createLayerSelection({
+    layerId: SATNOGS_LAYER_ID,
+    layerName: 'SatNOGS',
+    source: 'SatNOGS Network',
+    entityPrefix: SATNOGS_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _stations.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (station) => ({
+      label: stationLabelText(station),
+      latitude: station.lat,
+      longitude: station.lon,
+      properties: {
+        state: station.stateName,
+        bands: station.bands.join(', '),
+        observations: station.observations,
+        successRate: station.successRate,
+        lastSeen: station.lastSeen,
+      },
+    }),
+    screenSpaceEventHandlerFactory,
+  });
 
   function notifyRowControls() {
     try {
@@ -102,6 +132,7 @@ export function createSatnogsLayer({ source, context = null } = {}) {
       };
       _stations.set(station.id, station);
     }
+    selection.reconcile();
     _summary = summarizeStations(stations, scope);
   }
 
@@ -123,7 +154,7 @@ export function createSatnogsLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${SATNOGS_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:SatNOGS] load error:`, error);
       _lastError = error?.message || 'SatNOGS unavailable';
       notifyRowControls();
       return false;
@@ -141,20 +172,25 @@ export function createSatnogsLayer({ source, context = null } = {}) {
       if (_viewer) throw new Error(`${SATNOGS_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(SATNOGS_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${SATNOGS_LAYER_ID}] Initialized`);
+      console.log(`[Data:SatNOGS] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -236,10 +272,6 @@ export function createSatnogsLayer({ source, context = null } = {}) {
             ? `${scope.chip} · unavailable`
             : `${scope.chip} · none in scope`,
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {

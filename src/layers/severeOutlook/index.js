@@ -1,5 +1,9 @@
 import * as Cesium from 'cesium';
 import {
+  createLayerSelection,
+  flatRingCentroid,
+} from '../../data/layerSelection.js';
+import {
   DEFAULT_PRODUCT,
   OUTLOOK_PRODUCTS,
   SEVERE_OUTLOOK_ENTITY_PREFIX,
@@ -38,7 +42,12 @@ export function outlookLabelText(area) {
  * @param {{fetchOutlook: Function}} options.source
  * @param {object} [options.context] contextStore module.
  */
-export function createSevereOutlookLayer({ source, context = null } = {}) {
+export function createSevereOutlookLayer({
+  source,
+  context = null,
+  screenSpaceEventHandlerFactory = (viewer) =>
+    new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
+} = {}) {
   if (typeof source?.fetchOutlook !== 'function')
     throw new TypeError('Severe outlook layer requires an SPC source');
 
@@ -53,6 +62,32 @@ export function createSevereOutlookLayer({ source, context = null } = {}) {
   let _summary = summarizeOutlook([], productFor(DEFAULT_PRODUCT));
   /** @type {Map<string, object>} */
   const _areas = new Map();
+
+  const selection = createLayerSelection({
+    layerId: SEVERE_OUTLOOK_LAYER_ID,
+    layerName: 'Severe Outlook',
+    source: 'NOAA Storm Prediction Center',
+    entityPrefix: SEVERE_OUTLOOK_ENTITY_PREFIX,
+    context,
+    getRecord: (id) => _areas.get(id),
+    getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
+    getDataSource: () => _dataSource,
+    describe: (area) => {
+      const c = flatRingCentroid(area.positions) || { lat: 0, lon: 0 };
+      return {
+        label: outlookLabelText(area),
+        latitude: c.lat,
+        longitude: c.lon,
+        properties: {
+          product: area.productLabel,
+          category: area.name,
+          valid: area.valid,
+          expire: area.expire,
+        },
+      };
+    },
+    screenSpaceEventHandlerFactory,
+  });
 
   function notifyRowControls() {
     try {
@@ -105,6 +140,7 @@ export function createSevereOutlookLayer({ source, context = null } = {}) {
       };
       _areas.set(area.id, area);
     }
+    selection.reconcile();
     _summary = summarizeOutlook(areas, product, statement);
   }
 
@@ -126,7 +162,7 @@ export function createSevereOutlookLayer({ source, context = null } = {}) {
       return true;
     } catch (error) {
       if (!_enabled) return false;
-      console.warn(`[Data:${SEVERE_OUTLOOK_LAYER_ID}] load error:`, error);
+      console.warn(`[Data:SevereOutlook] load error:`, error);
       _lastError = error?.message || 'SPC outlook unavailable';
       notifyRowControls();
       return false;
@@ -145,20 +181,25 @@ export function createSevereOutlookLayer({ source, context = null } = {}) {
         throw new Error(`${SEVERE_OUTLOOK_LAYER_ID} already initialized`);
       _viewer = viewer;
       _dataSource = new Cesium.CustomDataSource(SEVERE_OUTLOOK_LAYER_ID);
+      _dataSource.show = false;
       viewer.dataSources.add(_dataSource);
-      console.log(`[Data:${SEVERE_OUTLOOK_LAYER_ID}] Initialized`);
+      console.log(`[Data:SevereOutlook] Initialized`);
     },
 
-    async enable() {
+    enable(viewer) {
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
-      await refresh();
+      // No fetch here. The manager calls update() the moment enable() settles,
+      // so fetching in both meant every enable pulled the feed twice.
+      selection.install(viewer || _viewer);
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      selection.clear();
+      selection.remove();
       clearEntities();
       if (_dataSource) _dataSource.show = false;
       // _lastError deliberately SURVIVES a disable. The manager disables a
@@ -240,10 +281,6 @@ export function createSevereOutlookLayer({ source, context = null } = {}) {
           ? `${product.chip} · ${_summary.highest}`
           : `${product.chip} · ${_summary.statement || 'no risk areas drawn'}`,
       };
-    },
-
-    getSummary() {
-      return { ..._summary };
     },
 
     getAnalystRecords() {
