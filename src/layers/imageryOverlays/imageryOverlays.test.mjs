@@ -14,6 +14,7 @@ import {
   rainviewerLatest,
   wmsParameters,
   slotCodec,
+  zoomFloorFor,
 } from './policy.js';
 import {
   createImageryOverlayLayer,
@@ -166,6 +167,66 @@ test('EUMETView asks for the service default; only Sentinel-2 takes a window', (
   const s2 = wmsParameters(productFor('imagery-viirs', 'sentinel2-true'), at);
   assert.equal(s2.TIME, '2026-06-20/2026-09-18');
   assert.equal(s2.MAXCC, '20');
+});
+
+test('Sentinel-2 declares the service ceiling and is not asked for anything coarser', async () => {
+  // Sentinel Hub renders Sentinel-2 "up to 200 m/px" and answers a coarser
+  // request with a picture of the error, which the globe painted as imagery:
+  // every tile of every Sentinel-2 product, worldwide, was red text until
+  // you were zoomed in past the limit. Level 5 is 2445.98 m/px — the figure
+  // in the error itself; level 9 (152.87 m/px) is the first level under it.
+  const s2 = ALL_IMAGERY_PRODUCTS.filter((p) => p.service === 'copernicus');
+  assert.ok(s2.length >= 8);
+  for (const p of s2) {
+    assert.equal(p.maxMetersPerPixel, 200, `${p.key} carries the ceiling`);
+    assert.deepEqual(zoomFloorFor(p), {
+      minimumLevel: 9,
+      minimumTerrainLevel: 9,
+    });
+  }
+  // Nothing else is limited this way, and nothing else gets a floor.
+  for (const p of ALL_IMAGERY_PRODUCTS.filter(
+    (x) => x.service !== 'copernicus',
+  )) {
+    assert.equal(zoomFloorFor(p), null, `${p.key} has no floor`);
+  }
+  assert.equal(zoomFloorFor({ maxMetersPerPixel: 0 }), null);
+  assert.equal(zoomFloorFor({ maxMetersPerPixel: 1e9 }).minimumLevel, 0);
+
+  // The floor reaches both the provider (which level to request) and the
+  // layer (whether to draw at all); EUMETView, unlimited, gets neither.
+  const wmsCalls = [];
+  const layers = [];
+  const viewer = fakeViewer();
+  const build = (id) =>
+    createImageryOverlayLayer({
+      descriptor: IMAGERY_OVERLAYS.find((d) => d.id === id),
+      now: () => AT,
+      surface: createSurfaceCoordinator(),
+      providerFactory: (url) => ({ url }),
+      wmsProviderFactory: (opts) => {
+        wmsCalls.push(opts);
+        return opts;
+      },
+      imageryLayerFactory: (provider, opts) => {
+        layers.push(opts);
+        return { provider, opts };
+      },
+    });
+  const orbital = build('imagery-viirs');
+  orbital.init(viewer);
+  await orbital.setSensor('sentinel2-true');
+  await orbital.enable(viewer);
+  assert.equal(wmsCalls.at(-1).minimumLevel, 9);
+  assert.equal(wmsCalls.at(-1).maximumLevel, 15);
+  assert.equal(layers.at(-1).minimumTerrainLevel, 9);
+
+  const geo = build('imagery-goes');
+  geo.init(viewer);
+  await geo.setSensor('meteosat-geocolour');
+  await geo.enable(viewer);
+  assert.equal(wmsCalls.at(-1).minimumLevel, undefined);
+  assert.equal(layers.at(-1).minimumTerrainLevel, undefined);
 });
 
 test('the geostationary slot now covers the whole ring, not just the Americas', () => {

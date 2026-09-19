@@ -16,6 +16,11 @@ import {
 } from '../../server/providers/aviation.js';
 import { aggregate } from '../../server/providers/conflict.js';
 import { hourPrefix } from '../../server/providers/lightning.js';
+import {
+  MAX_METERS_PER_PIXEL,
+  copernicusProxy,
+  requestMetersPerPixel,
+} from '../../server/providers/copernicus.js';
 
 /** A connect-style response that records what the handler did with it. */
 function fakeRes() {
@@ -386,4 +391,97 @@ test('the GLM bucket prefix is laid out by UTC year, day-of-year and hour', () =
     hourPrefix(new Date(Date.UTC(2026, 11, 31, 23, 59))),
     'GLM-L2-LCFA/2026/365/23/',
   );
+});
+
+// ---------------------------------------------------------------- copernicus
+
+test('a GetMap pixel size is read off the bounding box on its larger axis', () => {
+  // A level-5 geographic tile: 5.625° over 256 px, the 2445.98 m/px Sentinel
+  // Hub quotes when it refuses. Axis order and parameter case do not matter.
+  const level5 = new URLSearchParams({
+    bbox: '0,0,5.625,5.625',
+    width: '256',
+    height: '256',
+  });
+  assert.ok(Math.abs(requestMetersPerPixel(level5) - 2445.98) < 0.01);
+  const level9 = new URLSearchParams({
+    BBOX: '40,-100,40.3515625,-99.6484375',
+    WIDTH: '256',
+    HEIGHT: '256',
+  });
+  assert.ok(Math.abs(requestMetersPerPixel(level9) - 152.87) < 0.01);
+  assert.ok(requestMetersPerPixel(level9) < MAX_METERS_PER_PIXEL);
+  assert.equal(
+    requestMetersPerPixel(new URLSearchParams({ bbox: '0,0,1' })),
+    null,
+  );
+  assert.equal(
+    requestMetersPerPixel(
+      new URLSearchParams({ bbox: '0,0,1,1', width: '0', height: '256' }),
+    ),
+    null,
+  );
+});
+
+test('the Copernicus proxy answers a too-coarse tile itself, transparent, before any upstream call', async () => {
+  // Sentinel Hub would answer such a request with a picture of the error
+  // message, and the globe painted that as data. The proxy now refuses it
+  // locally with a transparent tile — and decides BEFORE the token exchange,
+  // so no credential round-trip is spent on a tile that cannot exist.
+  const env = { ...process.env };
+  const originalFetch = globalThis.fetch;
+  let upstreamCalls = 0;
+  process.env.COPERNICUS_INSTANCE_ID = 'test-instance';
+  process.env.COPERNICUS_CLIENT_ID = 'id';
+  process.env.COPERNICUS_CLIENT_SECRET = 'secret';
+  globalThis.fetch = async () => {
+    upstreamCalls++;
+    throw new Error('no network in this test');
+  };
+  try {
+    const handlers = new Map();
+    copernicusProxy().configureServer({
+      middlewares: { use: (path, handler) => handlers.set(path, handler) },
+    });
+    const wms = handlers.get('/api/copernicus/wms');
+    const res = fakeRes();
+    await wms(
+      {
+        url: '/?service=WMS&request=GetMap&layers=TRUE_COLOR&bbox=0,0,5.625,5.625&width=256&height=256&format=image/png',
+      },
+      res,
+    );
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.headers['Content-Type'], 'image/png');
+    assert.equal(res.headers['X-GEV-Skipped'], 'pixel-size-over-limit');
+    assert.ok(Buffer.isBuffer(res.body) && res.body.length > 0);
+    // PNG signature, and nothing was fetched — not even a token.
+    assert.equal(res.body.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    assert.equal(upstreamCalls, 0, 'a refused tile costs no upstream call');
+
+    // A request within the limit proceeds to the token exchange as before.
+    const fine = fakeRes();
+    await wms(
+      {
+        url: '/?service=WMS&request=GetMap&layers=TRUE_COLOR&bbox=40,-100,40.3515625,-99.6484375&width=256&height=256',
+      },
+      fine,
+    );
+    assert.equal(
+      upstreamCalls,
+      1,
+      'an in-range tile reaches the token exchange',
+    );
+    assert.notEqual(fine.headers['X-GEV-Skipped'], 'pixel-size-over-limit');
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const key of [
+      'COPERNICUS_INSTANCE_ID',
+      'COPERNICUS_CLIENT_ID',
+      'COPERNICUS_CLIENT_SECRET',
+    ]) {
+      if (env[key] === undefined) delete process.env[key];
+      else process.env[key] = env[key];
+    }
+  }
 });

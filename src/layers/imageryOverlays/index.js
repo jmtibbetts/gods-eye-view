@@ -10,6 +10,7 @@ import {
   liveTimeFor,
   productFor,
   wmsParameters,
+  zoomFloorFor,
 } from './policy.js';
 import { imagerySurface } from './surface.js';
 
@@ -97,6 +98,10 @@ export function createImageryOverlayLayer({
     // EUMETView speaks WMS rather than serving a REST tile template, and it
     // is addressed by instant rather than by day, so it takes its own path.
     if (isWms(current)) {
+      // A service that refuses coarse requests gets a zoom floor on both the
+      // provider (which level to ask for) and the layer (whether to draw at
+      // all) — see zoomFloorFor for why Sentinel Hub needs one.
+      const floor = zoomFloorFor(current);
       return {
         wms: {
           // A product may route through our own proxy instead of calling a
@@ -105,12 +110,16 @@ export function createImageryOverlayLayer({
           layers: current.wmsLayer,
           credit: descriptor.attribution,
           maximumLevel: current.maximumLevel,
+          ...(floor ? { minimumLevel: floor.minimumLevel } : {}),
           parameters: {
             format: 'image/png',
             transparent: true,
             ...wmsParameters(current, now()),
           },
         },
+        ...(floor
+          ? { layerOptions: { minimumTerrainLevel: floor.minimumTerrainLevel } }
+          : {}),
       };
     }
     const time =
@@ -136,14 +145,24 @@ export function createImageryOverlayLayer({
       const config = await resolveConfig();
       if (!_enabled || token !== _request || !_viewer?.imageryLayers)
         return false;
-      const { url, frameTime, credit, wms, ...providerOptions } = config;
+      const {
+        url,
+        frameTime,
+        credit,
+        wms,
+        layerOptions = {},
+        ...providerOptions
+      } = config;
       const provider = wms
         ? wmsProviderFactory(wms)
         : providerFactory(url, {
             ...providerOptions,
             credit: credit || descriptor.attribution,
           });
-      const layerObj = imageryLayerFactory(provider, { alpha: alpha() });
+      const layerObj = imageryLayerFactory(provider, {
+        alpha: alpha(),
+        ...layerOptions,
+      });
       // Add the fresh layer, then drop the old one — no flicker between frames,
       // and no blank globe while a switched sensor's first tiles are in flight.
       _viewer.imageryLayers.add(layerObj);

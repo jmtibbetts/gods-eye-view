@@ -1,5 +1,18 @@
 # Changelog
 
+- Stop Sentinel-2 tiling the whole globe with a red error paragraph. Sentinel
+  Hub renders Sentinel-2 only up to 200 m/px, and it refuses a coarser request
+  with an IMAGE — a tile whose pixels spell out "Pixel size of 2443.94 meters
+  per pixel exceeds the limit" — which the globe painted as data, so all eight
+  Sentinel-2 products were red text everywhere until you were zoomed in past
+  the limit. Each product now declares that ceiling, the catalog derives the
+  zoom floor from it (level 9, 153 m/px), the
+  provider never asks for anything coarser, the layer is not drawn at all
+  until then, and the proxy refuses a too-coarse request itself with a
+  transparent tile before spending a token exchange on it. The IMAGERY panel
+  row says "zoom in to see", so a blank globe reads as by design rather than
+  broken.
+
 - Stop dots drawing through the Earth and sliding as the camera moves. A
   point drawn with the depth test off is painted even when the planet is
   between it and the camera, so a worldwide field of them — SatNOGS stations,

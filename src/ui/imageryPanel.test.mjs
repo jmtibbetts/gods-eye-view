@@ -5,6 +5,7 @@ import {
   archiveText,
   cadenceText,
   coverageText,
+  zoomText,
 } from './imageryPanel.js';
 import {
   ALL_IMAGERY_PRODUCTS as ALL,
@@ -40,6 +41,21 @@ test('a swath product says its coverage is partial', () => {
   const sparse = ALL.filter((p) => p.sparse).map((p) => p.key);
   assert.ok(sparse.includes('opera-sar'), 'Sentinel-1 SAR images in swaths');
   assert.ok(sparse.includes('flood-extent'));
+});
+
+test('a product its service only renders up close says to zoom in', () => {
+  // Sentinel Hub draws Sentinel-2 under 200 m/px and nothing above it, so at
+  // globe scale the layer is blank by design. Picking it and seeing no change
+  // reads as a failure unless the row says the picture is waiting up close.
+  assert.equal(zoomText({ maxMetersPerPixel: 200 }), 'zoom in to see');
+  assert.equal(zoomText({ sparse: true }), '');
+  assert.equal(zoomText(null), '');
+  const limited = ALL.filter((p) => zoomText(p)).map((p) => p.key);
+  assert.ok(limited.length >= 8);
+  assert.ok(
+    limited.every((k) => k.startsWith('sentinel2-')),
+    `only Sentinel-2: ${limited}`,
+  );
 });
 
 test('every product renders a non-empty, non-duplicated description line', () => {

@@ -141,6 +141,51 @@ export function requiresKey(product) {
 }
 
 /**
+ * Metres per pixel of a level-0 tile in Cesium's default WMS tiling scheme
+ * (geographic, two 256-pixel tiles of 180° each at level 0), written the way
+ * Cesium's ImageryLayer computes its level-zero texel spacing: the equatorial
+ * circumference over the pixels across the whole scheme. A geographic tile
+ * spans the same degrees north-south as east-west, and a degree of latitude
+ * never shrinks, so this is the pixel size a service's limit binds on at any
+ * latitude. Level 0 is 78 km/px; each level halves it.
+ */
+const GEOGRAPHIC_LEVEL0_METERS_PER_PIXEL = (2 * Math.PI * 6378137) / (256 * 2);
+
+/**
+ * The zoom floor a product's `maxMetersPerPixel` implies.
+ *
+ * Sentinel Hub refuses any request coarser than 200 m/px for Sentinel-2 —
+ * "Rendering is available up to 200 m/px" — and it refuses it with an IMAGE:
+ * a tile whose pixels spell out the error. Cesium cannot tell that from
+ * data, so every tile of every Sentinel-2 product, over the whole globe, was
+ * a red paragraph until you zoomed in far enough to be under the limit.
+ *
+ * Two numbers come out, because Cesium keys them differently:
+ *   - `minimumLevel` is the provider's: the coarsest IMAGERY level whose
+ *     pixels are within the limit. Cesium clamps any coarser choice up to
+ *     it, so no request below the limit is ever built.
+ *   - `minimumTerrainLevel` is the layer's: the coarsest GLOBE tile the
+ *     layer is drawn on at all. Cesium picks a terrain tile's imagery level
+ *     by matching texel spacing to the tile's geometric error, and for
+ *     geographic-tiled imagery over the terrain this repo uses the two
+ *     levels coincide (checked live: level-10 globe tiles carry level-10
+ *     Sentinel-2), so the layer is drawn from the same level it may
+ *     request. Below that it is simply not drawn, and nothing is asked for.
+ *
+ * @param {object} product A catalog entry.
+ * @returns {{minimumLevel: number, minimumTerrainLevel: number}|null}
+ */
+export function zoomFloorFor(product) {
+  const limit = Number(product?.maxMetersPerPixel);
+  if (!Number.isFinite(limit) || limit <= 0) return null;
+  const minimumLevel = Math.max(
+    0,
+    Math.ceil(Math.log2(GEOGRAPHIC_LEVEL0_METERS_PER_PIXEL / limit)),
+  );
+  return { minimumLevel, minimumTerrainLevel: minimumLevel };
+}
+
+/**
  * Build a GIBS REST tile template for `{z}/{y}/{x}` substitution.
  * @param {object} product A catalog entry.
  * @param {string} [time] A `YYYY-MM-DD` day, or `default` for latest.
@@ -338,6 +383,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'TRUE_COLOR',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     // Sentinel-2 is not a daily global mosaic: it revisits a given spot every
     // few days, and the pass is often cloudy. So these ask for the least
@@ -359,6 +406,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'FALSE_COLOR',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     windowDays: 90,
     maxCloudCover: 20,
@@ -376,6 +425,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'SWIR',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     windowDays: 90,
     maxCloudCover: 20,
@@ -393,6 +444,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'NDVI',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     windowDays: 90,
     maxCloudCover: 20,
@@ -410,6 +463,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'FALSE_COLOR_URBAN',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     windowDays: 90,
     maxCloudCover: 20,
@@ -427,6 +482,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'NDWI',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     windowDays: 90,
     maxCloudCover: 20,
@@ -444,6 +501,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'NBR_RAW',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     windowDays: 90,
     maxCloudCover: 20,
@@ -461,6 +520,8 @@ const orbital = [
     wmsUrl: '/api/copernicus/wms',
     wmsLayer: 'BATHYMETRIC',
     maximumLevel: 15,
+    // Sentinel Hub's own ceiling for this collection; see zoomFloorFor().
+    maxMetersPerPixel: 200,
     cadence: 'composite',
     windowDays: 90,
     maxCloudCover: 20,

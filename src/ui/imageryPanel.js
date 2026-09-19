@@ -52,6 +52,18 @@ export function coverageText(product) {
   return 'partial coverage';
 }
 
+/**
+ * "zoom in to see" for a product its service will not render from afar.
+ *
+ * Sentinel Hub draws Sentinel-2 only under 200 m/px, so the layer is blank
+ * from orbit by design and appears as you close in. Without saying so, a user
+ * who picks it at globe scale sees nothing change and reads that as broken.
+ */
+export function zoomText(product) {
+  if (!Number.isFinite(Number(product?.maxMetersPerPixel))) return '';
+  return 'zoom in to see';
+}
+
 /** "archive to 2000" when a product has real history worth scrubbing. */
 export function archiveText(product) {
   if (!product?.archive) return '';
@@ -245,6 +257,7 @@ export class ImageryPanel {
         product.instrument,
         cadenceText(product),
         coverageText(product),
+        zoomText(product),
         archiveText(product),
       ]
         .filter(Boolean)
