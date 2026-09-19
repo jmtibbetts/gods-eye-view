@@ -41,13 +41,23 @@ export const SATELLITE_CLASSES = Object.freeze({
     color: '#4fd8ff',
     blurb: 'GNSS navigation — GPS, GLONASS, Galileo',
   }),
+  earthObs: Object.freeze({
+    label: 'EARTH OBS',
+    // Spring green — the satellites that look DOWN. Clear of the cyan NAV
+    // accent by hue, of the warm-white STATION by saturation, and nowhere near
+    // the military amber. Green is not otherwise a class colour, so the
+    // imaging fleet reads as its own family at globe scale.
+    color: '#8be07a',
+    blurb:
+      'Earth observation — weather and imaging satellites; click one for its SENSORS',
+  }),
   geo: Object.freeze({
     label: 'GEO',
     // Violet, unchanged. Already the app's "space" semantic (the detection
     // overlay paints the SAT tier #bda4ff), and the geostationary belt draws
     // as one clean equatorial ring at globe scale.
     color: '#c89bff',
-    blurb: 'Geostationary belt — comms and weather, fixed over the equator',
+    blurb: 'Geostationary belt — comms relays fixed over the equator',
   }),
   visual: Object.freeze({
     label: 'VISUAL',
@@ -71,6 +81,7 @@ export const SATELLITE_CLASSES = Object.freeze({
 /** Legend/report order for the classes above. */
 export const SATELLITE_CLASS_ORDER = Object.freeze([
   'station',
+  'earthObs',
   'nav',
   'geo',
   'visual',
@@ -88,6 +99,8 @@ const GROUP_CLASS = Object.freeze({
   'gps-ops': Object.freeze({ klass: 'nav', subtype: 'GPS' }),
   glonass: Object.freeze({ klass: 'nav', subtype: 'GLONASS' }),
   galileo: Object.freeze({ klass: 'nav', subtype: 'GALILEO' }),
+  weather: Object.freeze({ klass: 'earthObs', subtype: 'WEATHER' }),
+  resource: Object.freeze({ klass: 'earthObs', subtype: 'IMAGING' }),
   geo: Object.freeze({ klass: 'geo', subtype: null }),
   dense: Object.freeze({ klass: 'comms', subtype: 'STARLINK' }),
 });

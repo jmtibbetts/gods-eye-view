@@ -43,7 +43,7 @@ async function settleChip(maxTicks = 50) {
 }
 
 /** Every CelesTrak group the catalog ingests, plus the dense-mode tag. */
-const INGESTED_GROUPS = ['stations', 'visual', 'gps-ops', 'glonass', 'galileo', 'geo', 'dense'];
+const INGESTED_GROUPS = ['stations', 'weather', 'resource', 'visual', 'gps-ops', 'glonass', 'galileo', 'geo', 'dense'];
 
 test('every ingested CelesTrak group resolves to a real class', () => {
   // Guards against drift: adding a group to CATALOG_GROUPS without classifying
@@ -64,6 +64,14 @@ test('the three GNSS constellations share one NAV color and split by subtype', (
   assert.equal(satelliteClassLabel('gps-ops'), 'NAV · GPS');
   assert.equal(satelliteClassLabel('glonass'), 'NAV · GLONASS');
   assert.equal(satelliteClassLabel('galileo'), 'NAV · GALILEO');
+});
+
+test('the two Earth-observation groups share one EARTH OBS colour and split by subtype', () => {
+  const colors = new Set(['weather', 'resource'].map(satelliteClassColor));
+  assert.equal(colors.size, 1, 'weather and imaging satellites read as one family');
+  assert.equal([...colors][0], SATELLITE_CLASSES.earthObs.color);
+  assert.equal(satelliteClassLabel('weather'), 'EARTH OBS · WEATHER');
+  assert.equal(satelliteClassLabel('resource'), 'EARTH OBS · IMAGING');
 });
 
 test('class labels name the type, and the ISS names itself', () => {
@@ -87,7 +95,7 @@ test('the ISS is a STATION whichever group a partial outage ingested it from', (
 });
 
 test('an unknown group falls back to the neutral bucket instead of vanishing', () => {
-  assert.equal(satelliteClassOf('weather').klass, 'visual');
+  assert.equal(satelliteClassOf('analyst').klass, 'visual');
   assert.equal(satelliteClassOf(undefined).klass, 'visual');
   assert.equal(satelliteClassColor(null), SATELLITE_CLASSES.visual.color);
   assert.equal(satelliteClassLabel('some-new-celestrak-group'), 'VISUAL');

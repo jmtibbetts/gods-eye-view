@@ -335,6 +335,19 @@
             <p class="audio-privacy">Sanctions matching is by MMSI only, never by name, so a listed ship whose entry carries no MMSI will not appear — absence here is not evidence a vessel is unlisted. A vessel is only called dark after repeated sightings then sustained silence; AIS coverage is patchy and a gap is not proof a transponder was switched off.</p>
           </div>
         </section>
+        <section id="sensors-panel" class="panel-collapsible collapsed" data-panel-id="sensors-panel" aria-label="Sensors aboard the tracked satellite">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">SENSORS</span>
+              <span id="sensors-layer-state" class="audio-layer-state">NONE</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="sensors-panel" title="Expand Sensors" aria-label="Expand Sensors section">+</button>
+            </div>
+            <div id="sensors-body" class="sensors-body" aria-label="Sensors aboard the tracked satellite"></div>
+            <p id="sensors-note" class="audio-privacy"></p>
+            <p class="audio-privacy">No public satellite takes commands from anyone but its operator. What this panel switches is which of a satellite's published bands the globe draws; the footprint under the satellite is where its instrument is looking now, and the picture is the newest one it has published — minutes behind for a geostationary imager, a day for a polar one.</p>
+          </div>
+        </section>
         <section id="imagery-panel" class="panel-collapsible collapsed" data-panel-id="imagery-panel" aria-label="Satellite imagery sensors">
           <div class="audio-panel-inner">
             <div class="panel-header">

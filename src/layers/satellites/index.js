@@ -8,6 +8,7 @@ import { createTesting } from './testing.js';
 import { createInteraction } from './interaction.js';
 import { createLifecycle } from './lifecycle.js';
 import { createIngestion } from './ingestion.js';
+import { createFootprint } from './footprint.js';
 import { createState } from './state.js';
 
 /** Construct one layer with its own scene state and supplied application services. */
@@ -23,6 +24,7 @@ export function createSatellitesLayer({ services, source }) {
   parts.orbits = createOrbits(context);
   parts.rendering = createRendering(context);
   parts.tracking = createTracking(context);
+  parts.footprint = createFootprint(context);
   parts.testing = createTesting(context);
   parts.interaction = createInteraction(context);
   parts.lifecycle = createLifecycle(context);
@@ -52,6 +54,9 @@ export function createSatellitesLayer({ services, source }) {
       _setSatelliteLabelLifecycleStateForTest:
         parts.testing._setSatelliteLabelLifecycleStateForTest,
       _seedIssCatalogForTest: parts.testing._seedIssCatalogForTest,
+      _seedCatalogForTest: parts.testing._seedCatalogForTest,
+      _footprintForTest: parts.testing._footprintForTest,
+      _layerStateForTest: parts.testing._layerStateForTest,
       _trackIssForTest: parts.testing._trackIssForTest,
       _pendingSatelliteTrackingRestoreForTest:
         parts.testing._pendingSatelliteTrackingRestoreForTest,
@@ -64,6 +69,15 @@ export function createSatellitesLayer({ services, source }) {
       applySatellitePointFocusDeemphasis:
         parts.rendering.applySatellitePointFocusDeemphasis,
       getNextIssPass: parts.orbits.getNextIssPass,
+      /** Which satellite is tracked, for the SENSORS panel; null when none. */
+      getTrackedNorad: () => state._trackedNorad,
+      /** Follow a satellite by NORAD number — the SENSORS panel's TRACK. */
+      trackSatellite: (noradId) =>
+        parts.tracking._trackSatellite(Number(noradId), { origin: 'user' }),
+      /** NORAD numbers present in the loaded catalog, for the fleet list. */
+      hasSatellite: (noradId) => state._catalog.has(Number(noradId)),
+      satelliteName: (noradId) =>
+        state._catalog.get(Number(noradId))?.name?.trim() || null,
       scoreSatelliteNameMatch: parts.orbits.scoreSatelliteNameMatch,
       findSatelliteOrbitTrackInTle: parts.orbits.findSatelliteOrbitTrackInTle,
       getSatelliteOrbitTrack: parts.orbits.getSatelliteOrbitTrack,

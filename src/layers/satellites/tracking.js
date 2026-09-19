@@ -1,9 +1,12 @@
 import * as Cesium from 'cesium';
 import { satelliteClassLabel } from '../../data/satelliteClass.js';
+import { imagingPlatformFor } from './sensors.js';
 import {
   ISS_NORAD,
   CONTEXT_REFRESH_INTERVAL_MS,
   HIGH_ORBIT_ALTITUDE_M,
+  TRACK_VIEW_FROM_GEO_IMAGER,
+  TRACK_VIEW_FROM_GEO_IMAGER_FRAME,
   TRACK_VIEW_FROM_HIGH_SCALE,
   TRACK_VIEW_FROM_LEO,
 } from './policy.js';
@@ -106,6 +109,7 @@ export function createTracking({ state: layerState, services, parts, source }) {
     layerState._trackedFrameGeo = null;
 
     // Remove tracked entity and orbit path (unless ISS — keep its path)
+    parts.footprint.remove();
     if (layerState._trackedNorad !== ISS_NORAD) {
       parts.rendering._hideOrbitPath(layerState._trackedNorad);
     }
@@ -427,15 +431,24 @@ export function createTracking({ state: layerState, services, parts, source }) {
       initialPos && initialPos.altitude > HIGH_ORBIT_ALTITUDE_M
         ? TRACK_VIEW_FROM_HIGH_SCALE
         : 1;
-    const viewFrom = Cesium.Cartesian3.multiplyByScalar(
-      TRACK_VIEW_FROM_LEO,
-      viewScale,
-      new Cesium.Cartesian3(),
-    );
+    // A parked imager is framed from straight out, looking back through the
+    // satellite at the disk it images; everything else keeps the along-track
+    // framing that reads a moving dot.
+    const geoImager = imagingPlatformFor(noradId)?.orbit === 'geostationary';
+    const viewFrom = geoImager
+      ? TRACK_VIEW_FROM_GEO_IMAGER
+      : Cesium.Cartesian3.multiplyByScalar(
+          TRACK_VIEW_FROM_LEO,
+          viewScale,
+          new Cesium.Cartesian3(),
+        );
 
     layerState._trackedEntity = layerState._viewer.entities.add({
       position: positionProperty,
       viewFrom,
+      ...(geoImager
+        ? { trackingReferenceFrame: TRACK_VIEW_FROM_GEO_IMAGER_FRAME }
+        : {}),
       point: {
         pixelSize: 14,
         color: Cesium.Color.YELLOW,
@@ -460,6 +473,8 @@ export function createTracking({ state: layerState, services, parts, source }) {
     layerState._contextRefreshedAtMs = Date.now();
 
     layerState._viewer.trackedEntity = layerState._trackedEntity;
+    // An imaging satellite carries its sensor footprint with it.
+    parts.footprint.follow(noradId);
     console.log(`[Data:Satellites] Tracking ${name} (NORAD ${noradId})`);
   }
   return {

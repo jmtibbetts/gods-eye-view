@@ -1,5 +1,7 @@
 const GROUPS = new Set([
   'stations',
+  'weather',
+  'resource',
   'visual',
   'gps-ops',
   'glo-ops',

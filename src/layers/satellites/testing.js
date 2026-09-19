@@ -211,6 +211,24 @@ export function createTesting({ state: layerState, services, parts, source }) {
     ]);
   }
 
+  /** The footprint part, so its geometry can be checked without a scene. */
+
+  function _footprintForTest() {
+    return parts.footprint;
+  }
+
+  /** The layer's scene state, so a test can hand it a viewer double. */
+
+  function _layerStateForTest() {
+    return layerState;
+  }
+
+  /** Replace the cached catalog with the given rows, keyed by NORAD number. */
+
+  function _seedCatalogForTest(rows) {
+    layerState._catalog = new Map(rows.map((row) => [row.norad, row]));
+  }
+
   /** Exercise production ISS tracking from the cached catalog and point. */
 
   function _trackIssForTest() {
@@ -257,6 +275,9 @@ export function createTesting({ state: layerState, services, parts, source }) {
     _catalogGroupForTest,
     _setSatelliteLabelLifecycleStateForTest,
     _seedIssCatalogForTest,
+    _footprintForTest,
+    _layerStateForTest,
+    _seedCatalogForTest,
     _trackIssForTest,
     _pendingSatelliteTrackingRestoreForTest,
     _applyPendingSatelliteTrackingRestoreForTest,

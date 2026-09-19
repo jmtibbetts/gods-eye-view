@@ -21,6 +21,7 @@ import { MonitorPanel } from './monitorPanel.js';
 import { WatchlistPanel } from './watchlistPanel.js';
 import { VesselWatchPanel } from './vesselWatchPanel.js';
 import { ImageryPanel } from './imageryPanel.js';
+import { SensorsPanel } from './sensorsPanel.js';
 import { TimelinePanel } from './timelinePanel.js';
 import { captureSnapshot } from './snapshotExport.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -255,6 +256,7 @@ export class StyleManager extends ShellFacade {
         _vesselWatchPanel: this._vesselWatchPanel,
         _timelinePanel: this._timelinePanel,
         _imageryPanel: this._imageryPanel,
+        _sensorsPanel: this._sensorsPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -1027,6 +1029,57 @@ export class StyleManager extends ShellFacade {
         if (!this._disposed) this._showToast(message);
       },
     });
+
+    // SENSORS rides on the IMAGERY panel's own switching path, so a band
+    // chosen from either panel trades the basemap and toasts the same way.
+    this._sensorsPanel?.destroy();
+    this._sensorsPanel = new SensorsPanel({
+      elements: {
+        state: this._sensorsLayerState,
+        body: this._sensorsBody,
+        note: this._sensorsNote,
+      },
+      satellites: () => this.services.satellitesLayer || null,
+      selectSensor: (slotId, key) =>
+        this._imageryPanel?.selectSensor(slotId, key),
+      activeSensor: (slotId) =>
+        this._imageryPanel?.activeSensor(slotId) ?? null,
+      isProductAvailable: (product) =>
+        this._imageryPanel?.isProductAvailable(product) ?? true,
+      setLayerEnabled: (layerId, enabled) =>
+        this._dataManager?.setEnabled?.(layerId, enabled, { origin: 'user' }),
+      isLayerEnabled: (layerId) => {
+        try {
+          return this._dataManager?.isEnabled?.(layerId) === true;
+        } catch {
+          return false;
+        }
+      },
+      subscribeActivity: (listener) =>
+        this._dataManager?.subscribeActivity?.(listener) ?? null,
+      openIssStream: () => this.services.satellitesLayer?.openIssStream?.(),
+      // The panel lives in the Context rail, so opening it opens the rail —
+      // explicitly, or the right-stack layout folds the rail straight back
+      // as an auto-collapse — and scrolls the panel into view, since the
+      // rail is taller than the window. Nothing is persisted: following a
+      // satellite is not the user saying where their panels go next time.
+      expandPanel: (panelId) => {
+        this.setPanelCollapsed('global-context-panel', false, {
+          explicit: true,
+          persist: false,
+        });
+        this.setPanelCollapsed(panelId, false, {
+          explicit: false,
+          persist: false,
+        });
+        document
+          .getElementById(panelId)
+          ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+      },
+      onToast: (message) => {
+        if (!this._disposed) this._showToast(message);
+      },
+    });
   }
 
   _initRadioPanel() {
@@ -1795,6 +1848,7 @@ export class StyleManager extends ShellFacade {
     this._vesselWatchPanel?.destroy();
     this._timelinePanel?.destroy();
     this._imageryPanel?.destroy();
+    this._sensorsPanel?.destroy();
     this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();

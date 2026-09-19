@@ -1,5 +1,31 @@
 # Changelog
 
+- Follow an imaging satellite and watch it work. Track NOAA-20, Suomi NPP,
+  Terra, Aqua, a Sentinel, Landsat, GOES, Himawari or Meteosat and a SENSORS
+  panel opens in the Context rail naming the instrument it carries — swath,
+  resolution, bands, what its pictures reveal — with every product the
+  imagery catalog serves from that platform as a button. Press one and the
+  globe switches to it through the IMAGERY panel's own path, so the basemap
+  trade and the toast are the same whichever panel asked. Under the satellite
+  the layer paints the ground the sensor is sweeping: a strip as wide as the
+  swath running three minutes back along the ground track for a polar
+  orbiter, rebuilt once a second and draped onto terrain and 3D tiles alike,
+  or the disk a geostationary imager stares at. The polar imagers arrive with
+  the catalog — CelesTrak's weather and resource groups, ~200 satellites
+  tagged EARTH OBS in the legend and loaded ahead of visual and geo so
+  first-tag-wins classes them by what they do — and with nothing tracked the
+  panel lists the fleet on the globe with a TRACK button each. GOES-18 and
+  -19 also offer their Lightning Mapper as the lightning layer's toggle, and
+  the ISS offers NASA's stream, opened by the satellites layer itself so the
+  row chip and the panel button are one code path. What the panel refuses to
+  pretend: no public satellite takes commands from anyone but its operator,
+  and every product is published on its own schedule, so the footer says
+  "published ~10 min behind — not a live view" or "1 day behind" rather than
+  letting a mosaic pass as live. Tests pin the registry to the imagery
+  catalog (a platform string that matches no product fails), the strip's
+  width and antimeridian continuity, the one-second rebuild, and the panel's
+  every state.
+
 - List everything the globe talks to in the POWER UP panel. The panel named
   the nine keyed providers and nothing else, so it read as though those were
   the whole picture; the other thirty-three services run keyless by design and

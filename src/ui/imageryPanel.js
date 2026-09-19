@@ -113,14 +113,26 @@ export class ImageryPanel {
     if (!this.destroyed) this.render();
   }
 
+  /** Whether one product can be offered right now, given configured credentials. */
+  isProductAvailable(product) {
+    const needs = product?.requiresKey;
+    if (!needs) return true;
+    return this._keyed.get(needs) === true;
+  }
+
   /** Products this slot can actually offer, given configured credentials. */
   _availableSensors(layer) {
-    const all = layer.listSensors();
-    return all.filter((product) => {
-      const needs = product?.requiresKey;
-      if (!needs) return true;
-      return this._keyed.get(needs) === true;
-    });
+    return layer
+      .listSensors()
+      .filter((product) => this.isProductAvailable(product));
+  }
+
+  /** The product key a slot is showing, or null when the slot is off. */
+  activeSensor(slotId) {
+    if (!this._isEnabled(slotId)) return null;
+    const layer = this._layer(slotId);
+    const key = layer?.getSensor?.();
+    return typeof key === 'string' && key ? key : null;
   }
 
   connect() {

@@ -76,6 +76,12 @@ export const RING_ROTATION_MS = 1000;
 
 export const CATALOG_GROUPS = [
   { tag: 'stations', path: 'stations' },
+  // Earth observation ahead of `visual` and `geo` on purpose: Terra and Aqua
+  // are also in the visual group, and the weather birds are also in the
+  // geostationary belt. First tag wins, and what these satellites DO — image
+  // the Earth — is the more useful thing to say about them.
+  { tag: 'weather', path: 'weather' },
+  { tag: 'resource', path: 'resource' },
   { tag: 'visual', path: 'visual' },
   { tag: 'gps-ops', path: 'gps-ops' },
   { tag: 'glonass', path: 'glo-ops' },
@@ -113,6 +119,29 @@ export const HIGH_ORBIT_ALTITUDE_M = 2000000;
 
 export const TRACK_VIEW_FROM_HIGH_SCALE = 4;
 // ≈ 2900 km back for MEO/GEO
+
+/**
+ * Tracked-camera offset for a geostationary IMAGER, east-north-up metres in
+ * the entity's own ENU frame (see TRACK_VIEW_FROM_GEO_IMAGER_FRAME). The
+ * default satellite framing looks along the belt, which for a parked imager
+ * shows a dot against black; this parks the camera ~4,600 km straight
+ * out from the satellite looking back through it, so the disk it stares at
+ * fills the middle of the view with the dot on top of it.
+ */
+export const TRACK_VIEW_FROM_GEO_IMAGER = new Cesium.Cartesian3(
+  0,
+  -800000,
+  4500000,
+);
+
+/**
+ * Satellites are auto-tracked in a velocity-aligned frame, which is right for
+ * a dot crossing the sky and wrong for a parked one: its "forward" is east
+ * along the belt. A geostationary imager is tracked in ENU so "up" is away
+ * from the ground it images.
+ */
+export const TRACK_VIEW_FROM_GEO_IMAGER_FRAME =
+  Cesium.TrackingReferenceFrame.ENU;
 
 /**
  * Shared per-group point styling — single source of truth used by BOTH the
@@ -180,6 +209,21 @@ export const POINT_STYLES = {
     outlineColor: POINT_OUTLINE,
     outlineWidth: 0,
   },
+  // Earth observation: one EARTH OBS colour for both groups, 7 px so an
+  // imaging satellite is findable — it is the one you click for a SENSORS
+  // panel, and there are only ~240 of them among 800 dots.
+  weather: {
+    pixelSize: 7,
+    color: _classColor('weather'),
+    outlineColor: POINT_OUTLINE,
+    outlineWidth: 0,
+  },
+  resource: {
+    pixelSize: 7,
+    color: _classColor('resource'),
+    outlineColor: POINT_OUTLINE,
+    outlineWidth: 0,
+  },
   // Dense-mode extras (Starlink): dim, small, points-only.
   dense: {
     pixelSize: 3,
@@ -212,3 +256,20 @@ export const DOCKED_SCAN_INTERVAL_MS = 1000;
  */
 
 export const CONTEXT_REFRESH_INTERVAL_MS = 1000;
+
+/**
+ * Sensor footprint under a tracked imaging satellite (footprint.js).
+ *
+ * The strip runs back three minutes along the ground track — about 1,300 km
+ * for a low orbiter, enough to read as "the picture being laid down" without
+ * wrapping a hemisphere — sampled every 15 s, and is rebuilt on the same
+ * one-second beat as everything else here. A geostationary imager gets a
+ * disk instead: 60° of Earth-central angle is roughly what an ABI or SEVIRI
+ * full-disk scan covers before the limb foreshortens it to nothing.
+ */
+export const FOOTPRINT_TRAIL_SECONDS = 180;
+export const FOOTPRINT_TRAIL_STEPS = 12;
+export const FOOTPRINT_REFRESH_MS = 1000;
+export const FOOTPRINT_DISK_RADIUS_M = 6371008.8 * Cesium.Math.toRadians(60);
+/** The EARTH OBS class colour, so the footprint reads as that satellite's. */
+export const FOOTPRINT_COLOR = satelliteClassColor('resource');

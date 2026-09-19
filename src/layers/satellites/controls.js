@@ -520,20 +520,13 @@ export function createControls({ state: layerState, services, parts, source }) {
       // Only offered when the ISS is actually in the loaded catalog: a chip
       // promising a live feed from a satellite this layer is not tracking
       // would be a button for something that is not on screen.
-      if (_issStreamOpener && layerState._catalog?.has?.(ISS_NORAD)) {
+      if (methods.canOpenIssStream()) {
         chips.push({
           id: 'iss-stream',
           label: 'ISS LIVE',
           active: false,
           title: `${ISS_STREAM_TITLE} — ${ISS_STREAM_NOTE}`,
-          onClick: () =>
-            _issStreamOpener(ISS_STREAM_URL, {
-              kind: 'video',
-              layerId: 'satellites',
-              title: ISS_STREAM_TITLE,
-              subtitle: 'NASA',
-              note: ISS_STREAM_NOTE,
-            }),
+          onClick: () => methods.openIssStream(),
         });
       }
       return {
@@ -568,6 +561,33 @@ export function createControls({ state: layerState, services, parts, source }) {
     setIssStreamOpener(open) {
       _issStreamOpener = typeof open === 'function' ? open : null;
       _notifyRowControls();
+    },
+
+    /**
+     * Whether the ISS LIVE hand-off can be honoured right now: a shell has
+     * installed an opener and the station is in the loaded catalog.
+     * @returns {boolean}
+     */
+    canOpenIssStream() {
+      return Boolean(_issStreamOpener && layerState._catalog?.has?.(ISS_NORAD));
+    },
+
+    /**
+     * Open NASA's ISS stream through the shell's hand-off. The layer owns the
+     * stream's address and labelling so every button that offers it — the row
+     * chip, the SENSORS panel — opens the same thing the same way.
+     * @returns {boolean} False when there is nothing to open.
+     */
+    openIssStream() {
+      if (!methods.canOpenIssStream()) return false;
+      _issStreamOpener(ISS_STREAM_URL, {
+        kind: 'video',
+        layerId: 'satellites',
+        title: ISS_STREAM_TITLE,
+        subtitle: 'NASA',
+        note: ISS_STREAM_NOTE,
+      });
+      return true;
     },
 
     /**

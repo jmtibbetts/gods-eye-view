@@ -201,6 +201,7 @@ export function createRendering({
       if (pos && point) {
         point.position = layerState._trackedFrameCartesian; // primitive setter clones
       }
+      parts.footprint.tick(now);
     }
 
     _updatePointFocus(now);

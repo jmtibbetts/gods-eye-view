@@ -31,6 +31,11 @@ export function createState({ services }) {
   // its modelMatrix (rigid Z-rotation — no geometry rebuild, WS-D1).
 
   state._orbitPaths = new Map();
+  // Sensor footprint under a tracked imaging satellite (footprint.js).
+  state._footprintEntity = null;
+  state._footprintNorad = null;
+  state._footprintUpdatedAt = 0;
+  state._footprintRing = null;
 
   state._count = 0;
 

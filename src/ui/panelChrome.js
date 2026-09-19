@@ -457,9 +457,12 @@ export class PanelChrome {
     ) {
       this._setRadioDisclosure?.(false);
     }
+    // A panel that lives inside the Context rail is invisible while the rail
+    // is folded, so opening one opens the rail: the receiver when a stream
+    // is handed to it, SENSORS when an imaging satellite is tracked.
     if (
       !nextCollapsed &&
-      panelId === 'radio-panel' &&
+      (panelId === 'radio-panel' || panelId === 'sensors-panel') &&
       document
         .getElementById('global-context-panel')
         ?.classList.contains('collapsed')
