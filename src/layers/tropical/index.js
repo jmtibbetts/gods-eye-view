@@ -1,6 +1,10 @@
 import * as Cesium from 'cesium';
 import { createLayerSelection } from '../../data/layerSelection.js';
 import {
+  createMarkerField,
+  createMarkerFieldLoop,
+} from '../../data/markerField.js';
+import {
   TROPICAL_ENTITY_PREFIX,
   TROPICAL_LAYER_ID,
   TROPICAL_UPDATE_MS,
@@ -60,10 +64,13 @@ export function disturbanceLabelText(disturbance) {
  * @param {object} options
  * @param {{fetchTropical: Function}} options.source
  * @param {object} [options.context] contextStore module.
+ * @param {object|null} [options.ground] Surface ground-floor service, so a
+ *   storm marker sits on the surface rather than at the ellipsoid.
  */
 export function createTropicalLayer({
   source,
   context = null,
+  ground = null,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 } = {}) {
@@ -82,6 +89,12 @@ export function createTropicalLayer({
   const _storms = new Map();
   /** @type {Map<string, object>} */
   const _disturbances = new Map();
+  // A dot drawn through the Earth slides against whatever city you are
+  // looking at as the camera moves; the field floors each marker and hides
+  // the ones behind the horizon, exactly as the audio layers do. Cones and
+  // tracks are ground geometry and need neither.
+  const _field = createMarkerField({ ground });
+  const _fieldLoop = createMarkerFieldLoop(_field, () => _viewer);
 
   /**
    * Resolve a clicked entity id to its storm or disturbance.
@@ -149,6 +162,7 @@ export function createTropicalLayer({
     if (_dataSource) _dataSource.entities.removeAll();
     _storms.clear();
     _disturbances.clear();
+    _field.clear();
   }
 
   function addRegion(region) {
@@ -217,7 +231,7 @@ export function createTropicalLayer({
 
     const entity = _dataSource.entities.add({
       id: entityId(storm.id),
-      position: Cesium.Cartesian3.fromDegrees(storm.lon, storm.lat, 0),
+      position: _field.positionFor(storm.lat, storm.lon),
       point: {
         // Size reads intensity at a glance; a major hurricane should not look
         // like a depression from altitude.
@@ -225,13 +239,13 @@ export function createTropicalLayer({
         color: color.withAlpha(0.95),
         outlineColor: Cesium.Color.BLACK.withAlpha(0.7),
         outlineWidth: 2,
-        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
     });
+    _field.track(storm.id, entity, storm.lat, storm.lon);
     entity.gevTrackedId = entityId(storm.id);
     entity.gevDisplayPosition = () =>
-      Cesium.Cartesian3.fromDegrees(storm.lon, storm.lat, 0);
+      entity.position.getValue(Cesium.JulianDate.now());
     entity.gevLabelModel = {
       title: storm.headline,
       details: [],
@@ -246,23 +260,19 @@ export function createTropicalLayer({
     const color = Cesium.Color.fromCssColorString(disturbance.color);
     const entity = _dataSource.entities.add({
       id: entityId(disturbance.id),
-      position: Cesium.Cartesian3.fromDegrees(
-        disturbance.lon,
-        disturbance.lat,
-        0,
-      ),
+      position: _field.positionFor(disturbance.lat, disturbance.lon),
       point: {
         pixelSize: 9,
         color: color.withAlpha(0.85),
         outlineColor: Cesium.Color.BLACK.withAlpha(0.6),
         outlineWidth: 1,
-        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
     });
+    _field.track(disturbance.id, entity, disturbance.lat, disturbance.lon);
     entity.gevTrackedId = entityId(disturbance.id);
     entity.gevDisplayPosition = () =>
-      Cesium.Cartesian3.fromDegrees(disturbance.lon, disturbance.lat, 0);
+      entity.position.getValue(Cesium.JulianDate.now());
     entity.gevLabelModel = {
       title: `${disturbance.basin} disturbance · ${disturbance.prob7day ?? '—'}% in 7 days`,
       details: [],
@@ -280,6 +290,8 @@ export function createTropicalLayer({
     for (const disturbance of data.disturbances) addDisturbance(disturbance);
     for (const storm of data.storms)
       addStorm(storm, data.geometry?.get(storm.id));
+    _field.warm([...data.disturbances, ...data.storms]);
+    _fieldLoop.refresh({ force: true });
     selection.reconcile();
     _summary = summarize(data);
     _outlookOnly = data.storms.length === 0 && data.disturbances.length > 0;
@@ -329,12 +341,14 @@ export function createTropicalLayer({
       // No fetch here. The manager calls update() the moment enable() settles,
       // so fetching in both meant every enable pulled the feed twice.
       selection.install(viewer || _viewer);
+      _fieldLoop.start();
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      _fieldLoop.stop();
       selection.clear();
       selection.remove();
       clearEntities();

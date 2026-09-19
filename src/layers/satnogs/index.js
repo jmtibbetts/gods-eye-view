@@ -1,6 +1,10 @@
 import * as Cesium from 'cesium';
 import { createLayerSelection } from '../../data/layerSelection.js';
 import {
+  createMarkerField,
+  createMarkerFieldLoop,
+} from '../../data/markerField.js';
+import {
   DEFAULT_SCOPE,
   SATNOGS_ENTITY_PREFIX,
   SATNOGS_LAYER_ID,
@@ -41,10 +45,13 @@ export function stationLabelText(station, now = Date.now()) {
  * @param {object} options
  * @param {{fetchStations: Function}} options.source
  * @param {object} [options.context] contextStore module.
+ * @param {object|null} [options.ground] Surface ground-floor service, so a
+ *   station sits on the terrain rather than at the ellipsoid.
  */
 export function createSatnogsLayer({
   source,
   context = null,
+  ground = null,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 } = {}) {
@@ -62,6 +69,11 @@ export function createSatnogsLayer({
   let _summary = summarizeStations([], scopeFor(DEFAULT_SCOPE));
   /** @type {Map<string, object>} */
   const _stations = new Map();
+  // A dot drawn through the Earth slides against whatever city you are
+  // looking at as the camera moves; the field floors each marker and hides
+  // the ones behind the horizon, exactly as the audio layers do.
+  const _field = createMarkerField({ ground });
+  const _fieldLoop = createMarkerFieldLoop(_field, () => _viewer);
 
   const selection = createLayerSelection({
     layerId: SATNOGS_LAYER_ID,
@@ -98,6 +110,7 @@ export function createSatnogsLayer({
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
     _stations.clear();
+    _field.clear();
   }
 
   function rebuild(stations, scope) {
@@ -107,7 +120,7 @@ export function createSatnogsLayer({
       const color = Cesium.Color.fromCssColorString(station.color);
       const entity = _dataSource.entities.add({
         id: entityId(station.id),
-        position: Cesium.Cartesian3.fromDegrees(station.lon, station.lat, 0),
+        position: _field.positionFor(station.lat, station.lon),
         point: {
           // A live station is bigger as well as brighter, so it stays findable
           // in the ALL scope where four thousand dormant ones surround it.
@@ -115,14 +128,14 @@ export function createSatnogsLayer({
           color: color.withAlpha(station.rank > 0 ? 0.95 : 0.6),
           outlineColor: Cesium.Color.BLACK.withAlpha(0.65),
           outlineWidth: 1,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         properties: { stationId: station.stationId },
       });
+      _field.track(station.id, entity, station.lat, station.lon);
       entity.gevTrackedId = entityId(station.id);
       entity.gevDisplayPosition = () =>
-        Cesium.Cartesian3.fromDegrees(station.lon, station.lat, 0);
+        entity.position.getValue(Cesium.JulianDate.now());
       entity.gevLabelModel = {
         title: `${station.name} · ${station.stateName}`,
         details: [],
@@ -132,6 +145,8 @@ export function createSatnogsLayer({
       };
       _stations.set(station.id, station);
     }
+    _field.warm(stations);
+    _fieldLoop.refresh({ force: true });
     selection.reconcile();
     _summary = summarizeStations(stations, scope);
   }
@@ -183,12 +198,14 @@ export function createSatnogsLayer({
       // No fetch here. The manager calls update() the moment enable() settles,
       // so fetching in both meant every enable pulled the feed twice.
       selection.install(viewer || _viewer);
+      _fieldLoop.start();
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      _fieldLoop.stop();
       selection.clear();
       selection.remove();
       clearEntities();

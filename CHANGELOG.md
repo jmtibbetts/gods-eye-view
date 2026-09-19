@@ -1,5 +1,16 @@
 # Changelog
 
+- Stop dots drawing through the Earth and sliding as the camera moves. A
+  point drawn with the depth test off is painted even when the planet is
+  between it and the camera, so a worldwide field of them — SatNOGS stations,
+  GLM lightning, volcano alerts, storm reports, river gauges, storm markers —
+  projected its far side onto whatever city was on screen, and those ghosts
+  slid against the terrain with every camera move. The audio layers solved
+  this long ago with the shared marker field: each dot is floored on the
+  terrain and hidden behind the horizon. The six layers now use it, through
+  one shared tick loop rather than a seventh inline copy, and a test keeps a
+  depth-test-free point from shipping any other way.
+
 - Stop the weather radar from papering the map with "Zoom Level Not Supported".
   RainViewer serves radar to zoom 7 and answers deeper requests with an HTTP
   200 placeholder tile carrying that text, which Cesium painted as if it were

@@ -1,6 +1,10 @@
 import * as Cesium from 'cesium';
 import { createLayerSelection } from '../../data/layerSelection.js';
 import {
+  createMarkerField,
+  createMarkerFieldLoop,
+} from '../../data/markerField.js';
+import {
   LIGHTNING_ENTITY_PREFIX,
   LIGHTNING_LAYER_ID,
   LIGHTNING_UPDATE_MS,
@@ -34,10 +38,13 @@ export function flashLabelText(flash) {
  * @param {object} options
  * @param {{fetchFlashes: Function}} options.source
  * @param {object} [options.context] contextStore module.
+ * @param {object|null} [options.ground] Surface ground-floor service, so a
+ *   flash sits on the terrain rather than at the ellipsoid.
  */
 export function createLightningLayer({
   source,
   context = null,
+  ground = null,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 } = {}) {
@@ -53,6 +60,11 @@ export function createLightningLayer({
   let _summary = summarizeFlashes(Object.assign([], { meta: null }));
   /** @type {Map<string, object>} */
   const _flashes = new Map();
+  // A dot drawn through the Earth slides against whatever city you are
+  // looking at as the camera moves; the field floors each marker and hides
+  // the ones behind the horizon, exactly as the audio layers do.
+  const _field = createMarkerField({ ground });
+  const _fieldLoop = createMarkerFieldLoop(_field, () => _viewer);
 
   const selection = createLayerSelection({
     layerId: LIGHTNING_LAYER_ID,
@@ -79,6 +91,7 @@ export function createLightningLayer({
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
     _flashes.clear();
+    _field.clear();
   }
 
   function rebuild(flashes) {
@@ -88,20 +101,20 @@ export function createLightningLayer({
       const color = Cesium.Color.fromCssColorString(flash.color);
       const entity = _dataSource.entities.add({
         id: entityId(flash.id),
-        position: Cesium.Cartesian3.fromDegrees(flash.lon, flash.lat, 0),
+        position: _field.positionFor(flash.lat, flash.lon),
         point: {
           pixelSize: flash.size,
           color: color.withAlpha(0.95),
           outlineColor:
             Cesium.Color.fromCssColorString('#2a4a6a').withAlpha(0.5),
           outlineWidth: 1,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
       });
+      _field.track(flash.id, entity, flash.lat, flash.lon);
       entity.gevTrackedId = entityId(flash.id);
       entity.gevDisplayPosition = () =>
-        Cesium.Cartesian3.fromDegrees(flash.lon, flash.lat, 0);
+        entity.position.getValue(Cesium.JulianDate.now());
       entity.gevLabelModel = {
         title: `${flash.bandName} lightning · ${flash.satelliteName}`,
         details: [],
@@ -111,6 +124,8 @@ export function createLightningLayer({
       };
       _flashes.set(flash.id, flash);
     }
+    _field.warm(flashes);
+    _fieldLoop.refresh({ force: true });
     selection.reconcile();
     _summary = summarizeFlashes(flashes);
   }
@@ -157,12 +172,14 @@ export function createLightningLayer({
       // No fetch here. The manager calls update() the moment enable() settles,
       // so fetching in both meant every enable pulled the feed twice.
       selection.install(viewer || _viewer);
+      _fieldLoop.start();
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      _fieldLoop.stop();
       selection.clear();
       selection.remove();
       clearEntities();

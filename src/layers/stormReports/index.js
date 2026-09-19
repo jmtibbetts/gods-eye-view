@@ -1,6 +1,10 @@
 import * as Cesium from 'cesium';
 import { isPointerFree } from '../../data/inputOwnership.js';
 import {
+  createMarkerField,
+  createMarkerFieldLoop,
+} from '../../data/markerField.js';
+import {
   isOwnedByOtherLayer,
   registerPickOwner,
   resolvePickId,
@@ -48,11 +52,14 @@ function reportLabelText(report) {
  * @param {object} options
  * @param {{getSnapshot: Function}} options.source
  * @param {object} [options.context] contextStore module (register/select/clear)
+ * @param {object|null} [options.ground] Surface ground-floor service, so a
+ *   report sits on the terrain rather than at the ellipsoid.
  * @param {(viewer:any) => Cesium.ScreenSpaceEventHandler} [options.screenSpaceEventHandlerFactory]
  */
 export function createStormReportsLayer({
   source,
   context = null,
+  ground = null,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 } = {}) {
@@ -73,10 +80,16 @@ export function createStormReportsLayer({
   let _selectedId = null;
   /** @type {Map<string, object>} */
   const _reports = new Map();
+  // A dot drawn through the Earth slides against whatever city you are
+  // looking at as the camera moves; the field floors each marker and hides
+  // the ones behind the horizon, exactly as the audio layers do.
+  const _field = createMarkerField({ ground });
+  const _fieldLoop = createMarkerFieldLoop(_field, () => _viewer);
 
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
     _reports.clear();
+    _field.clear();
   }
 
   function rebuild(reports) {
@@ -87,19 +100,19 @@ export function createStormReportsLayer({
       const color = Cesium.Color.fromCssColorString(kindColor(report.kind));
       const entity = _dataSource.entities.add({
         id: entityId(report.id),
-        position: Cesium.Cartesian3.fromDegrees(report.lon, report.lat, 0),
+        position: _field.positionFor(report.lat, report.lon),
         point: {
           pixelSize: (KIND_RANK[report.kind] || 1) >= 3 ? 12 : 8,
           color: color.withAlpha(0.95),
           outlineColor: Cesium.Color.BLACK.withAlpha(0.65),
           outlineWidth: 1,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
       });
+      _field.track(report.id, entity, report.lat, report.lon);
       entity.gevTrackedId = entityId(report.id);
       entity.gevDisplayPosition = () =>
-        Cesium.Cartesian3.fromDegrees(report.lon, report.lat, 0);
+        entity.position.getValue(Cesium.JulianDate.now());
       entity.gevLabelModel = {
         title: `${KIND_LABELS[report.kind] || report.kind} · ${report.magnitudeText}`,
         details: [],
@@ -108,6 +121,8 @@ export function createStormReportsLayer({
         selected: true,
       };
     }
+    _field.warm(reports);
+    _fieldLoop.refresh({ force: true });
     _count = _reports.size;
   }
 
@@ -213,12 +228,14 @@ export function createStormReportsLayer({
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
       installInput(viewer || _viewer);
+      _fieldLoop.start();
     },
 
     disable() {
       _request?.abort();
       _request = null;
       _enabled = false;
+      _fieldLoop.stop();
       clearSelection();
       removeInput();
       if (_dataSource) _dataSource.show = false;

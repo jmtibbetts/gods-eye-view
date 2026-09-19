@@ -1,6 +1,10 @@
 import * as Cesium from 'cesium';
 import { isPointerFree } from '../../data/inputOwnership.js';
 import {
+  createMarkerField,
+  createMarkerFieldLoop,
+} from '../../data/markerField.js';
+import {
   isOwnedByOtherLayer,
   registerPickOwner,
   resolvePickId,
@@ -39,11 +43,14 @@ function volcanoLabelText(volcano) {
  * @param {object} options
  * @param {{getSnapshot: Function}} options.source
  * @param {object} [options.context] contextStore module (register/select/clear)
+ * @param {object|null} [options.ground] Surface ground-floor service, so a
+ *   volcano marker sits on the terrain rather than at the ellipsoid.
  * @param {(viewer:any) => Cesium.ScreenSpaceEventHandler} [options.screenSpaceEventHandlerFactory]
  */
 export function createVolcanoesLayer({
   source,
   context = null,
+  ground = null,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 } = {}) {
@@ -64,10 +71,16 @@ export function createVolcanoesLayer({
   let _selectedId = null;
   /** @type {Map<string, object>} */
   const _volcanoes = new Map();
+  // A dot drawn through the Earth slides against whatever city you are
+  // looking at as the camera moves; the field floors each marker and hides
+  // the ones behind the horizon, exactly as the audio layers do.
+  const _field = createMarkerField({ ground });
+  const _fieldLoop = createMarkerFieldLoop(_field, () => _viewer);
 
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
     _volcanoes.clear();
+    _field.clear();
   }
 
   function rebuild(volcanoes) {
@@ -80,19 +93,19 @@ export function createVolcanoesLayer({
       );
       const entity = _dataSource.entities.add({
         id: entityId(volcano.id),
-        position: Cesium.Cartesian3.fromDegrees(volcano.lon, volcano.lat, 0),
+        position: _field.positionFor(volcano.lat, volcano.lon),
         point: {
           pixelSize: 10 + volcano.colorRank * 2,
           color: color.withAlpha(0.95),
           outlineColor: Cesium.Color.BLACK.withAlpha(0.7),
           outlineWidth: 1,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
       });
+      _field.track(volcano.id, entity, volcano.lat, volcano.lon);
       entity.gevTrackedId = entityId(volcano.id);
       entity.gevDisplayPosition = () =>
-        Cesium.Cartesian3.fromDegrees(volcano.lon, volcano.lat, 0);
+        entity.position.getValue(Cesium.JulianDate.now());
       entity.gevLabelModel = {
         title: `${volcano.name} · ${volcano.colorCode}`,
         details: [],
@@ -101,6 +114,8 @@ export function createVolcanoesLayer({
         selected: true,
       };
     }
+    _field.warm(volcanoes);
+    _fieldLoop.refresh({ force: true });
     _count = _volcanoes.size;
   }
 
@@ -203,12 +218,14 @@ export function createVolcanoesLayer({
       _enabled = true;
       if (_dataSource) _dataSource.show = true;
       installInput(viewer || _viewer);
+      _fieldLoop.start();
     },
 
     disable() {
       _request?.abort();
       _request = null;
       _enabled = false;
+      _fieldLoop.stop();
       clearSelection();
       removeInput();
       if (_dataSource) _dataSource.show = false;

@@ -1,6 +1,10 @@
 import * as Cesium from 'cesium';
 import { createLayerSelection } from '../../data/layerSelection.js';
 import {
+  createMarkerField,
+  createMarkerFieldLoop,
+} from '../../data/markerField.js';
+import {
   DEFAULT_HORIZON,
   FLOOD_HORIZONS,
   RIVER_FLOOD_ENTITY_PREFIX,
@@ -65,10 +69,13 @@ export function gaugeLabelText(gauge) {
  * @param {object} options
  * @param {{fetchGauges: Function}} options.source
  * @param {object} [options.context] contextStore module.
+ * @param {object|null} [options.ground] Surface ground-floor service, so a
+ *   gauge sits on the terrain rather than at the ellipsoid.
  */
 export function createRiverFloodLayer({
   source,
   context = null,
+  ground = null,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 } = {}) {
@@ -86,6 +93,11 @@ export function createRiverFloodLayer({
   let _summary = summarizeGauges([], horizonFor(DEFAULT_HORIZON));
   /** @type {Map<string, object>} */
   const _gauges = new Map();
+  // A dot drawn through the Earth slides against whatever city you are
+  // looking at as the camera moves; the field floors each marker and hides
+  // the ones behind the horizon, exactly as the audio layers do.
+  const _field = createMarkerField({ ground });
+  const _fieldLoop = createMarkerFieldLoop(_field, () => _viewer);
 
   const selection = createLayerSelection({
     layerId: RIVER_FLOOD_LAYER_ID,
@@ -124,6 +136,7 @@ export function createRiverFloodLayer({
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
     _gauges.clear();
+    _field.clear();
   }
 
   function rebuild(gauges, horizon) {
@@ -133,7 +146,7 @@ export function createRiverFloodLayer({
       const color = Cesium.Color.fromCssColorString(gauge.color);
       const entity = _dataSource.entities.add({
         id: entityId(gauge.id),
-        position: Cesium.Cartesian3.fromDegrees(gauge.lon, gauge.lat, 0),
+        position: _field.positionFor(gauge.lat, gauge.lon),
         point: {
           // Severity reads as size as well as colour, so a major flood is
           // findable on a zoomed-out map without hunting for a purple dot.
@@ -141,14 +154,14 @@ export function createRiverFloodLayer({
           color: color.withAlpha(0.95),
           outlineColor: Cesium.Color.BLACK.withAlpha(0.65),
           outlineWidth: 1,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         properties: { gaugeId: gauge.gaugeId },
       });
+      _field.track(gauge.id, entity, gauge.lat, gauge.lon);
       entity.gevTrackedId = entityId(gauge.id);
       entity.gevDisplayPosition = () =>
-        Cesium.Cartesian3.fromDegrees(gauge.lon, gauge.lat, 0);
+        entity.position.getValue(Cesium.JulianDate.now());
       entity.gevLabelModel = {
         title: `${gauge.statusName} · ${gauge.location || gauge.gaugeId}`,
         details: [],
@@ -158,6 +171,8 @@ export function createRiverFloodLayer({
       };
       _gauges.set(gauge.id, gauge);
     }
+    _field.warm(gauges);
+    _fieldLoop.refresh({ force: true });
     selection.reconcile();
     _summary = summarizeGauges(gauges, horizon);
   }
@@ -210,12 +225,14 @@ export function createRiverFloodLayer({
       // No fetch here. The manager calls update() the moment enable() settles,
       // so fetching in both meant every enable pulled the feed twice.
       selection.install(viewer || _viewer);
+      _fieldLoop.start();
     },
 
     disable() {
       _enabled = false;
       _abort?.abort();
       _abort = null;
+      _fieldLoop.stop();
       selection.clear();
       selection.remove();
       clearEntities();

@@ -125,3 +125,57 @@ export function createMarkerField({ ground = null, liftM = 2.5 } = {}) {
     },
   };
 }
+
+/**
+ * The glue around a marker field that each audio layer carries inline: a tick
+ * that re-floors markers whose ground has warmed since they were placed and
+ * horizon-culls the field once the camera has moved. Six static point layers
+ * shipped with neither — every dot drew through the Earth and slid against
+ * the terrain as the camera moved — so the glue is shared now rather than
+ * copied a seventh time.
+ *
+ * `cull` is cheap when the camera is still (one pose-signature compare), so
+ * a 250 ms interval costs nothing between moves and never misses one.
+ *
+ * @param {ReturnType<typeof createMarkerField>} field
+ * @param {() => any} getViewer The live viewer, or null before init.
+ * @param {{intervalMs?: number, repositionEvery?: number}} [options]
+ */
+export function createMarkerFieldLoop(
+  field,
+  getViewer,
+  { intervalMs = 250, repositionEvery = 8 } = {},
+) {
+  let _timer = null;
+  let _ticks = 0;
+
+  /**
+   * One pass: re-floor every `repositionEvery`th tick, then cull.
+   * @returns {string[]|null} Visible ids nearest first, or null when the
+   *   camera has not moved (and nothing was re-floored).
+   */
+  function refresh({ force = false } = {}) {
+    const viewer = getViewer();
+    if (!viewer?.camera) return null;
+    _ticks++;
+    const moved = _ticks % repositionEvery === 0 && field.reposition() > 0;
+    const visible = field.cull(viewer.camera, { force: force || moved });
+    if (moved) viewer.scene?.requestRender?.();
+    return visible;
+  }
+
+  return {
+    refresh,
+    start() {
+      if (_timer == null && typeof setInterval === 'function')
+        _timer = setInterval(() => refresh(), intervalMs);
+      refresh({ force: true });
+    },
+    stop() {
+      if (_timer != null) clearInterval(_timer);
+      _timer = null;
+      _ticks = 0;
+    },
+    running: () => _timer != null,
+  };
+}
