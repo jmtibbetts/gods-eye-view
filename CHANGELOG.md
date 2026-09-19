@@ -1,5 +1,27 @@
 # Changelog
 
+- Launch day, all of it. A new Flight Restrictions layer, the 42nd, draws
+  every FAA temporary flight restriction in force as the polygon it closes,
+  coloured by kind with the launch closures on top and chips to show one
+  kind alone. The FAA publishes a TFR in three places — a list, a shapes
+  service and a detail page that alone carries the times and the altitude
+  block — and none of them speaks CORS, so a proxy merges them into one
+  record per NOTAM, fetching the detail page for space operations only;
+  those carry start and end to the minute, the rest carry the day their
+  list title names, and every card says which it is. The LAUNCH panel
+  grows a RANGE section on each launch: the space-operations closures
+  within 250 km of the pad with the NOTAM's own window (a closure opens
+  hours before the launch window and is often the firmest public sign of
+  when an operator means to fly), SHOW turning the layer on and flying to
+  it; and the droneship the booster is coming back to — named when Launch
+  Library names it, otherwise the ships that work that coast — one WATCH
+  from the WATCHLIST, pinned by MMSI because the barges broadcast their
+  hull names, with Live Vessels switched on. ALERT T−10 sets a
+  browser notification ten minutes before net, asks for permission once,
+  fires exactly on the crossing, and becomes a toast when notifications
+  are refused. Outside the FAA's airspace the panel says so rather than
+  showing nothing.
+
 - Space weather, on the globe and in the row. A new keyless layer reads
   four NOAA SWPC feeds directly — the OVATION aurora probability grid, the
   planetary K index, the R/S/G scales and the alerts — and drapes the

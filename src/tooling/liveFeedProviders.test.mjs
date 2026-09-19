@@ -14,6 +14,15 @@ import {
   trimDomestic,
   trimInternational,
 } from '../../server/providers/aviation.js';
+import {
+  createTfrLoader,
+  mergeTfrs,
+  notamIdOf,
+  parseFaaDate,
+  parseTfrText,
+  tfrPageUrl,
+  windowFromTitle,
+} from '../../server/providers/tfr.js';
 import { aggregate } from '../../server/providers/conflict.js';
 import { hourPrefix } from '../../server/providers/lightning.js';
 import {
@@ -318,6 +327,207 @@ test('domestic and international rows normalize to one record shape', () => {
   assert.equal(intl.low, 0, 'a surface base is a real reading');
   assert.equal(dom.low, null, 'an absent base stays absent');
   assert.equal(dom.origin, 'domestic');
+});
+
+// ------------------------------------------------------------------------- tfr
+
+const TFR_DETAIL_HTML = `<Table><TR><TD>NOTAM Number     :</TD><TD>FDC 6/2736</TD></TR>
+<TR><TD>Issue Date     :</TD><TD>September 14, 2026 at 1210 UTC</TD></TR>
+<TR><TD>Location     :</TD><TD>36 ZLC AIRSPACE BLACK ROCK, Nevada near LOVELOCK VORTAC (LLC)</TD></TR>
+<TR><TD>Beginning Date and Time     :</TD><TD>September 20, 2026 at 1400 UTC</TD></TR>
+<TR><TD>Ending Date and Time     :</TD><TD>September 21, 2026 at 0600 UTC</TD></TR>
+<TR><TD>Reason for NOTAM     :</TD><TD>TO PROVIDE A SAFE ENVIRONMENT FOR ROCKET LAUNCH ACT</TD></TR>
+<TR><TD>Type     :</TD><TD>Space Operations</TD></TR>
+<TR><TD>Pilots May Contact     :</TD><TD>SALT LAKE (ZLC) ARTCC, 801-320-2560</TD></TR>
+<TR><TD>Jump To: Affected Areas</TD></TR>
+<TR><TD>Affected Area(s)</TD></TR><TR><TD>Airspace Definition: Center: On the LOVELOCK VORTAC (LLC) 319 degree radial at 50 nautical miles. Radius: 15 nautical miles</TD></TR>
+<TR><TD>Altitude: From the surface up to Unlimited</TD></TR>
+<TR><TD>Effective Date(s): From September 20, 2026 at 1400 UTC To September 21, 2026 at 0600 UTC</TD></TR>
+<TR><TD>ENDSECTION1</TD></TR></Table>`;
+
+const ring = (lon, lat) => [
+  [lon - 0.2, lat - 0.2],
+  [lon + 0.2, lat - 0.2],
+  [lon + 0.2, lat + 0.2],
+  [lon - 0.2, lat + 0.2],
+  [lon - 0.2, lat - 0.2],
+];
+const feature = (key, gid, lon, lat, legal = 'SPACE OPERATIONS') => ({
+  type: 'Feature',
+  geometry: { type: 'Polygon', coordinates: [ring(lon, lat)] },
+  properties: { GID: gid, NOTAM_KEY: key, LEGAL: legal, TITLE: 't' },
+});
+
+test('FAA dates, NOTAM keys and list titles parse the way the FAA writes them', () => {
+  assert.equal(
+    parseFaaDate('September 20, 2026 at 1400 UTC'),
+    '2026-09-20T14:00:00.000Z',
+  );
+  assert.equal(parseFaaDate('September 20, 2026'), '2026-09-20T00:00:00.000Z');
+  assert.equal(parseFaaDate('Septober 20, 2026'), null);
+  assert.equal(parseFaaDate(null), null);
+  assert.equal(notamIdOf('6/2736-1-FDC-F'), '6/2736');
+  assert.equal(notamIdOf('6/2736'), '6/2736');
+  assert.equal(notamIdOf('nope'), null);
+  assert.equal(
+    tfrPageUrl('6/2736'),
+    'https://tfr.faa.gov/tfr3/?page=detail_6_2736',
+  );
+  const two = windowFromTitle(
+    'Thurmont, MD, Saturday, September 19, 2026 through Sunday, September 20, 2026 Local',
+  );
+  assert.equal(two.begins, '2026-09-19T00:00:00.000Z');
+  assert.equal(
+    two.ends,
+    '2026-09-20T23:59:00.000Z',
+    'through the day means the end of it',
+  );
+  assert.equal(two.local, true);
+  const one = windowFromTitle(
+    'Virginia Beach, VA, Saturday, September 19, 2026 UTC',
+  );
+  assert.equal(one.begins, '2026-09-19T00:00:00.000Z');
+  assert.equal(one.ends, '2026-09-19T23:59:00.000Z');
+  assert.equal(one.local, false);
+  assert.deepEqual(windowFromTitle('no dates here'), {
+    begins: null,
+    ends: null,
+    local: false,
+  });
+});
+
+test('a NOTAM detail page yields its times, altitude, reason and contact', () => {
+  const detail = parseTfrText(TFR_DETAIL_HTML);
+  assert.equal(detail.begins, '2026-09-20T14:00:00.000Z');
+  assert.equal(detail.ends, '2026-09-21T06:00:00.000Z');
+  assert.equal(detail.issued, '2026-09-14T12:10:00.000Z');
+  assert.equal(detail.altitude, 'From the surface up to Unlimited');
+  assert.equal(
+    detail.reason,
+    'TO PROVIDE A SAFE ENVIRONMENT FOR ROCKET LAUNCH ACT',
+  );
+  assert.match(detail.location, /^36 ZLC AIRSPACE BLACK ROCK/);
+  assert.equal(detail.contact, 'SALT LAKE (ZLC) ARTCC, 801-320-2560');
+  const empty = parseTfrText('<p>nothing useful</p>');
+  assert.equal(empty.begins, null);
+  assert.equal(empty.altitude, null);
+});
+
+test('list rows and shapes merge by NOTAM number; a shape without a row is dropped, a row without a shape is kept', () => {
+  const list = [
+    {
+      notam_id: '6/2736',
+      type: 'SPACE OPERATIONS',
+      facility: 'ZLC',
+      state: 'NV',
+      description:
+        '36 ZLC AIRSPACE BLACK ROCK, NV, Sunday, September 20, 2026 through Monday, September 21, 2026 UTC',
+      mod_abs_time: '202609141210',
+    },
+    {
+      notam_id: '6/3002',
+      type: 'SECURITY',
+      facility: 'ZDC',
+      state: 'MD',
+      description:
+        'Thurmont, MD, Saturday, September 19, 2026 through Sunday, September 20, 2026 Local',
+    },
+    {
+      notam_id: '6/4444',
+      type: 'HAZARDS',
+      description: 'Somewhere, September 19, 2026 UTC',
+    },
+    { notam_id: 'garbage' },
+  ];
+  const shapes = {
+    features: [
+      feature('6/2736-1-FDC-F', 233535, -119.0470123456, 40.87809199),
+      feature('6/3002-1-FDC-F', 1, -77.4, 39.6, 'SECURITY'),
+      feature('6/3002-2-FDC-F', 2, -77.5, 39.7, 'SECURITY'),
+      feature('6/7777-1-FDC-F', 3, -100, 40, 'VIP'),
+      {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [0, 0] },
+        properties: { NOTAM_KEY: '6/2736-9-FDC-F' },
+      },
+    ],
+  };
+  const details = new Map([['6/2736', parseTfrText(TFR_DETAIL_HTML)]]);
+  const merged = mergeTfrs(list, shapes, details);
+  assert.deepEqual(
+    merged.map((t) => t.id),
+    ['6/2736', '6/3002', '6/4444'],
+  );
+  const space = merged[0];
+  assert.equal(space.timesExact, true);
+  assert.equal(space.begins, '2026-09-20T14:00:00.000Z');
+  assert.equal(space.modifiedAt, '2026-09-14T12:10:00.000Z');
+  assert.equal(space.areas.length, 1, 'the point geometry is not an area');
+  assert.equal(space.areas[0].ring[0], -119.24701, 'five decimals, a metre');
+  assert.ok(Math.abs(space.centre.lat - 40.878) < 0.01);
+  const sec = merged[1];
+  assert.equal(sec.areas.length, 2, 'two areas under one NOTAM stay together');
+  assert.equal(sec.timesExact, false);
+  assert.equal(sec.localTime, true);
+  assert.equal(sec.begins, '2026-09-19T00:00:00.000Z');
+  assert.equal(sec.altitude, null);
+  assert.equal(merged[2].areas.length, 0, 'listed, drawn nowhere');
+  assert.equal(merged[2].centre, null);
+});
+
+test('the loader fetches the list and shapes, details for space operations only, and shrugs off a detail failure', async () => {
+  const urls = [];
+  const load = createTfrLoader({
+    now: () => Date.parse('2026-09-19T00:00:00Z'),
+    fetchImpl: async (url) => {
+      urls.push(String(url));
+      const u = String(url);
+      const json = (body) => ({ ok: true, json: async () => body });
+      if (u.includes('getTfrList'))
+        return json([
+          {
+            notam_id: '6/2736',
+            type: 'SPACE OPERATIONS',
+            description: 'x, September 20, 2026 UTC',
+          },
+          {
+            notam_id: '6/2735',
+            type: 'SPACE OPERATIONS',
+            description: 'y, September 19, 2026 UTC',
+          },
+          {
+            notam_id: '6/3002',
+            type: 'SECURITY',
+            description: 'z, September 19, 2026 Local',
+          },
+        ]);
+      if (u.includes('geoserver'))
+        return json({ features: [feature('6/2736-1-FDC-F', 1, -119, 40.9)] });
+      if (u.includes('getWebText?notamId=6%2F2736'))
+        return json([{ notam_id: '6/2736', text: TFR_DETAIL_HTML }]);
+      return { ok: false, status: 500, json: async () => ({}) };
+    },
+  });
+  const body = await load();
+  assert.equal(body.fetchedAt, '2026-09-19T00:00:00.000Z');
+  assert.equal(body.tfrs.length, 3);
+  assert.equal(
+    urls.filter((u) => u.includes('getWebText')).length,
+    2,
+    'space ops only',
+  );
+  assert.equal(body.tfrs[0].timesExact, true);
+  assert.equal(
+    body.tfrs[1].timesExact,
+    false,
+    'its detail page failed; the title dates stand',
+  );
+  assert.equal(body.tfrs[2].timesExact, false);
+
+  const down = createTfrLoader({
+    fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }),
+  });
+  await assert.rejects(() => down(), /HTTP 503/);
 });
 
 // -------------------------------------------------------------------- conflict

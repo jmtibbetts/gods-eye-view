@@ -1137,6 +1137,15 @@ export class StyleManager extends ShellFacade {
       scanner: () => this.services.scannerLayer || null,
       atc: () => this.services.atcLayer || null,
       sdr: () => this.services.sdrLayer || null,
+      tfr: () => this.services.tfrLayer || null,
+      pinWatch: (value) => this._watchlistPanel?.add?.(value) ?? false,
+      storage: (() => {
+        try {
+          return globalThis.localStorage ?? null;
+        } catch {
+          return null;
+        }
+      })(),
       enableLayer: (layerId) =>
         this._dataManager?.setEnabled?.(layerId, true, { origin: 'user' }),
       isLayerEnabled: (layerId) => {

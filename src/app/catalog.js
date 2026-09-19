@@ -14,6 +14,7 @@ const CONTROL_LAYER_IDS = Object.freeze({
   scannerLayer: 'scanner',
   sdrLayer: 'sdr',
   atcLayer: 'atc',
+  tfrLayer: 'tfr',
 });
 
 /** Capture the ordered application instances and their serialization metadata. */

@@ -3,6 +3,7 @@ import { celestrakProxy, rocketLaunchesProxy } from './space.js';
 import { tomtomProxy } from './traffic.js';
 import { firmsProxy } from './firms.js';
 import { aviationProxy } from './aviation.js';
+import { tfrProxy } from './tfr.js';
 import { conflictProxy } from './conflict.js';
 import { copernicusProxy } from './copernicus.js';
 import { lightningProxy } from './lightning.js';
@@ -35,6 +36,7 @@ function localProviderPlugins() {
     tomtomProxy(),
     firmsProxy(),
     aviationProxy(),
+    tfrProxy(),
     conflictProxy(),
     copernicusProxy(),
     lightningProxy(),

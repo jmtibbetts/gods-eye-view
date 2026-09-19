@@ -2,10 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   AIRBAND_HZ,
+  LAUNCH_ALERT_LEAD_MS,
   LAUNCH_WATCH_FLOWN_LINGER_MS,
+  RECOVERY_VESSELS,
   countdownText,
+  crossedLead,
   distanceKm,
   launchPhase,
+  recoveryFleet,
   listenSourcesFor,
   normalizeLaunchWatch,
   phaseLabel,
@@ -250,4 +254,62 @@ test('listen sources are what a radio near the pad can hear, each labelled for w
     sdr: [],
   });
   assert.ok(Math.abs(distanceKm(28.608, -80.604, 28.4676, -80.5666) - 16) < 1);
+});
+
+test('the recovery fleet is the droneship named, or the coast\'s ships when it is not yet', () => {
+  const stage = (over = {}) => ({
+    launcher: { serial_number: 'B1093' },
+    reused: true,
+    landing: {
+      attempt: true,
+      type: { abbrev: 'ASDS', name: 'Autonomous Spaceport Drone Ship' },
+      location: null,
+      ...over,
+    },
+  });
+  const west = normalizeLaunchWatch([
+    { id: 'w', net: '2026-09-20T01:47:00Z', pad: { location: { name: 'Vandenberg SFB, CA, USA' } }, rocket: { launcher_stage: [stage()] } },
+  ])[0];
+  assert.deepEqual(west.landings, [
+    { serial: 'B1093', reused: true, attempt: true, type: 'ASDS', typeName: 'Autonomous Spaceport Drone Ship', locationAbbrev: null, locationName: null },
+  ]);
+  assert.deepEqual(recoveryFleet(west).map((v) => v.abbrev), ['OCISLY']);
+  assert.equal(recoveryFleet(west)[0].name, RECOVERY_VESSELS.OCISLY.name);
+  assert.equal(recoveryFleet(west)[0].mmsi, '368351350');
+  assert.equal(recoveryFleet(west)[0].ais, 'MARMAC 304');
+  for (const ship of Object.values(RECOVERY_VESSELS))
+    assert.match(ship.mmsi, /^\d{9}$/, 'a US MMSI, nine digits');
+  assert.match(recoveryFleet(west)[0].why, /B1093 lands on a droneship/);
+
+  const east = normalizeLaunchWatch([
+    { id: 'e', net: '2026-09-20T01:47:00Z', pad: { location: { name: 'Cape Canaveral SFS, FL, USA' } }, rocket: { launcher_stage: [stage()] } },
+  ])[0];
+  assert.deepEqual(recoveryFleet(east).map((v) => v.abbrev), ['JRTI', 'ASOG']);
+
+  const named = normalizeLaunchWatch([
+    { id: 'n', net: '2026-09-20T01:47:00Z', pad: { location: { name: 'Cape Canaveral SFS, FL, USA' } }, rocket: { launcher_stage: [stage({ location: { abbrev: 'ASOG', name: 'A Shortfall of Gravitas' } })] } },
+  ])[0];
+  assert.deepEqual(recoveryFleet(named).map((v) => v.abbrev), ['ASOG']);
+  assert.equal(recoveryFleet(named)[0].why, 'B1093 lands on it');
+
+  // A return to the landing zone, an ocean splashdown and no stages at all: nothing to watch.
+  const rtls = normalizeLaunchWatch([
+    { id: 'r', net: '2026-09-20T01:47:00Z', pad: { location: { name: 'Cape Canaveral SFS, FL, USA' } }, rocket: { launcher_stage: [stage({ type: { abbrev: 'RTLS', name: 'Return to Launch Site' } })] } },
+  ])[0];
+  assert.deepEqual(recoveryFleet(rtls), []);
+  assert.deepEqual(recoveryFleet({ landings: [], siteName: 'Cape Canaveral SFS, FL, USA' }), []);
+  assert.deepEqual(recoveryFleet(null), []);
+});
+
+test('the T−10 reminder fires once, on the crossing, and at once when set late', () => {
+  const net = '2026-09-20T01:47:00Z';
+  const T = Date.parse(net);
+  const lead = LAUNCH_ALERT_LEAD_MS;
+  assert.equal(crossedLead({ net }, T - lead - 1000, T - lead + 1000), true, 'the crossing tick');
+  assert.equal(crossedLead({ net }, T - lead + 1000, T - lead + 2000), false, 'already inside: not again');
+  assert.equal(crossedLead({ net }, T - lead - 2000, T - lead - 1000), false, 'not yet');
+  assert.equal(crossedLead({ net }, NaN, T - 300_000), true, 'first tick inside the lead');
+  assert.equal(crossedLead({ net }, T - 1000, T + 1000), false, 'net has passed: nothing to remind');
+  assert.equal(crossedLead({ net: null }, NaN, T), false);
+  assert.equal(crossedLead({ net }, T - 3700_000, T - 1800_000, 3600_000), true, 'a custom lead');
 });

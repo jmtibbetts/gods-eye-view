@@ -256,6 +256,14 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     url: 'https://aviationweather.gov',
   }),
   Object.freeze({
+    id: 'faa-tfr',
+    layers: Object.freeze(['tfr']),
+    title: 'FAA TEMPORARY FLIGHT RESTRICTIONS',
+    feeds:
+      'Flight Restrictions — every TFR in force with its shape; launch closures to the minute',
+    url: 'https://tfr.faa.gov',
+  }),
+  Object.freeze({
     id: 'noaa-glm',
     layers: Object.freeze(['lightning']),
     title: 'NOAA GOES LIGHTNING MAPPER',

@@ -113,6 +113,21 @@ export function normalizeLaunchWatch(payload) {
             return a.embedUrl ? -1 : 1;
           return b.priority - a.priority;
         });
+      const landings = (
+        Array.isArray(launch.rocket?.launcher_stage)
+          ? launch.rocket.launcher_stage
+          : []
+      )
+        .map((stage) => ({
+          serial: stage?.launcher?.serial_number || null,
+          reused: stage?.reused === true,
+          attempt: stage?.landing?.attempt === true,
+          type: stage?.landing?.type?.abbrev || null,
+          typeName: stage?.landing?.type?.name || null,
+          locationAbbrev: stage?.landing?.location?.abbrev || null,
+          locationName: stage?.landing?.location?.name || null,
+        }))
+        .filter((l) => l.attempt || l.type);
       const updates = Array.isArray(launch.updates) ? launch.updates : [];
       const latest = updates
         .map((u) => ({
@@ -152,6 +167,7 @@ export function normalizeLaunchWatch(payload) {
         missionName: launch.mission?.name || null,
         missionDescription: launch.mission?.description || null,
         orbit: launch.mission?.orbit?.name || null,
+        landings,
         latestUpdate: latest || null,
         image: launch.image?.thumbnail_url || launch.image?.image_url || null,
         infoUrls: (Array.isArray(launch.info_urls) ? launch.info_urls : [])
@@ -370,4 +386,92 @@ export function listenSourcesFor(record, directories = {}) {
       a.distanceKm - b.distanceKm,
   );
   return out;
+}
+
+/**
+ * The droneships by the abbreviation Launch Library uses for a landing
+ * location. Each one is pinned on the WATCHLIST by MMSI, never by name:
+ * the barges broadcast their hull names on AIS (MARMAC 304, not "Of Course
+ * I Still Love You"), and an MMSI matches whatever the static data says.
+ */
+export const RECOVERY_VESSELS = Object.freeze({
+  OCISLY: Object.freeze({
+    name: 'Of Course I Still Love You',
+    mmsi: '368351350',
+    ais: 'MARMAC 304',
+    coast: 'west',
+  }),
+  JRTI: Object.freeze({
+    name: 'Just Read the Instructions',
+    mmsi: '368219920',
+    ais: 'MARMAC 303 JRTI',
+    coast: 'east',
+  }),
+  ASOG: Object.freeze({
+    name: 'A Shortfall of Gravitas',
+    mmsi: '368219910',
+    ais: 'MARMAC 302 ASOG',
+    coast: 'east',
+  }),
+});
+
+/**
+ * The recovery ships worth watching for a launch: the droneship a booster is
+ * landing on, named when Launch Library names it, otherwise the ships that
+ * serve that coast. A return to the landing zone, an expendable flight and
+ * an ocean splashdown have no ship to watch.
+ * @param {object} record A launch watch record.
+ * @returns {Array<{abbrev:string, name:string, mmsi:string, ais:string, why:string}>}
+ */
+export function recoveryFleet(record) {
+  const out = new Map();
+  const add = (abbrev, why) => {
+    const ship = RECOVERY_VESSELS[abbrev];
+    if (ship && !out.has(abbrev)) out.set(abbrev, { abbrev, ...ship, why });
+  };
+  const site = `${record?.siteName || ''} ${record?.padName || ''}`;
+  for (const landing of record?.landings || []) {
+    if (landing.type !== 'ASDS') continue;
+    const stage = landing.serial ? `${landing.serial} ` : 'the booster ';
+    if (landing.locationAbbrev && RECOVERY_VESSELS[landing.locationAbbrev]) {
+      add(landing.locationAbbrev, `${stage}lands on it`);
+      continue;
+    }
+    // Not yet assigned: the ships that work this coast.
+    if (/vandenberg/i.test(site))
+      add('OCISLY', `${stage}lands on a droneship — the West Coast one`);
+    else if (/kennedy|canaveral|cape/i.test(site)) {
+      add(
+        'JRTI',
+        `${stage}lands on a droneship — not yet named; one of the two East Coast ships`,
+      );
+      add(
+        'ASOG',
+        `${stage}lands on a droneship — not yet named; one of the two East Coast ships`,
+      );
+    }
+  }
+  return [...out.values()];
+}
+
+/** How far ahead of net the reminder fires. */
+export const LAUNCH_ALERT_LEAD_MS = 10 * 60_000;
+
+/**
+ * Whether the clock crossed T−lead between two ticks — the moment to fire
+ * a reminder, and only that moment. A net that has already passed never
+ * fires; a net inside the lead at the first tick fires then, so an alert
+ * set late is not lost.
+ */
+export function crossedLead(
+  record,
+  prevMs,
+  nowMs,
+  leadMs = LAUNCH_ALERT_LEAD_MS,
+) {
+  const net = Date.parse(record?.net || '');
+  if (!Number.isFinite(net)) return false;
+  const remaining = net - nowMs;
+  if (remaining < 0 || remaining > leadMs) return false;
+  return !Number.isFinite(prevMs) || net - prevMs > leadMs;
 }

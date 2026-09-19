@@ -108,20 +108,30 @@ export class WatchlistPanel {
     const input = this.elements.input;
     const value = watchEntryLabel(input?.value);
     if (!value) return;
+    const result = this.add(value);
+    if (result === 'exists') this.onToast(`${value} is already pinned`);
+    if (result !== false && input) input.value = '';
+  }
+
+  /**
+   * Pin a contact from anywhere — the LAUNCH panel pins a droneship this
+   * way. Returns what happened so the caller can word its own toast.
+   * @param {string} raw
+   * @returns {'added'|'exists'|false}
+   */
+  add(raw) {
+    const value = watchEntryLabel(raw);
+    if (!value) return false;
+    if (this._entries.some((entry) => entry.value === value)) return 'exists';
     if (this._entries.length >= MAX_ENTRIES) {
       this.onToast(`WATCHLIST full (${MAX_ENTRIES} max)`);
-      return;
-    }
-    if (this._entries.some((entry) => entry.value === value)) {
-      this.onToast(`${value} is already pinned`);
-      if (input) input.value = '';
-      return;
+      return false;
     }
     this._entries.push({ id: `watch-${++this._seq}`, value });
-    if (input) input.value = '';
     this._persist();
     this.scan();
     this.render();
+    return 'added';
   }
 
   removeEntry(id) {

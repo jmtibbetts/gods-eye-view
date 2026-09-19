@@ -219,6 +219,13 @@ export const DATA_CREDITS = [
       '(public domain; audio delivered directly by each broadcaster)',
   },
   {
+    key: 'faa-tfr',
+    html:
+      'Temporary flight restrictions: ' +
+      '<a href="https://tfr.faa.gov" target="_blank" rel="noopener">FAA Graphic TFRs</a> ' +
+      '(US Government work, public domain)',
+  },
+  {
     key: 'noaa-swpc',
     html:
       'Space weather (aurora forecast, Kp, scales, alerts): ' +

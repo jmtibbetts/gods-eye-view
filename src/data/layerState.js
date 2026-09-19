@@ -323,6 +323,23 @@ const OPTION_GROUPS = Object.freeze({
       },
     ),
   ]),
+  // Which restriction class the TFR layer is showing, or all of them.
+  tfr: Object.freeze([
+    enumOption(
+      'type',
+      't',
+      'all',
+      ['all', 'space', 'hazard', 'security', 'vip', 'event'],
+      {
+        all: 'a',
+        space: 's',
+        hazard: 'h',
+        security: 'x',
+        vip: 'v',
+        event: 'e',
+      },
+    ),
+  ]),
   // Which drought product is showing: current conditions, or one of the two
   // CPC outlooks.
   drought: Object.freeze([
@@ -592,6 +609,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     id: 'telegeography-submarine-cables',
     token: 'u',
     disposition: 'enabled-only',
+  }),
+  Object.freeze({
+    id: 'tfr',
+    token: 'tf',
+    disposition: 'enabled+options',
+    optionOwner: 'tfr',
   }),
   Object.freeze({ id: 'traffic', token: 't', disposition: 'enabled-only' }),
   Object.freeze({ id: 'transit', token: 'j', disposition: 'enabled-only' }),

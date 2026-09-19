@@ -2531,6 +2531,7 @@ its criteria cannot be silently ignored.
 | Drought 🏜️ | US Drought Monitor (ArcGIS, server-side generalized) + NOAA CPC outlooks | `src/layers/drought/` via `src/app/layers/drought.js` | — | 60 min |
 | SatNOGS 📡 | network.satnogs.org stations | `src/layers/satnogs/` via `src/app/layers/satnogs.js` | `/api/satnogs/stations` (no CORS upstream; trims 3.75 MB → 1.2 MB; disk-cached) | 10 min |
 | Aviation Hazards ⚠️ | aviationweather.gov international + US domestic SIGMETs | `src/layers/aviationHazards/` via `src/app/layers/aviationHazards.js` | `/api/aviation/sigmets` (merges two schemas; no CORS upstream) | 5 min |
+| Flight Restrictions ⛔ | tfr.faa.gov list + GeoServer WFS shapes + NOTAM detail pages (space ops) | `src/layers/tfr/` via `src/app/layers/tfr.js` | `/api/aviation/tfrs` (merges three upstreams; no CORS upstream; disk-cached) | 10 min |
 | Lightning ⚡ | GOES-19 East + GOES-18 West GLM L2 (NOAA Open Data on S3) | `src/layers/lightning/` via `src/app/layers/lightning.js` | `/api/lightning/flashes` (parses netCDF-4 server side via h5wasm) | 30 s |
 | Conflict Reporting 📰 | GDELT 2.0 events (15-min export), aggregated per country | `src/layers/conflictReports/` via `src/app/layers/conflictReports.js` | `/api/conflict/reports` | 10 min |
 

@@ -117,7 +117,14 @@ function fakeWindow() {
   };
 }
 
-function panelWith({ results = [ll2()], now = NOW, fetchStatus = 200, layers = {} } = {}) {
+function panelWith({
+  results = [ll2()],
+  now = NOW,
+  fetchStatus = 200,
+  layers = {},
+  notifier = null,
+  storage = null,
+} = {}) {
   const elements = {
     state: makeElement('span'),
     body: makeElement('div'),
@@ -126,6 +133,7 @@ function panelWith({ results = [ll2()], now = NOW, fetchStatus = 200, layers = {
   const docked = [];
   const tabs = [];
   const toasts = [];
+  const pinned = [];
   const enabled = new Set();
   let clock = now;
   const windowRef = fakeWindow();
@@ -142,6 +150,14 @@ function panelWith({ results = [ll2()], now = NOW, fetchStatus = 200, layers = {
     scanner: () => layers.scanner || null,
     atc: () => layers.atc || null,
     sdr: () => layers.sdr || null,
+    tfr: () => layers.tfr || null,
+    pinWatch: (value) => {
+      if (pinned.includes(value)) return 'exists';
+      pinned.push(value);
+      return 'added';
+    },
+    ...(notifier ? { notifier } : {}),
+    storage,
     enableLayer: async (id) => enabled.add(id),
     isLayerEnabled: (id) => enabled.has(id),
     onToast: (m) => toasts.push(m),
@@ -154,11 +170,22 @@ function panelWith({ results = [ll2()], now = NOW, fetchStatus = 200, layers = {
     docked,
     tabs,
     toasts,
+    pinned,
     enabled,
     windowRef,
     setNow: (t) => {
       clock = t;
     },
+  };
+}
+
+/** A Storage double. */
+function fakeStorage() {
+  const map = new Map();
+  return {
+    getItem: (k) => (map.has(k) ? map.get(k) : null),
+    setItem: (k, v) => map.set(k, String(v)),
+    map,
   };
 }
 
@@ -308,6 +335,188 @@ test('with nothing listed the panel says so rather than showing an empty box', a
     await settle();
     assert.equal(elements.state.textContent, 'NONE');
     assert.match(findAll(elements.body, 'launch-empty')[0].textContent, /Nothing on the manifest/);
+    panel.destroy();
+  });
+});
+
+test('RANGE lists the space closures near the pad with the NOTAM\'s own times, and the droneship to watch', async () => {
+  await withFakeDom(async () => {
+    const focused = [];
+    const tfr = {
+      ensureTfrs: async () => ({ tfrs: [] }),
+      findTfrsNear: ({ lat, lon, maxKm, type }) => {
+        assert.equal(type, 'SPACE OPERATIONS');
+        assert.equal(maxKm, 250);
+        assert.ok(Math.abs(lat - 28.562) < 0.01 && Math.abs(lon + 80.577) < 0.01);
+        return [
+          {
+            id: '6/5000',
+            phase: 'ahead',
+            window: 'Sep 19 12:30Z → Sep 19 16:00Z',
+            altitude: 'From the surface up to Unlimited',
+            distanceKm: 9,
+          },
+        ];
+      },
+      focusTfr: (id) => {
+        focused.push(id);
+        return true;
+      },
+    };
+    const results = [
+      ll2({
+        rocket: {
+          configuration: { full_name: 'Falcon 9 Block 5' },
+          launcher_stage: [
+            {
+              launcher: { serial_number: 'B1067' },
+              reused: true,
+              landing: { attempt: true, type: { abbrev: 'ASDS', name: 'Autonomous Spaceport Drone Ship' }, location: { abbrev: 'JRTI', name: 'Just Read the Instructions' } },
+            },
+          ],
+        },
+      }),
+    ];
+    const { panel, elements, toasts, pinned, enabled } = panelWith({ results, layers: { tfr } });
+    panel.connect();
+    await settle();
+    const rangeBtn = findAll(elements.body, 'launch-btn').find((b) => b.textContent === 'RANGE');
+    assert.ok(rangeBtn, 'a RANGE toggle');
+    rangeBtn.click();
+    await settle();
+    await settle();
+    const headings = findAll(elements.body, 'launch-listen-heading').map((h) => h.textContent);
+    assert.deepEqual(headings, ['AIRSPACE CLOSURES · FAA TFR', 'RECOVERY FLEET']);
+    const names = findAll(elements.body, 'launch-source-name').map((n) => n.textContent);
+    assert.deepEqual(names, ['FDC 6/5000 · OPENS', 'Just Read the Instructions']);
+    const metas = findAll(elements.body, 'launch-source-meta').map((n) => n.textContent);
+    assert.equal(metas[0], 'Sep 19 12:30Z → Sep 19 16:00Z · From the surface up to Unlimited · 9 km from the pad');
+    assert.equal(metas[1], 'B1067 lands on it · on AIS as MARMAC 303 JRTI, MMSI 368219920');
+
+    const show = findAll(elements.body, 'launch-btn-small').find((b) => b.textContent === 'SHOW');
+    show.click();
+    await new Promise((r) => setTimeout(r, 450));
+    assert.ok(enabled.has('tfr'), 'SHOW turns the layer on');
+    assert.deepEqual(focused, ['6/5000']);
+
+    const watch = findAll(elements.body, 'launch-btn-small').find((b) => b.textContent === 'WATCH');
+    watch.click();
+    await settle();
+    assert.deepEqual(pinned, ['368219920'], 'pinned by MMSI, not by the deck name');
+    assert.ok(enabled.has('ais-live-vessels'), 'WATCH turns Live Vessels on');
+    assert.match(toasts.at(-1), /pinned/);
+    watch.click();
+    await settle();
+    assert.match(toasts.at(-1), /already on the WATCHLIST/);
+    panel.destroy();
+  });
+});
+
+test('RANGE is honest outside the FAA\'s airspace and when no closure is posted yet', async () => {
+  await withFakeDom(async () => {
+    const tfr = { ensureTfrs: async () => ({ tfrs: [] }), findTfrsNear: () => [] };
+    const abroad = ll2({
+      id: 'nz',
+      pad: { name: 'Rocket Lab Launch Complex 1B', latitude: '-39.26', longitude: '177.86', location: { name: 'Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand', country: { alpha_2_code: 'NZ' } } },
+      rocket: { configuration: { full_name: 'Electron' } },
+    });
+    const home = ll2({ pad: { ...ll2().pad, location: { name: 'Cape Canaveral SFS, FL, USA', country: { alpha_2_code: 'USA' } } } });
+    const { panel, elements } = panelWith({ results: [home, abroad], layers: { tfr } });
+    panel.connect();
+    await settle();
+    const rows = findAll(elements.body, 'launch-row');
+    assert.equal(rows.length, 2);
+    findAll(rows[0], 'launch-btn').find((b) => b.textContent === 'RANGE').click();
+    await settle();
+    await settle();
+    let notes = findAll(elements.body, 'launch-listen-note').map((n) => n.textContent);
+    assert.ok(notes.some((n) => /No space-operations TFR is published within 250 km/.test(n)), notes.join('|'));
+    assert.ok(notes.some((n) => /lists no booster recovery/.test(n)));
+    const rowsAgain = findAll(elements.body, 'launch-row');
+    findAll(rowsAgain[1], 'launch-btn').find((b) => b.textContent === 'RANGE').click();
+    await settle();
+    await settle();
+    notes = findAll(elements.body, 'launch-listen-note').map((n) => n.textContent);
+    assert.ok(notes.some((n) => /US airspace only/.test(n)), notes.join('|'));
+    panel.destroy();
+  });
+});
+
+test('ALERT T−10 asks for permission once, persists, fires on the crossing as a notification and a toast, then clears', async () => {
+  await withFakeDom(async () => {
+    let permission = 'default';
+    const shown = [];
+    const notifier = {
+      supported: () => true,
+      permission: () => permission,
+      request: async () => {
+        permission = 'granted';
+        return permission;
+      },
+      show: (title, body) => shown.push({ title, body }),
+    };
+    const storage = fakeStorage();
+    const { panel, elements, toasts, windowRef, setNow } = panelWith({ notifier, storage });
+    panel.connect();
+    await settle();
+    const alertBtn = findAll(elements.body, 'launch-btn').find((b) => b.textContent === 'ALERT T−10');
+    assert.ok(alertBtn, 'an alert toggle on a counting launch');
+    alertBtn.click();
+    await settle();
+    assert.equal(permission, 'granted');
+    assert.equal(storage.getItem('gev.launch.alerts.v1'), '["abc-123"]');
+    assert.ok(findAll(elements.body, 'launch-btn').some((b) => b.textContent === 'ALERT SET'));
+    assert.equal(shown.length, 0, 'nothing fires two and a half hours out');
+
+    const tick = windowRef.timers.find((t) => t && t.ms === 1000).fn;
+    const T = Date.parse('2026-09-19T14:30:00Z');
+    setNow(T - 11 * 60_000);
+    tick();
+    assert.equal(shown.length, 0);
+    setNow(T - 10 * 60_000 + 500);
+    tick();
+    assert.equal(shown.length, 1, 'fires once on the crossing');
+    assert.match(shown[0].title, /^T−00:10:00 · Falcon 9 Block 5/);
+    assert.match(shown[0].body, /Space Launch Complex 40, Cape Canaveral/);
+    assert.match(toasts.at(-1), /T−00:10:00/);
+    assert.equal(storage.getItem('gev.launch.alerts.v1'), '[]', 'cleared once fired');
+    setNow(T - 9 * 60_000);
+    tick();
+    assert.equal(shown.length, 1, 'and not again');
+
+    // A second panel restores nothing, since the alert was consumed; one set
+    // inside the lead fires at once.
+    const late = panelWith({ notifier, storage, now: T - 5 * 60_000 });
+    late.panel.connect();
+    await settle();
+    findAll(late.elements.body, 'launch-btn').find((b) => b.textContent === 'ALERT T−10').click();
+    await settle();
+    assert.equal(shown.length, 2, 'set inside T−10: fires now');
+    late.panel.destroy();
+    panel.destroy();
+  });
+});
+
+test('with notifications blocked the reminder is still set and the panel says it will be a toast', async () => {
+  await withFakeDom(async () => {
+    const notifier = {
+      supported: () => true,
+      permission: () => 'denied',
+      request: async () => 'denied',
+      show: () => {
+        throw new Error('must not be called when denied');
+      },
+    };
+    const { panel, elements, toasts, windowRef, setNow } = panelWith({ notifier });
+    panel.connect();
+    await settle();
+    findAll(elements.body, 'launch-btn').find((b) => b.textContent === 'ALERT T−10').click();
+    await settle();
+    assert.match(toasts.at(-1), /blocked/);
+    const tick = windowRef.timers.find((t) => t && t.ms === 1000).fn;
+    setNow(Date.parse('2026-09-19T14:21:00Z'));
+    tick();
+    assert.match(toasts.at(-1), /T−00:09:00 · Falcon 9 Block 5/);
     panel.destroy();
   });
 });

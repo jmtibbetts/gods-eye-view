@@ -1,11 +1,14 @@
 import * as Cesium from 'cesium';
 import {
+  LAUNCH_ALERT_LEAD_MS,
   countdownText,
+  crossedLead,
   launchPhase,
   listenSourcesFor,
   normalizeLaunchWatch,
   phaseLabel,
   primaryWebcast,
+  recoveryFleet,
   sortForWatch,
   watchableLaunches,
 } from '../data/launchWatch.js';
@@ -23,7 +26,12 @@ import {
  * airfields on and around the range, and the web SDRs nearby — each labelled
  * for what it is. The mission nets on the webcast are the operator's own
  * loops mixed into the stream; no public receiver hears them, and this panel
- * never suggests otherwise.
+ * never suggests otherwise. RANGE shows what is published around the pad:
+ * the FAA's space-operations closures with their times (often the first
+ * hard evidence of when an operator means to fly) and the droneship the
+ * booster is coming back to, one click from the WATCHLIST. ALERT T−10 is a
+ * browser notification ten minutes before net, for the launch you would
+ * otherwise miss while the tab is in the background.
  */
 
 /** "128.55", "118.9", "121.0" — the way a frequency is read on the air. */
@@ -35,7 +43,32 @@ export function mhzText(mhz) {
 const REFRESH_MS = 60_000;
 const TICK_MS = 1000;
 const LISTEN_CACHE_MS = 10 * 60_000;
+const RANGE_CACHE_MS = 5 * 60_000;
 const PAD_VIEW_HEIGHT_M = 6000;
+/** How far from the pad a space-operations TFR still counts as this range's. */
+const CLOSURE_RADIUS_KM = 250;
+const ALERTS_STORAGE_KEY = 'gev.launch.alerts.v1';
+const AIS_LAYER_ID = 'ais-live-vessels';
+const TFR_LAYER_ID = 'tfr';
+
+/** The browser's Notification API behind a seam the tests can replace. */
+function defaultNotifier() {
+  const N = globalThis.Notification;
+  return {
+    supported: () => typeof N === 'function',
+    permission: () => (typeof N === 'function' ? N.permission : 'denied'),
+    request: async () =>
+      typeof N === 'function' ? N.requestPermission() : 'denied',
+    show: (title, body) => {
+      if (typeof N !== 'function') return null;
+      try {
+        return new N(title, { body, tag: `gev-launch-${title}` });
+      } catch {
+        return null;
+      }
+    },
+  };
+}
 
 export class LaunchPanel {
   /**
@@ -48,6 +81,10 @@ export class LaunchPanel {
    * @param {() => object|null} [options.scanner] The scanner layer when registered.
    * @param {() => object|null} [options.atc] The ATC layer when registered.
    * @param {() => object|null} [options.sdr] The SDR layer when registered.
+   * @param {() => object|null} [options.tfr] The flight-restrictions layer when registered.
+   * @param {(value: string) => 'added'|'exists'|false} [options.pinWatch] Add a contact to the WATCHLIST.
+   * @param {object} [options.notifier] `{supported, permission, request, show}` over the Notification API.
+   * @param {Storage|null} [options.storage] Where set alerts persist.
    * @param {(layerId: string) => Promise<unknown>} [options.enableLayer]
    * @param {(layerId: string) => boolean} [options.isLayerEnabled]
    * @param {(message: string) => void} [options.onToast]
@@ -63,6 +100,10 @@ export class LaunchPanel {
     scanner = () => null,
     atc = () => null,
     sdr = () => null,
+    tfr = () => null,
+    pinWatch = () => false,
+    notifier = defaultNotifier(),
+    storage = null,
     enableLayer = async () => {},
     isLayerEnabled = () => false,
     onToast = () => {},
@@ -83,6 +124,10 @@ export class LaunchPanel {
     this._scanner = scanner;
     this._atc = atc;
     this._sdr = sdr;
+    this._tfr = tfr;
+    this._pinWatch = pinWatch;
+    this._notifier = notifier;
+    this._storage = storage;
     this._enableLayer = enableLayer;
     this._isLayerEnabled = isLayerEnabled;
     this.onToast = onToast;
@@ -98,6 +143,11 @@ export class LaunchPanel {
     this._request = null;
     this._listenOpen = null;
     this._listen = new Map();
+    this._rangeOpen = null;
+    this._range = new Map();
+    /** @type {Set<string>} launch ids with a T−10 reminder set. */
+    this._alerts = this._restoreAlerts();
+    this._lastTick = NaN;
     this._clocks = new Map();
     this._followedId = null;
     this._padEntity = null;
@@ -185,8 +235,94 @@ export class LaunchPanel {
       el.textContent = this._clockText(record, now);
     }
     this._renderState(now);
+    this._checkAlerts(this._lastTick, now);
+    this._lastTick = now;
     // A launch crossing T-0 or a hold lifting changes chips and order.
     if (phaseChanged) this.render();
+  }
+
+  _restoreAlerts() {
+    try {
+      const raw = this._storage?.getItem?.(ALERTS_STORAGE_KEY);
+      const saved = raw ? JSON.parse(raw) : null;
+      return new Set(Array.isArray(saved) ? saved.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  _persistAlerts() {
+    try {
+      this._storage?.setItem?.(
+        ALERTS_STORAGE_KEY,
+        JSON.stringify([...this._alerts]),
+      );
+    } catch {
+      /* storage is a per-viewer nicety */
+    }
+  }
+
+  /** Fire the reminders whose clock crossed T−10 between two ticks. */
+  _checkAlerts(prevMs, nowMs) {
+    if (!this._alerts.size) return;
+    for (const id of [...this._alerts]) {
+      const record = this._launches.find((r) => r.id === id);
+      if (!record) continue;
+      if (crossedLead(record, prevMs, nowMs)) this._fireAlert(record, nowMs);
+    }
+  }
+
+  _fireAlert(record, nowMs) {
+    this._alerts.delete(record.id);
+    this._persistAlerts();
+    const clock = countdownText(record.net, nowMs) || 'T−10';
+    const where = [record.padName, record.siteName].filter(Boolean).join(', ');
+    const title = `${clock} · ${(record.name || '').split('|')[0].trim()}`;
+    const body = `${record.name}${where ? ` — ${where}` : ''}. Net ${record.net?.slice(11, 16)}Z.`;
+    if (this._notifier.permission?.() === 'granted')
+      this._notifier.show?.(title, body);
+    this.onToast(`${title} — ${where || 'launching'}`);
+    this.render();
+  }
+
+  /** Set or clear the T−10 reminder for a launch. */
+  async _toggleAlert(record) {
+    if (this._alerts.has(record.id)) {
+      this._alerts.delete(record.id);
+      this._persistAlerts();
+      this.render();
+      return;
+    }
+    const now = this._now();
+    const net = Date.parse(record.net || '');
+    if (!Number.isFinite(net) || net <= now) {
+      this.onToast('No net to count down to yet.');
+      return;
+    }
+    if (this._notifier.supported?.()) {
+      if (this._notifier.permission?.() === 'default') {
+        try {
+          await this._notifier.request?.();
+        } catch {
+          /* the answer is read back below */
+        }
+      }
+      if (this._notifier.permission?.() !== 'granted')
+        this.onToast(
+          'Notifications are blocked for this site, so the reminder will be a toast here — allow them in the browser for one that reaches you in another tab.',
+        );
+    } else {
+      this.onToast(
+        'This browser has no notifications; the reminder will be a toast here.',
+      );
+    }
+    this._alerts.add(record.id);
+    this._persistAlerts();
+    if (net - now <= LAUNCH_ALERT_LEAD_MS) {
+      this._fireAlert(record, now);
+      return;
+    }
+    this.render();
   }
 
   _clockText(record, now) {
@@ -330,6 +466,14 @@ export class LaunchPanel {
         'What a radio near the range can hear',
       ),
     );
+    actions.append(
+      this._button(
+        this._rangeOpen === record.id ? 'RANGE ▴' : 'RANGE',
+        'launch-btn',
+        () => this._toggleRange(record),
+        'Airspace closures around the pad and the recovery ships down range',
+      ),
+    );
     if (Number.isFinite(record.lat) && Number.isFinite(record.lon)) {
       actions.append(
         this._button(
@@ -340,10 +484,226 @@ export class LaunchPanel {
         ),
       );
     }
+    if (phase === 'countdown' || phase === 'imminent' || phase === 'hold') {
+      const set = this._alerts.has(record.id);
+      actions.append(
+        this._button(
+          set ? 'ALERT SET' : 'ALERT T−10',
+          `launch-btn${set ? ' active' : ''}`,
+          () => void this._toggleAlert(record),
+          set
+            ? 'A reminder fires ten minutes before net — press to clear it'
+            : 'Remind me ten minutes before net, as a browser notification',
+        ),
+      );
+    }
     row.append(actions);
 
     if (this._listenOpen === record.id) row.append(this._renderListen(record));
+    if (this._rangeOpen === record.id) row.append(this._renderRange(record));
     return row;
+  }
+
+  _toggleRange(record) {
+    this._rangeOpen = this._rangeOpen === record.id ? null : record.id;
+    this.render();
+    if (this._rangeOpen === record.id) void this._loadRange(record);
+  }
+
+  /** The closures near the pad, from the TFR layer's body. */
+  async _loadRange(record) {
+    const cached = this._range.get(record.id);
+    if (cached && this._now() - cached.at < RANGE_CACHE_MS) return;
+    let closures = [];
+    let available = false;
+    const layer = this._tfr();
+    if (
+      layer?.findTfrsNear &&
+      Number.isFinite(record.lat) &&
+      Number.isFinite(record.lon)
+    ) {
+      try {
+        const body = await layer.ensureTfrs?.();
+        available = Boolean(body);
+        closures = layer.findTfrsNear({
+          lat: record.lat,
+          lon: record.lon,
+          maxKm: CLOSURE_RADIUS_KM,
+          type: 'SPACE OPERATIONS',
+        });
+      } catch {
+        closures = [];
+      }
+    }
+    if (this.destroyed) return;
+    this._range.set(record.id, {
+      at: this._now(),
+      closures,
+      available,
+      ready: true,
+    });
+    this.render();
+  }
+
+  _renderRange(record) {
+    const wrap = this._el('div', 'launch-listen');
+    const entry = this._range.get(record.id);
+    const us =
+      record.country === 'US' ||
+      record.country === 'USA' ||
+      /\bUSA\b/.test(record.siteName || '');
+
+    wrap.append(
+      this._el('div', 'launch-listen-heading', 'AIRSPACE CLOSURES · FAA TFR'),
+    );
+    if (!us) {
+      wrap.append(
+        this._el(
+          'p',
+          'launch-listen-note',
+          'The FAA publishes closures for US airspace only; this range’s notices come from its own authority, and they are not on the globe.',
+        ),
+      );
+    } else if (!entry?.ready) {
+      wrap.append(
+        this._el('p', 'launch-listen-note', 'Checking the FAA’s TFR list…'),
+      );
+    } else if (!entry.available) {
+      wrap.append(
+        this._el(
+          'p',
+          'launch-listen-note',
+          'The FAA’s TFR list is unreachable right now.',
+        ),
+      );
+    } else if (!entry.closures.length) {
+      wrap.append(
+        this._el(
+          'p',
+          'launch-listen-note',
+          `No space-operations TFR is published within ${CLOSURE_RADIUS_KM} km of this pad. The ones that get one usually post a day out, and some ranges close their airspace by NOTAM text alone, with no graphic TFR at all. The FAA’s list is polled every ten minutes.`,
+        ),
+      );
+    } else {
+      for (const c of entry.closures) {
+        const line = this._el('div', 'launch-source');
+        line.append(
+          this._el(
+            'span',
+            'launch-source-name',
+            `FDC ${c.id} · ${c.phase === 'active' ? 'IN FORCE' : c.phase === 'ahead' ? 'OPENS' : 'ENDED'}`,
+          ),
+        );
+        line.append(
+          this._el(
+            'span',
+            'launch-source-meta',
+            [c.window, c.altitude, `${c.distanceKm} km from the pad`]
+              .filter(Boolean)
+              .join(' · '),
+          ),
+        );
+        line.append(
+          this._button(
+            'SHOW',
+            'launch-btn launch-btn-small',
+            () => void this._showTfr(c),
+            'Turn on Flight Restrictions and fly to this closure',
+          ),
+        );
+        wrap.append(line);
+      }
+      wrap.append(
+        this._el(
+          'p',
+          'launch-listen-note',
+          'The closure window is the FAA NOTAM’s own, to the minute — it opens well before the launch window and is often the firmest public sign of when the operator means to fly.',
+        ),
+      );
+    }
+
+    wrap.append(this._el('div', 'launch-listen-heading', 'RECOVERY FLEET'));
+    const fleet = recoveryFleet(record);
+    if (!fleet.length) {
+      wrap.append(
+        this._el(
+          'p',
+          'launch-listen-note',
+          record.landings?.length
+            ? 'No droneship on this flight — the booster returns to a landing zone, is expended, or splashes down.'
+            : 'Launch Library lists no booster recovery for this flight.',
+        ),
+      );
+    } else {
+      for (const ship of fleet) {
+        const line = this._el('div', 'launch-source');
+        line.append(this._el('span', 'launch-source-name', ship.name));
+        line.append(
+          this._el(
+            'span',
+            'launch-source-meta',
+            `${ship.why} · on AIS as ${ship.ais}, MMSI ${ship.mmsi}`,
+          ),
+        );
+        line.append(
+          this._button(
+            'WATCH',
+            'launch-btn launch-btn-small',
+            () => void this._watchVessel(ship),
+            'Pin this ship on the WATCHLIST by MMSI and turn on Live Vessels',
+          ),
+        );
+        wrap.append(line);
+      }
+      wrap.append(
+        this._el(
+          'p',
+          'launch-listen-note',
+          'Pinned by MMSI, because the barges broadcast their hull names, not the ones painted on the deck. The WATCHLIST says the moment the ship is heard; hundreds of kilometres out only satellite receivers hear her, so she can be silent for hours and then appear.',
+        ),
+      );
+    }
+    return wrap;
+  }
+
+  async _showTfr(closure) {
+    if (this._busy) return;
+    this._busy = true;
+    try {
+      if (!this._isLayerEnabled(TFR_LAYER_ID)) {
+        await this._enableLayer(TFR_LAYER_ID);
+        // The first update draws the areas; give it a beat.
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      const layer = this._tfr();
+      const ok = layer?.focusTfr?.(closure.id);
+      if (!ok)
+        this.onToast(
+          `FDC ${closure.id} is listed but not drawn yet — turn on Flight Restrictions and pick SPACE.`,
+        );
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  async _watchVessel(ship) {
+    const result = this._pinWatch(ship.mmsi);
+    if (result === false) {
+      this.onToast('The WATCHLIST is not available in this build.');
+      return;
+    }
+    if (!this._isLayerEnabled(AIS_LAYER_ID)) {
+      try {
+        await this._enableLayer(AIS_LAYER_ID);
+      } catch {
+        /* the panel reports the layer's own failure */
+      }
+    }
+    this.onToast(
+      result === 'exists'
+        ? `${ship.name} (MMSI ${ship.mmsi}) is already on the WATCHLIST.`
+        : `${ship.name} pinned as MMSI ${ship.mmsi} — the WATCHLIST will say when AIS hears her.`,
+    );
   }
 
   _watch(record, webcast) {
