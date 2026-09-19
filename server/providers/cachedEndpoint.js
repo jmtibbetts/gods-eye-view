@@ -15,6 +15,9 @@
  *     serve, so a client can tell "upstream down" from "nothing to report".
  */
 
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /**
@@ -30,6 +33,12 @@ const DEFAULT_TIMEOUT_MS = 30_000;
  * @param {number} [options.timeoutMs]
  * @param {(payload: any) => any} [options.shape] Validate and transform the
  *   parsed payload. Throw to reject it. Defaults to identity.
+ * @param {string} [options.diskCache] Absolute path to persist the last good
+ *   body to. Serve-stale only helps a process that already succeeded once;
+ *   an upstream that is down when the server STARTS leaves the layer empty
+ *   with nothing to fall back on. With this set, the last good body survives a
+ *   restart and is served (marked stale) while a refresh is attempted. Use it
+ *   for upstreams that are known to be intermittent.
  * @returns {(req: any, res: any) => Promise<void>} A connect-style handler.
  */
 export function cachedJsonEndpoint({
@@ -40,6 +49,7 @@ export function cachedJsonEndpoint({
   agent = 'gods-eye-view',
   timeoutMs = DEFAULT_TIMEOUT_MS,
   shape = (payload) => payload,
+  diskCache = null,
 }) {
   if (!url && typeof loadPayload !== 'function')
     throw new TypeError(`${label}: needs a url or a load function`);
@@ -47,6 +57,34 @@ export function cachedJsonEndpoint({
   let cache = null;
   /** @type {?Promise<?string>} */
   let inflight = null;
+  /** Read the on-disk fallback once, lazily, and only if nothing is in memory. */
+  let diskRead = null;
+
+  async function fromDisk() {
+    if (!diskCache) return null;
+    if (!diskRead) {
+      diskRead = readFile(diskCache, 'utf8').catch(() => null);
+    }
+    const body = await diskRead;
+    if (!body) return null;
+    try {
+      JSON.parse(body);
+    } catch {
+      // A truncated or corrupt cache file is worse than none.
+      return null;
+    }
+    return body;
+  }
+
+  async function toDisk(body) {
+    if (!diskCache) return;
+    try {
+      await mkdir(dirname(diskCache), { recursive: true });
+      await writeFile(diskCache, body, 'utf8');
+    } catch (error) {
+      console.warn(`[${label}] could not persist cache: ${error?.message}`);
+    }
+  }
 
   async function fetchJson() {
     const controller = new AbortController();
@@ -70,6 +108,7 @@ export function cachedJsonEndpoint({
         const payload = loadPayload ? await loadPayload() : await fetchJson();
         const body = JSON.stringify(shape(payload));
         cache = { at: Date.now(), body };
+        await toDisk(body);
         return body;
       } catch (error) {
         console.warn(`[${label}] fetch failed: ${error?.message}`);
@@ -93,6 +132,14 @@ export function cachedJsonEndpoint({
     if (cache) {
       res.setHeader('X-Gev-Stale', '1');
       res.end(cache.body);
+      return;
+    }
+    // Nothing in memory: fall back to the last good body from a previous run,
+    // still marked stale so the client knows it is not current.
+    const persisted = await fromDisk();
+    if (persisted) {
+      res.setHeader('X-Gev-Stale', '1');
+      res.end(persisted);
       return;
     }
     res.statusCode = 503;

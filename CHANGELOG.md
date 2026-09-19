@@ -1,5 +1,47 @@
 # Changelog
 
+- Add six live-data layers and one panel: River Flood (NOAA NWPS gauges, observed
+  plus 24/48/72-hour forecast horizons), Drought (US Drought Monitor conditions
+  and CPC monthly/seasonal outlooks), SatNOGS ground stations, Aviation Hazards
+  (international and US domestic SIGMETs, discharging the volcanic-ash coverage
+  owed since the volcano layer), Lightning (GOES Geostationary Lightning Mapper
+  flashes, 20-second cadence), Conflict Reporting (GDELT violent-event counts
+  shaded by country), and a NASA ISS live-stream chip on the satellites row.
+  Layers 34 to 40. All keyless except Sentinel-2; new proxies for the upstreams
+  that send no CORS headers.
+
+- Make a failed load say so. The manager disables a layer whose first update
+  returns false, which is exactly what a failed fetch produces, and `disable()`
+  was clearing the error on the way down — so an unreachable upstream rendered
+  as a layer that quietly switched itself off reporting "none in scope", which
+  reads as "nothing is happening" rather than "I could not look". The error now
+  survives the disable, coverage says "unavailable" instead of asserting
+  emptiness, and a timeout reports as a timeout rather than leaking the
+  browser's "signal is aborted without reason". Found by running the app rather
+  than by any test.
+
+- Cache flaky upstreams to disk. Serve-stale only rescues a process that already
+  succeeded once; a server started while an upstream is down had nothing to fall
+  back on. The SatNOGS station list now persists between runs, and its timeouts
+  were raised to match a volunteer service that genuinely takes that long — the
+  client's timeout is deliberately longer than the proxy's so the two cannot
+  race and abandon a request that was about to succeed.
+
+- One numeric guard for feed values, in `src/data/feedNumbers.js`. `Number('')`,
+  `Number(null)` and `Number(false)` are all 0, and 0 is a valid latitude,
+  flight level and class code, so a bare `Number()` turns a missing field into
+  one that confidently says zero. Six copies of the guard had already drifted:
+  the aviation one was rendering an ash advisory with no reported base as
+  "surface to FL150", indistinguishable from ash reaching the ground.
+
+- Document every data source added with these layers in `DATA_SOURCES.md`,
+  including SatNOGS under CC BY-SA 4.0 — the only share-alike source in the
+  table, stricter than the MIT code around it.
+
+- Ship a repo `.npmrc` setting `omit=`. devDependencies are required to build
+  and test, and a user-level `omit=dev` or `NODE_ENV=production` made a plain
+  `npm install` prune them, removing vite and breaking the build.
+
 - Distinguish PARTIAL vessel snapshots from STALE data in the layer panel, with
   accepted-record counts and unchanged retention, freshness and outage safeguards.
 

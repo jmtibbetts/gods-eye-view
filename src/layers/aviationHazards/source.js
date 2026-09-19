@@ -17,7 +17,18 @@ export function createAviationHazardSource({
   return {
     async fetchSigmets(filter, { signal, now } = {}) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      // Abort WITH a reason. Without one the browser rejects with "signal is
+      // aborted without reason", which reaches the layer panel verbatim and
+      // tells the reader nothing about what went wrong.
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort(
+          new Error(
+            `SIGMET request timed out after ${Math.round(timeoutMs / 1000)}s`,
+          ),
+        );
+      }, timeoutMs);
       const onAbort = () => controller.abort();
       signal?.addEventListener?.('abort', onAbort, { once: true });
       try {
@@ -32,6 +43,12 @@ export function createAviationHazardSource({
         if (payload && !Array.isArray(payload) && payload.error)
           throw new Error(`SIGMETs unavailable: ${payload.error}`);
         return parseSigmets(payload, filter, now);
+      } catch (error) {
+        if (timedOut)
+          throw new Error(
+            `SIGMET request timed out after ${Math.round(timeoutMs / 1000)}s`,
+          );
+        throw error;
       } finally {
         clearTimeout(timer);
         signal?.removeEventListener?.('abort', onAbort);

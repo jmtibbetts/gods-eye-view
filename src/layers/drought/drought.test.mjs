@@ -15,7 +15,7 @@ import {
 } from './policy.js';
 import { isoDay, parseDrought, summarizeDrought } from './records.js';
 import { createDroughtSource } from './source.js';
-import { droughtLabelText } from './index.js';
+import { createDroughtLayer, droughtLabelText } from './index.js';
 
 const MONITOR = productFor('current');
 const MONTHLY = productFor('monthly');
@@ -327,4 +327,31 @@ test('a caller abort is honoured', async () => {
   const pending = source.fetchDrought(MONITOR, { signal: controller.signal });
   controller.abort();
   await assert.rejects(() => pending, /aborted/);
+});
+
+test('a failed load keeps its error through the disable the manager triggers', async () => {
+  // The manager treats `update() === false` as a rejected enable and disables
+  // the layer — which is exactly what a failed first fetch produces. Clearing
+  // the error inside disable() therefore turned "the upstream is down" into a
+  // layer that quietly switched itself off and reported nothing to see.
+  const layer = createDroughtLayer({
+    source: {
+      fetchDrought: async () => {
+        throw new Error('upstream exploded');
+      },
+    },
+  });
+  await layer.enable();
+  const failed = layer;
+  assert.match(failed.getStats().error ?? '', /upstream exploded/);
+  layer.disable();
+  assert.match(
+    failed.getStats().error ?? '',
+    /upstream exploded/,
+    'the reason must survive the disable',
+  );
+  assert.ok(
+    !failed.getStats().coverage.includes('nothing drawn'),
+    `coverage still asserted emptiness: ${failed.getStats().coverage}`,
+  );
 });

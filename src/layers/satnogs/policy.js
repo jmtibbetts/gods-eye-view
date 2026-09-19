@@ -28,7 +28,20 @@ export const SATNOGS_STATIONS_URL = '/api/satnogs/stations';
 
 /** Stations heartbeat on the order of minutes. */
 export const SATNOGS_UPDATE_MS = 10 * 60 * 1000;
-export const SATNOGS_FETCH_TIMEOUT_MS = 30_000;
+
+/**
+ * Longer than the PROXY's own upstream timeout, deliberately.
+ *
+ * The proxy waits up to 90 s on network.satnogs.org, which is a volunteer
+ * service serving an unpaginated 3.75 MB response and genuinely that slow. A
+ * shorter client timeout does not make anything faster — it just abandons a
+ * request the proxy was about to satisfy, and reports a timeout for data that
+ * arrived. The two must not race each other.
+ *
+ * The proxy's disk cache is what keeps the common case quick: after one
+ * success the station list is served immediately on every later start.
+ */
+export const SATNOGS_FETCH_TIMEOUT_MS = 120_000;
 
 const HOUR_MS = 60 * 60 * 1000;
 

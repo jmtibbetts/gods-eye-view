@@ -182,7 +182,11 @@ export function createRiverFloodLayer({ source, context = null } = {}) {
       _abort = null;
       clearEntities();
       if (_dataSource) _dataSource.show = false;
-      _lastError = null;
+      // _lastError deliberately SURVIVES a disable. The manager disables a
+      // layer whose first update returned false, which is exactly what a
+      // failed fetch does — so clearing the error here is what turns "the
+      // upstream is down" into a layer that quietly switched itself off and
+      // reports nothing in scope. A later successful refresh clears it.
       _viewer?.scene?.requestRender?.();
     },
 
@@ -254,7 +258,9 @@ export function createRiverFloodLayer({ source, context = null } = {}) {
         // flood, and those are not the same day.
         coverage: _summary.gauges
           ? `${horizon.chip} · ${_summary.worst}`
-          : `${horizon.chip} · no gauges at or above action stage`,
+          : _lastError
+            ? `${horizon.chip} · unavailable`
+            : `${horizon.chip} · no gauges at or above action stage`,
       };
     },
 

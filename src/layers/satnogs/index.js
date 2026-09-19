@@ -157,7 +157,11 @@ export function createSatnogsLayer({ source, context = null } = {}) {
       _abort = null;
       clearEntities();
       if (_dataSource) _dataSource.show = false;
-      _lastError = null;
+      // _lastError deliberately SURVIVES a disable. The manager disables a
+      // layer whose first update returned false, which is exactly what a
+      // failed fetch does — so clearing the error here is what turns "the
+      // upstream is down" into a layer that quietly switched itself off and
+      // reports nothing in scope. A later successful refresh clears it.
       _viewer?.scene?.requestRender?.();
     },
 
@@ -228,7 +232,9 @@ export function createSatnogsLayer({ source, context = null } = {}) {
         // the network; "48 of 4,477" says what the scope is hiding.
         coverage: _summary.stations
           ? `${scope.chip} · ${_summary.stations} of ${_summary.total}`
-          : `${scope.chip} · none in scope`,
+          : _lastError
+            ? `${scope.chip} · unavailable`
+            : `${scope.chip} · none in scope`,
       };
     },
 

@@ -155,7 +155,11 @@ export function createConflictReportsLayer({ source, context = null } = {}) {
       _abort = null;
       clearEntities();
       if (_dataSource) _dataSource.show = false;
-      _lastError = null;
+      // _lastError deliberately SURVIVES a disable. The manager disables a
+      // layer whose first update returned false, which is exactly what a
+      // failed fetch does — so clearing the error here is what turns "the
+      // upstream is down" into a layer that quietly switched itself off and
+      // reports nothing in scope. A later successful refresh clears it.
       _viewer?.scene?.requestRender?.();
     },
 
@@ -209,7 +213,9 @@ export function createConflictReportsLayer({ source, context = null } = {}) {
         // not a count of incidents.
         coverage: _summary.countries
           ? `${_summary.events} reported in ${_summary.countries} countries · ${_summary.windowMinutes}m`
-          : 'no violent events in the last update',
+          : _lastError
+            ? 'unavailable'
+            : 'no violent events in the last update',
       };
     },
 

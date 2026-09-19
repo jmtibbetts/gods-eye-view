@@ -123,7 +123,11 @@ export function createLightningLayer({ source, context = null } = {}) {
       _abort = null;
       clearEntities();
       if (_dataSource) _dataSource.show = false;
-      _lastError = null;
+      // _lastError deliberately SURVIVES a disable. The manager disables a
+      // layer whose first update returned false, which is exactly what a
+      // failed fetch does — so clearing the error here is what turns "the
+      // upstream is down" into a layer that quietly switched itself off and
+      // reports nothing in scope. A later successful refresh clears it.
       _viewer?.scene?.requestRender?.();
     },
 
@@ -153,7 +157,9 @@ export function createLightningLayer({ source, context = null } = {}) {
         // Name what was observed, not only what was found. GOES sees one
         // hemisphere, so a flash count alone would let an unobserved Europe
         // read as a calm one.
-        coverage: `${_summary.flashes} in ${_summary.windowSeconds}s · ${coverageText(_summary)}`,
+        coverage: _lastError
+          ? 'unavailable'
+          : `${_summary.flashes} in ${_summary.windowSeconds}s · ${coverageText(_summary)}`,
       };
     },
 

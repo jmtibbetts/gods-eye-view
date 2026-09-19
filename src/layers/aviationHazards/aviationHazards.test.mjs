@@ -17,7 +17,7 @@ import {
   volcanoName,
 } from './records.js';
 import { createAviationHazardSource } from './source.js';
-import { sigmetLabelText } from './index.js';
+import { createAviationHazardsLayer, sigmetLabelText } from './index.js';
 
 const NOW = Date.parse('2026-09-18T21:00:00Z');
 const ALL = filterFor('all');
@@ -294,4 +294,31 @@ test('a caller abort is honoured', async () => {
   const pending = source.fetchSigmets(ALL, { signal: controller.signal });
   controller.abort();
   await assert.rejects(() => pending, /aborted/);
+});
+
+test('a failed load keeps its error through the disable the manager triggers', async () => {
+  // The manager treats `update() === false` as a rejected enable and disables
+  // the layer — which is exactly what a failed first fetch produces. Clearing
+  // the error inside disable() therefore turned "the upstream is down" into a
+  // layer that quietly switched itself off and reported nothing to see.
+  const layer = createAviationHazardsLayer({
+    source: {
+      fetchSigmets: async () => {
+        throw new Error('upstream exploded');
+      },
+    },
+  });
+  await layer.enable();
+  const failed = layer;
+  assert.match(failed.getStats().error ?? '', /upstream exploded/);
+  layer.disable();
+  assert.match(
+    failed.getStats().error ?? '',
+    /upstream exploded/,
+    'the reason must survive the disable',
+  );
+  assert.ok(
+    !failed.getStats().coverage.includes('none in force'),
+    `coverage still asserted emptiness: ${failed.getStats().coverage}`,
+  );
 });

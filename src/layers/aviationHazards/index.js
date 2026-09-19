@@ -167,7 +167,11 @@ export function createAviationHazardsLayer({ source, context = null } = {}) {
       _abort = null;
       clearEntities();
       if (_dataSource) _dataSource.show = false;
-      _lastError = null;
+      // _lastError deliberately SURVIVES a disable. The manager disables a
+      // layer whose first update returned false, which is exactly what a
+      // failed fetch does — so clearing the error here is what turns "the
+      // upstream is down" into a layer that quietly switched itself off and
+      // reports nothing in scope. A later successful refresh clears it.
       _viewer?.scene?.requestRender?.();
     },
 
@@ -239,7 +243,9 @@ export function createAviationHazardsLayer({ source, context = null } = {}) {
         // ash over a flight corridor.
         coverage: _summary.areas
           ? `${filter.chip} · ${_summary.worst}`
-          : `${filter.chip} · none in force`,
+          : _lastError
+            ? `${filter.chip} · unavailable`
+            : `${filter.chip} · none in force`,
       };
     },
 

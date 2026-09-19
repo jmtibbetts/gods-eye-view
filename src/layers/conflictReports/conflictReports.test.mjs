@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { INTENSITY_BANDS, indexCountries, intensityFor } from './policy.js';
 import { centroidShare, parseReports, summarizeReports } from './records.js';
 import { createConflictSource } from './source.js';
-import { countryLabelText } from './index.js';
+import { countryLabelText, createConflictReportsLayer } from './index.js';
 
 const SQUARE = [
   [-10, 40],
@@ -310,4 +310,31 @@ test('an abort during the country-pack load stops before the second request', ()
   return assert
     .rejects(() => source.fetchReports({ signal: controller.signal }), /abort/i)
     .then(() => assert.equal(reportsRequested, false));
+});
+
+test('a failed load keeps its error through the disable the manager triggers', async () => {
+  // The manager treats `update() === false` as a rejected enable and disables
+  // the layer — which is exactly what a failed first fetch produces. Clearing
+  // the error inside disable() therefore turned "the upstream is down" into a
+  // layer that quietly switched itself off and reported nothing to see.
+  const layer = createConflictReportsLayer({
+    source: {
+      fetchReports: async () => {
+        throw new Error('upstream exploded');
+      },
+    },
+  });
+  await layer.enable();
+  const failed = layer;
+  assert.match(failed.getStats().error ?? '', /upstream exploded/);
+  layer.disable();
+  assert.match(
+    failed.getStats().error ?? '',
+    /upstream exploded/,
+    'the reason must survive the disable',
+  );
+  assert.ok(
+    !failed.getStats().coverage.includes('no violent events'),
+    `coverage still asserted emptiness: ${failed.getStats().coverage}`,
+  );
 });

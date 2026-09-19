@@ -21,6 +21,7 @@
  *   GET /api/satnogs/observations → trimmed recent observations
  */
 
+import { join } from 'node:path';
 import { cachedJsonEndpoint, listOf } from './cachedEndpoint.js';
 
 const STATIONS_URL = 'https://network.satnogs.org/api/stations/?format=json';
@@ -35,7 +36,25 @@ const OBSERVATIONS_URL =
 const STATIONS_TTL_MS = 10 * 60_000;
 /** Observations land continuously; a shorter window is worth it here. */
 const OBSERVATIONS_TTL_MS = 2 * 60_000;
-const TIMEOUT_MS = 30_000;
+
+/**
+ * Generous, because the upstream is a volunteer network serving an unpaginated
+ * 3.75 MB response and it is genuinely slow — measured at 16 s for the small
+ * observations endpoint and, on a bad day, a 504 after five minutes on the
+ * station list. Thirty seconds was cutting off requests that would have
+ * succeeded.
+ */
+const TIMEOUT_MS = 90_000;
+
+/**
+ * Where the last good station list is kept between runs.
+ *
+ * Serve-stale only rescues a process that already succeeded once. SatNOGS is
+ * intermittent enough that a server started while it is down would otherwise
+ * show an empty network — and an empty SatNOGS layer looks exactly like "no
+ * stations are online", which is the one thing it must never imply.
+ */
+const CACHE_DIR = join(process.cwd(), 'node_modules', '.cache', 'gev');
 
 /** The only station fields the globe reads. */
 function trimStation(s) {
@@ -101,6 +120,7 @@ export function satnogsProxy() {
     agent: 'gods-eye-view/satnogs',
     timeoutMs: TIMEOUT_MS,
     shape: listOf(trimStation),
+    diskCache: join(CACHE_DIR, 'satnogs-stations.json'),
   });
   const observations = cachedJsonEndpoint({
     url: OBSERVATIONS_URL,

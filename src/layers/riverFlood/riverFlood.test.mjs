@@ -18,7 +18,7 @@ import {
   summarizeGauges,
 } from './records.js';
 import { createNwpsGaugeSource } from './source.js';
-import { gaugeLabelText } from './index.js';
+import { createRiverFloodLayer, gaugeLabelText } from './index.js';
 
 const NOW = horizonFor('observed');
 const F48 = horizonFor('f48');
@@ -365,4 +365,31 @@ test('a caller abort is honoured', async () => {
   const pending = source.fetchGauges(NOW, { signal: controller.signal });
   controller.abort();
   await assert.rejects(() => pending, /aborted/);
+});
+
+test('a failed load keeps its error through the disable the manager triggers', async () => {
+  // The manager treats `update() === false` as a rejected enable and disables
+  // the layer — which is exactly what a failed first fetch produces. Clearing
+  // the error inside disable() therefore turned "the upstream is down" into a
+  // layer that quietly switched itself off and reported nothing to see.
+  const layer = createRiverFloodLayer({
+    source: {
+      fetchGauges: async () => {
+        throw new Error('upstream exploded');
+      },
+    },
+  });
+  await layer.enable();
+  const failed = layer;
+  assert.match(failed.getStats().error ?? '', /upstream exploded/);
+  layer.disable();
+  assert.match(
+    failed.getStats().error ?? '',
+    /upstream exploded/,
+    'the reason must survive the disable',
+  );
+  assert.ok(
+    !failed.getStats().coverage.includes('action stage'),
+    `coverage still asserted emptiness: ${failed.getStats().coverage}`,
+  );
 });
