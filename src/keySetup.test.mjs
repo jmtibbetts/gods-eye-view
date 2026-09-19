@@ -62,3 +62,84 @@ test('aborting pending setup removes its surface and ignores a late response', a
   resolveResponse({ ok: true, json: async () => ({ keys: [] }) });
   assert.equal(await pending, null);
 });
+
+test('the dialog lists the keyless sources after the keys, folded, with nothing to paste', async () => {
+  const { initKeySetup } = await import('./keySetup.js');
+  // A minimal DOM: enough for render() to build rows into the host.
+  const make = (tag) => {
+    const el = {
+      tagName: tag.toUpperCase(),
+      children: [],
+      dataset: {},
+      classList: { add() {}, remove() {}, contains: () => false },
+      attributes: {},
+      textContent: '',
+      hidden: false,
+      append(...nodes) {
+        for (const node of nodes) this.children.push(node);
+      },
+      setAttribute(name, value) {
+        this.attributes[name] = value;
+      },
+      remove() {},
+      addEventListener() {},
+      removeEventListener() {},
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      getClientRects: () => [],
+      focus() {},
+    };
+    return el;
+  };
+  const rowsHost = make('div');
+  const chip = make('button');
+  const root = make('aside');
+  root.dataset = {};
+  root.querySelector = (selector) =>
+    selector === '[data-key-setup-rows]' ? rowsHost : null;
+  chip.querySelector = () => null;
+  const documentRef = {
+    getElementById: (id) => (id === 'key-setup-chip' ? chip : root),
+    createElement: make,
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  await initKeySetup({
+    documentRef,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        keys: [
+          { id: 'aisstream', title: 'AISSTREAM', unlocks: 'ships', getUrl: 'https://x', envVars: ['AISSTREAM_API_KEY'], tier: 'free', set: false },
+        ],
+        setCount: 0,
+        total: 1,
+        keyless: [
+          { id: 'celestrak', title: 'CELESTRAK', feeds: 'satellite orbits', url: 'https://celestrak.org', note: '' },
+          { id: 'satnogs', title: 'SATNOGS', feeds: 'ground stations', url: 'https://network.satnogs.org', note: 'CC BY-SA 4.0' },
+        ],
+      }),
+    }),
+  });
+  assert.equal(rowsHost.children.length, 2, 'one keyed row, then the keyless section');
+  const [keyed, folded] = rowsHost.children;
+  assert.equal(keyed.dataset.keyId, 'aisstream');
+  assert.equal(folded.tagName, 'DETAILS', 'keyless sources are folded');
+  const [summary, list] = folded.children;
+  assert.equal(summary.textContent, 'ALREADY ON · 2 SOURCES, NO KEY NEEDED');
+  assert.equal(list.children.length, 2);
+  const satnogs = list.children[1];
+  assert.equal(satnogs.dataset.set, 'true', 'a keyless source is always lit');
+  const inputs = satnogs.children.flatMap((c) => c.children).filter((c) => c.tagName === 'INPUT');
+  assert.equal(inputs.length, 0, 'nothing to paste');
+  const head = satnogs.children[0];
+  const texts = head.children.map((c) => c.textContent);
+  assert.ok(texts.includes('SATNOGS'));
+  assert.ok(texts.includes('🟢'), 'no-key tier dot');
+  assert.ok(texts.includes('ABOUT ↗'));
+  const caveat = satnogs.children.find((c) => c.className === 'key-setup-caveat');
+  assert.equal(caveat?.textContent, 'CC BY-SA 4.0', 'the caveat is shown on its own line');
+  const celestrak = list.children[0];
+  assert.equal(celestrak.children.some((c) => c.className === 'key-setup-caveat'), false,
+    'no caveat, no badge');
+});

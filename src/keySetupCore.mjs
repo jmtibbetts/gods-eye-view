@@ -28,10 +28,13 @@ export const KEY_SETUP_APPEND_HEADER =
  * `clientExposed` marks the two keys that are injected into the browser
  * bundle by design (restrict them at the provider, per SECURITY.md).
  * `hidden` keeps advanced configuration out of the panel and missing-key count.
+ * `layers` names the data layers a key switches on or upgrades, so a test
+ * can prove every layer in the registry is accounted for by some row.
  */
 export const KEY_SETUP_KEYS = Object.freeze([
   Object.freeze({
     id: 'google-maps',
+    layers: Object.freeze([]),
     title: 'GOOGLE MAPS',
     unlocks: 'The photorealistic 3D planet + place search',
     getUrl: 'https://developers.google.com/maps/documentation/tile/get-api-key',
@@ -41,6 +44,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'google-maps-server',
+    layers: Object.freeze([]),
     title: 'GOOGLE MAPS — SERVER',
     unlocks: 'Places context + Street View fallback; optional separate key',
     getUrl:
@@ -51,6 +55,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'openai',
+    layers: Object.freeze([]),
     title: 'OPENAI',
     unlocks: 'Voice control — talk to the planet',
     getUrl: 'https://platform.openai.com/api-keys',
@@ -59,6 +64,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'aisstream',
+    layers: Object.freeze(['ais-live-vessels']),
     title: 'AISSTREAM',
     unlocks: 'Live ships, worldwide',
     getUrl: 'https://aisstream.io',
@@ -67,6 +73,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'firms',
+    layers: Object.freeze(['local-firms']),
     title: 'NASA FIRMS',
     unlocks: 'Live active-fire detections',
     getUrl: 'https://firms.modaps.eosdis.nasa.gov/api/map_key/',
@@ -75,6 +82,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'tomtom',
+    layers: Object.freeze(['traffic']),
     title: 'TOMTOM',
     unlocks: 'Real live traffic (keyless runs a simulation)',
     getUrl: 'https://developer.tomtom.com',
@@ -83,6 +91,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'cesium-ion',
+    layers: Object.freeze([]),
     title: 'CESIUM ION',
     unlocks: 'Bing imagery map stacks + world terrain',
     getUrl: 'https://ion.cesium.com/tokens',
@@ -92,6 +101,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'opensky',
+    layers: Object.freeze(['flights']),
     title: 'OPENSKY',
     unlocks: 'More flight-polling credits (anonymous works without)',
     getUrl: 'https://opensky-network.org',
@@ -100,6 +110,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'copernicus',
+    layers: Object.freeze(['imagery-viirs']),
     title: 'COPERNICUS',
     unlocks: 'Sentinel-2 imagery at 10 m (all other imagery is keyless)',
     getUrl: 'https://dataspace.copernicus.eu',
@@ -116,11 +127,308 @@ export const KEY_SETUP_KEYS = Object.freeze([
   }),
   Object.freeze({
     id: 'launch-library',
+    layers: Object.freeze(['rocket-launches']),
     title: 'LAUNCH LIBRARY',
     unlocks: 'Higher space-missions request allowance',
     getUrl: 'https://thespacedevs.com',
     envVars: Object.freeze(['LL2_API_TOKEN']),
     tier: 'free',
+  }),
+]);
+
+/**
+ * Everything else the globe talks to — no key, nothing to paste.
+ *
+ * The panel exists so nobody has to wonder what the globe is connected to.
+ * Listing only the keyed providers answered half of that: the other thirty-
+ * odd services run keyless by design, and a panel that did not name them
+ * read as though the keyed handful were the whole picture. These rows carry
+ * no fields, never count toward "keys waiting", and are the receipt for what
+ * is already on. `feeds` names the layers and tools a service powers; `url`
+ * is the service's own page or terms; `note` is the one caveat worth knowing
+ * at a glance (a share-alike licence, a bundled snapshot, a regional feed).
+ *
+ * DATA_SOURCES.md is the full attribution and licence record; this is the
+ * in-app summary of it, in the same order as the panel shows things.
+ * `layers` names the data layers each service feeds; between these rows and
+ * the keyed ones, every id in LAYER_STATE_REGISTRY must appear, so a layer
+ * added without naming its source in the panel fails a test.
+ */
+export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
+  Object.freeze({
+    id: 'esri-osm-basemap',
+    layers: Object.freeze([]),
+    title: 'ESRI WORLD IMAGERY · OPENSTREETMAP',
+    feeds: 'The keyless satellite basemap, with OSM as the fallback',
+    url: 'https://www.esri.com/en-us/legal/terms/full-master-agreement',
+  }),
+  Object.freeze({
+    id: 'reearth-terrain',
+    layers: Object.freeze([]),
+    title: 'RE:EARTH TERRAIN',
+    feeds: 'Keyless world terrain under every globe stack (Mapterhorn mesh)',
+    url: 'https://reearth.io',
+    note: 'CC BY 4.0',
+  }),
+  Object.freeze({
+    id: 'adsb-lol',
+    layers: Object.freeze(['military', 'military-awareness', 'flights']),
+    title: 'ADSB.LOL',
+    feeds:
+      'Military flights and aircraft traces; the flight fallback when OpenSky has no snapshot',
+    url: 'https://adsb.lol',
+  }),
+  Object.freeze({
+    id: 'celestrak',
+    layers: Object.freeze(['satellites']),
+    title: 'CELESTRAK',
+    feeds:
+      'Satellite orbits (TLEs) for the whole catalog, Starlink shell included',
+    url: 'https://celestrak.org',
+  }),
+  Object.freeze({
+    id: 'usgs-earthquakes',
+    layers: Object.freeze(['earthquakes']),
+    title: 'USGS EARTHQUAKES',
+    feeds: 'Global seismic activity, last 24 hours',
+    url: 'https://earthquake.usgs.gov',
+  }),
+  Object.freeze({
+    id: 'usgs-volcanoes',
+    layers: Object.freeze(['volcanoes']),
+    title: 'USGS VOLCANO HAZARDS',
+    feeds: 'Volcano Alerts — every US-monitored volcano above background',
+    url: 'https://volcanoes.usgs.gov',
+    note: 'Positions from a bundled Smithsonian GVP lookup (Wikidata, CC0)',
+  }),
+  Object.freeze({
+    id: 'nws-alerts',
+    layers: Object.freeze(['weather-alerts']),
+    title: 'US NATIONAL WEATHER SERVICE',
+    feeds: 'Weather Alerts — active watches and warnings (api.weather.gov)',
+    url: 'https://www.weather.gov/documentation/services-web-api',
+  }),
+  Object.freeze({
+    id: 'noaa-spc',
+    layers: Object.freeze(['storm-reports', 'severe-outlook']),
+    title: 'NOAA STORM PREDICTION CENTER',
+    feeds: 'Storm Reports and the Severe Outlook',
+    url: 'https://www.spc.noaa.gov',
+  }),
+  Object.freeze({
+    id: 'noaa-nhc',
+    layers: Object.freeze(['tropical-cyclones']),
+    title: 'NOAA NATIONAL HURRICANE CENTER',
+    feeds:
+      'Tropical Cyclones — active storms, cones, and the disturbances being watched',
+    url: 'https://www.nhc.noaa.gov',
+  }),
+  Object.freeze({
+    id: 'noaa-nwps',
+    layers: Object.freeze(['river-flood']),
+    title: 'NOAA NATIONAL WATER PREDICTION SERVICE',
+    feeds:
+      'River Flood — gauges at or above action stage, with forecast horizons',
+    url: 'https://water.noaa.gov',
+  }),
+  Object.freeze({
+    id: 'drought',
+    layers: Object.freeze(['drought']),
+    title: 'US DROUGHT MONITOR · NOAA CPC',
+    feeds:
+      'Drought — current conditions D0–D4 and the monthly and seasonal outlooks',
+    url: 'https://droughtmonitor.unl.edu',
+  }),
+  Object.freeze({
+    id: 'noaa-awc',
+    layers: Object.freeze(['aviation-hazards']),
+    title: 'NOAA AVIATION WEATHER CENTER',
+    feeds:
+      'Aviation Hazards — every SIGMET in force, international and US domestic',
+    url: 'https://aviationweather.gov',
+  }),
+  Object.freeze({
+    id: 'noaa-glm',
+    layers: Object.freeze(['lightning']),
+    title: 'NOAA GOES LIGHTNING MAPPER',
+    feeds:
+      'Lightning — individual flashes from GOES-East and GOES-West, via NOAA Open Data on AWS',
+    url: 'https://www.noaa.gov/nodd',
+    note: 'Western Hemisphere only',
+  }),
+  Object.freeze({
+    id: 'epa-airnow',
+    layers: Object.freeze(['air-quality']),
+    title: 'EPA AIRNOW',
+    feeds: "Air Quality — AQI contours in AirNow's own category colours",
+    url: 'https://www.airnow.gov',
+    note: 'US coverage',
+  }),
+  Object.freeze({
+    id: 'rainviewer',
+    layers: Object.freeze(['imagery-radar']),
+    title: 'RAINVIEWER',
+    feeds: 'Weather Radar — NEXRAD and global precipitation mosaics',
+    url: 'https://www.rainviewer.com/api.html',
+  }),
+  Object.freeze({
+    id: 'nasa-gibs',
+    layers: Object.freeze(['imagery-viirs', 'imagery-science']),
+    title: 'NASA GIBS',
+    feeds:
+      'IMAGERY — the orbital and science sensors: VIIRS, MODIS, Sentinel-1, Black Marble and more',
+    url: 'https://www.earthdata.nasa.gov/engage/open-data-services-software-policies',
+  }),
+  Object.freeze({
+    id: 'eumetview',
+    layers: Object.freeze(['imagery-goes']),
+    title: 'EUMETSAT EUMETVIEW',
+    feeds:
+      'IMAGERY — the geostationary ring: Meteosat, Himawari and the multimission composites',
+    url: 'https://www.eumetsat.int/eumetsat-data-licensing',
+  }),
+  Object.freeze({
+    id: 'satnogs',
+    layers: Object.freeze(['satnogs']),
+    title: 'SATNOGS NETWORK',
+    feeds:
+      'SatNOGS — volunteer satellite ground stations and their observation counts',
+    url: 'https://network.satnogs.org',
+    note: 'CC BY-SA 4.0 — the one share-alike source here',
+  }),
+  Object.freeze({
+    id: 'gdelt',
+    layers: Object.freeze(['conflict-reports']),
+    title: 'GDELT PROJECT',
+    feeds:
+      "Conflict Reporting (Events 2.0) and the cockpit's fallback headlines (DOC 2.0)",
+    url: 'https://www.gdeltproject.org/about.html#termsofuse',
+    note: 'News-derived and unverified, by construction',
+  }),
+  Object.freeze({
+    id: 'nasa-iss-stream',
+    layers: Object.freeze(['satellites']),
+    title: 'NASA ISS LIVE STREAM',
+    feeds: 'The ISS LIVE chip on the satellites row',
+    url: 'https://www.nasa.gov/nasalive',
+    note: 'A stream, not a dedicated Earth camera',
+  }),
+  Object.freeze({
+    id: 'openmhz',
+    layers: Object.freeze(['scanner']),
+    title: 'OPENMHZ',
+    feeds:
+      'Scanners — recorded police, fire and EMS radio from 460+ trunked systems',
+    url: 'https://openmhz.com',
+    note: 'Community project; the browser talks to it directly',
+  }),
+  Object.freeze({
+    id: 'sdr-directory',
+    layers: Object.freeze(['sdr']),
+    title: 'WEB SDR DIRECTORY',
+    feeds:
+      'SDR Receivers — 1,300+ public KiwiSDR, OpenWebRX and WebSDR receivers (receiverbook.de and curated lists)',
+    url: 'https://www.receiverbook.de',
+    note: 'Bundled snapshot; each receiver streams from its own operator',
+  }),
+  Object.freeze({
+    id: 'faa-nasr',
+    layers: Object.freeze(['atc']),
+    title: 'FAA NASR · OURAIRPORTS',
+    feeds:
+      'ATC — published tower, ground, approach, ATIS and Center frequencies; LiveATC opens in its own page',
+    url: 'https://ourairports.com/data/',
+    note: 'Bundled 28-day NASR cycle; no audio is ever relayed',
+  }),
+  Object.freeze({
+    id: 'radio-browser',
+    layers: Object.freeze(['radio']),
+    title: 'RADIO BROWSER',
+    feeds: 'Radio — the geolocated internet-radio station directory',
+    url: 'https://www.radio-browser.info',
+  }),
+  Object.freeze({
+    id: 'nasa-firms-live',
+    layers: Object.freeze(['local-firms']),
+    title: 'NASA FIRMS (SNAPSHOT)',
+    feeds:
+      'The bundled active-fire snapshot; the NASA FIRMS key above switches on the live feed',
+    url: 'https://firms.modaps.eosdis.nasa.gov',
+  }),
+  Object.freeze({
+    id: 'osm-services',
+    layers: Object.freeze([
+      'traffic',
+      'directions',
+      'alpr-cameras',
+      'military-installations',
+    ]),
+    title: 'OPENSTREETMAP SERVICES',
+    feeds:
+      'Overpass for roads and installations, Photon and Nominatim for place search, OSRM (FOSSGIS) for Directions',
+    url: 'https://operations.osmfoundation.org/policies/',
+    note: 'ODbL data; each service has its own usage policy',
+  }),
+  Object.freeze({
+    id: 'open-meteo',
+    layers: Object.freeze([]),
+    title: 'OPEN-METEO',
+    feeds: 'Current weather in the cockpit and its local atmospheric effects',
+    url: 'https://open-meteo.com/en/licence',
+  }),
+  Object.freeze({
+    id: 'google-news-rss',
+    layers: Object.freeze([]),
+    title: 'GOOGLE NEWS RSS',
+    feeds: 'Locality-matched headlines in the cockpit Regional News page',
+    url: 'https://news.google.com',
+  }),
+  Object.freeze({
+    id: 'public-cctv',
+    layers: Object.freeze(['cctv']),
+    title: 'PUBLIC TRAFFIC CAMERAS',
+    feeds:
+      'CCTV — Austin, TxDOT, Caltrans, TfL JamCams, Ontario 511, DriveBC, Calgary, NSW, Tallinn, Tarktee, Fintraffic, Warendorf',
+    url: 'https://github.com/bilawalsidhu/gods-eye-view/blob/main/DATA_SOURCES.md',
+    note: 'Twelve operators, each under its own open-data terms',
+  }),
+  Object.freeze({
+    id: 'transit-gtfs',
+    layers: Object.freeze(['transit']),
+    title: 'TRANSIT AGENCIES (GTFS-RT)',
+    feeds:
+      'Transit — live vehicles from MBTA, CapMetro, Metro Transit, OVapi, Entur, TransLink and HSL',
+    url: 'https://gtfs.org/documentation/realtime/reference/',
+  }),
+  Object.freeze({
+    id: 'gbfs',
+    layers: Object.freeze(['bikeshare']),
+    title: 'GBFS (LYFT · BCYCLE)',
+    feeds: 'Bikeshare availability across 32 cities',
+    url: 'https://gbfs.org',
+  }),
+  Object.freeze({
+    id: 'ofac-sdn',
+    layers: Object.freeze(['ais-live-vessels']),
+    title: 'US TREASURY OFAC',
+    feeds: 'VESSEL WATCH — the sanctioned-vessel list, matched by MMSI only',
+    url: 'https://ofac.treasury.gov/specially-designated-nationals-and-blocked-persons-list-sdn-human-readable-lists',
+    note: 'Bundled snapshot of the SDN list',
+  }),
+  Object.freeze({
+    id: 'bundled-reference',
+    layers: Object.freeze([
+      'local-datacenters',
+      'local-dams',
+      'telegeography-submarine-cables',
+      'bhote-koshi-2026',
+      'bhote-koshi-locator',
+    ]),
+    title: 'BUNDLED REFERENCE DATA',
+    feeds:
+      'Datacenters and dams (OSM), Natural Earth regions and countries, TeleGeography submarine cables, SF neighborhoods',
+    url: 'https://github.com/bilawalsidhu/gods-eye-view/blob/main/DATA_SOURCES.md',
+    note: 'TeleGeography is CC BY-NC-SA — non-commercial',
   }),
 ]);
 
@@ -399,6 +707,15 @@ export function keySetupStatus(env = {}) {
     keys,
     setCount: keys.filter((key) => key.set).length,
     total: keys.length,
+    // Keyless services ride along so the panel can list what is already on.
+    // They are not keys: nothing to set, nothing to count.
+    keyless: KEY_SETUP_KEYLESS_SOURCES.map((entry) => ({
+      id: entry.id,
+      title: entry.title,
+      feeds: entry.feeds,
+      url: entry.url,
+      note: entry.note || '',
+    })),
   };
 }
 

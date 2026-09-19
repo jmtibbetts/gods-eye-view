@@ -1,5 +1,17 @@
 # Changelog
 
+- List everything the globe talks to in the POWER UP panel. The panel named
+  the nine keyed providers and nothing else, so it read as though those were
+  the whole picture; the other thirty-three services run keyless by design and
+  were invisible. They now fold under one line after the keys — "ALREADY ON ·
+  33 SOURCES, NO KEY NEEDED" — each with what it feeds, its caveat where one
+  matters (SatNOGS is share-alike, TeleGeography is non-commercial, OpenMHz is
+  a community project) and a link. Nothing to paste, and they never count as
+  keys waiting. Every row names the layers it powers, and a test proves every
+  layer in the registry is accounted for, so the next layer has to say where
+  its data comes from before it ships. DATA_SOURCES.md gains the five live
+  services and five bundled datasets the earlier layers had left out of it.
+
 - Stop Sentinel-2 tiling the whole globe with a red error paragraph. Sentinel
   Hub renders Sentinel-2 only up to 200 m/px, and it refuses a coarser request
   with an IMAGE — a tile whose pixels spell out "Pixel size of 2443.94 meters

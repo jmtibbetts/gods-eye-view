@@ -59,7 +59,76 @@ export function stripKeylessBasemapFromHash(hash) {
   }
 }
 
-const TIER_DOTS = Object.freeze({ metered: '🔴', free: '🟡' });
+const TIER_DOTS = Object.freeze({ metered: '🔴', free: '🟡', none: '🟢' });
+
+/**
+ * One keyless source row: the same shape as a key row so the eye reads one
+ * list, minus the fields — there is nothing to paste. The LED is always lit,
+ * because the service is already on.
+ */
+function buildKeylessRow(documentRef, source) {
+  const row = documentRef.createElement('section');
+  row.className = 'key-setup-row key-setup-row-keyless';
+  row.dataset.keyId = source.id;
+  row.dataset.set = 'true';
+
+  const head = documentRef.createElement('div');
+  head.className = 'key-setup-row-head';
+  const led = documentRef.createElement('span');
+  led.className = 'key-setup-led';
+  led.setAttribute('aria-hidden', 'true');
+  const title = documentRef.createElement('strong');
+  title.textContent = source.title;
+  const tier = documentRef.createElement('span');
+  tier.className = 'key-setup-tier';
+  tier.textContent = TIER_DOTS.none;
+  tier.title = 'No key — already on';
+  head.append(led, title, tier);
+  const about = documentRef.createElement('a');
+  about.className = 'key-setup-get';
+  about.href = source.url;
+  about.target = '_blank';
+  about.rel = 'noopener noreferrer';
+  about.textContent = 'ABOUT ↗';
+  head.append(about);
+
+  const feeds = documentRef.createElement('p');
+  feeds.className = 'key-setup-unlocks';
+  feeds.textContent = source.feeds;
+
+  row.append(head, feeds);
+  if (source.note) {
+    // On its own line, not in the head: a caveat as long as "CC BY-SA 4.0 —
+    // the one share-alike source here" would otherwise squeeze the title
+    // into three lines and push the row wider than the panel.
+    const note = documentRef.createElement('span');
+    note.className = 'key-setup-caveat';
+    note.textContent = source.note;
+    row.append(note);
+  }
+  return row;
+}
+
+/**
+ * The keyless sources, folded under one line so the keyed rows — the ones
+ * with something to do — stay first and the panel does not triple in length.
+ * Open it and every service the globe talks to is named.
+ */
+function buildKeylessSection(documentRef, sources) {
+  const details = documentRef.createElement('details');
+  details.className = 'key-setup-keyless';
+  const summary = documentRef.createElement('summary');
+  summary.className = 'key-setup-keyless-summary';
+  const count = sources.length;
+  summary.textContent = `ALREADY ON · ${count} ${count === 1 ? 'SOURCE' : 'SOURCES'}, NO KEY NEEDED`;
+  details.append(summary);
+  const list = documentRef.createElement('div');
+  list.className = 'key-setup-keyless-rows';
+  for (const source of sources)
+    list.append(buildKeylessRow(documentRef, source));
+  details.append(list);
+  return details;
+}
 
 /** Build one key row. All content is our own registry text, set via textContent. */
 function buildRow(documentRef, key) {
@@ -215,6 +284,8 @@ export async function initKeySetup({
     rowsHost.textContent = '';
     for (const key of status.keys || [])
       rowsHost.append(buildRow(documentRef, key));
+    if (Array.isArray(status.keyless) && status.keyless.length)
+      rowsHost.append(buildKeylessSection(documentRef, status.keyless));
   };
 
   const visible = () =>

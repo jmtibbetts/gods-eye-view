@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import {
   KEY_SETUP_APPEND_HEADER,
   KEY_SETUP_KEYS,
+  KEY_SETUP_KEYLESS_SOURCES,
   KEY_SETUP_VALUE_LIMIT,
   commandCompletedSuccessfully,
   isKeySetupExternallyManaged,
@@ -14,6 +15,7 @@ import {
   upsertDotenvValues,
   validateKeySetupUpdates,
 } from './keySetupCore.mjs';
+import { LAYER_STATE_REGISTRY } from './data/layerState.js';
 
 test('provider requirements name the registry env vars and next step', () => {
   assert.equal(
@@ -361,4 +363,51 @@ test('server Google key remains supported without appearing in setup or its miss
   assert.deepEqual(complete, keySetupStatus({ ...allVisibleConfigured, GOOGLE_MAPS_SERVER_API_KEY: secret }));
   assert.ok(!JSON.stringify(status).includes('GOOGLE_MAPS_SERVER_API_KEY'));
   assert.ok(!JSON.stringify(status).includes(secret));
+});
+
+test('the keyless sources are complete rows and never count as keys', () => {
+  // The panel is the receipt for what the globe is connected to. A keyed row
+  // has fields; a keyless one has none, but it still has to say what it is,
+  // what it feeds, and where it lives — and it must not move the "keys
+  // waiting" count, because there is nothing waiting.
+  const ids = new Set();
+  const keyedIds = new Set(KEY_SETUP_KEYS.map((key) => key.id));
+  for (const source of KEY_SETUP_KEYLESS_SOURCES) {
+    assert.ok(!ids.has(source.id), `duplicate keyless id ${source.id}`);
+    ids.add(source.id);
+    assert.ok(!keyedIds.has(source.id), `${source.id} collides with a keyed row`);
+    for (const field of ['id', 'title', 'feeds', 'url']) {
+      assert.equal(typeof source[field], 'string', `${source.id} missing ${field}`);
+      assert.ok(source[field].length, `${source.id} has an empty ${field}`);
+    }
+    assert.match(source.url, /^https:\/\//, `${source.id} links over https`);
+    assert.ok(Array.isArray(source.layers), `${source.id} names its layers`);
+    assert.ok(!('envVars' in source), `${source.id} must not carry env vars`);
+  }
+  assert.ok(KEY_SETUP_KEYLESS_SOURCES.length >= 30);
+
+  const status = keySetupStatus({});
+  assert.equal(status.total, KEY_SETUP_KEYS.filter((key) => !key.hidden).length,
+    'keyless rows do not count toward the total');
+  assert.equal(status.setCount, 0);
+  assert.equal(status.keyless.length, KEY_SETUP_KEYLESS_SOURCES.length);
+  for (const row of status.keyless) {
+    assert.deepEqual(Object.keys(row).sort(), ['feeds', 'id', 'note', 'title', 'url']);
+  }
+});
+
+test('every registered layer is accounted for by a panel row, keyed or keyless', () => {
+  // A layer that talks to a service nobody named in the panel is exactly the
+  // gap the keyless list closes. Derived from the registry, so the next layer
+  // has to say where its data comes from before it ships.
+  const covered = new Map();
+  for (const row of [...KEY_SETUP_KEYS, ...KEY_SETUP_KEYLESS_SOURCES]) {
+    assert.ok(Array.isArray(row.layers), `${row.id} names its layers`);
+    for (const layerId of row.layers) covered.set(layerId, row.id);
+  }
+  const registered = LAYER_STATE_REGISTRY.map((entry) => entry.id);
+  const missing = registered.filter((id) => !covered.has(id));
+  assert.deepEqual(missing, [], 'layers with no source row in the panel');
+  const unknown = [...covered.keys()].filter((id) => !registered.includes(id));
+  assert.deepEqual(unknown, [], 'panel rows naming a layer that does not exist');
 });

@@ -359,6 +359,64 @@ body.scene-playback-mode #key-setup {
   }
 }
 
+/* Keyless sources: folded under one line after the keyed rows. */
+.key-setup-keyless {
+  margin-top: 0.3rem;
+}
+
+.key-setup-keyless-summary {
+  cursor: pointer;
+  padding: 0.5rem 0.7rem;
+  color: rgba(84, 227, 156, 0.8);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08rem;
+  border: 1px solid rgba(84, 227, 156, 0.22);
+  border-radius: 0.42rem;
+  list-style: none;
+}
+
+.key-setup-keyless-summary::-webkit-details-marker {
+  display: none;
+}
+
+.key-setup-keyless-summary::before {
+  content: '▸ ';
+}
+
+.key-setup-keyless[open] .key-setup-keyless-summary::before {
+  content: '▾ ';
+}
+
+.key-setup-keyless-summary:hover,
+.key-setup-keyless-summary:focus-visible {
+  color: rgba(84, 227, 156, 1);
+  outline: none;
+}
+
+.key-setup-keyless-rows {
+  display: grid;
+  gap: 0.42rem;
+  margin-top: 0.42rem;
+}
+
+.key-setup-row-keyless {
+  padding: 0.45rem 0.7rem;
+}
+
+.key-setup-caveat {
+  justify-self: start;
+  padding: 0.05rem 0.3rem;
+  color: rgba(198, 220, 226, 0.55);
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.06rem;
+  text-transform: uppercase;
+  border: 1px solid rgba(198, 220, 226, 0.2);
+  border-radius: 0.3rem;
+}
+
 /* Provider Settings additions: externally-managed badge + per-row remove. */
 .key-setup-external {
   padding: 0.05rem 0.3rem;
