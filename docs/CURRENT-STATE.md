@@ -2526,6 +2526,7 @@ its criteria cannot be silently ignored.
 | Tropical Cyclones 🌀 | NHC CurrentStorms.json + NOAA tropical map service | `src/layers/tropical/` via `src/app/layers/tropical.js` | `/api/nhc/storms` (bulletin only; NHC sends no CORS) | 10 min |
 | Severe Outlook ⛈️ | NOAA SPC convective outlooks (map service) | `src/layers/severeOutlook/` via `src/app/layers/severeOutlook.js` | — | 15 min |
 | Air Quality 😷 | EPA AirNow (ArcGIS map service) | `src/layers/airQuality/` via `src/app/layers/airQuality.js` | — | 15 min |
+| Space Weather 🌌 | NOAA SWPC (OVATION, Kp, scales, alerts) | `src/layers/spaceWeather/` via `src/app/layers/spaceWeather.js` | — (direct, CORS-open) | 5 min |
 | River Flood 🌊 | NOAA NWPS river gauges (observed + 24/48/72 h forecast layers) | `src/layers/riverFlood/` via `src/app/layers/riverFlood.js` | — | 15 min |
 | Drought 🏜️ | US Drought Monitor (ArcGIS, server-side generalized) + NOAA CPC outlooks | `src/layers/drought/` via `src/app/layers/drought.js` | — | 60 min |
 | SatNOGS 📡 | network.satnogs.org stations | `src/layers/satnogs/` via `src/app/layers/satnogs.js` | `/api/satnogs/stations` (no CORS upstream; trims 3.75 MB → 1.2 MB; disk-cached) | 10 min |

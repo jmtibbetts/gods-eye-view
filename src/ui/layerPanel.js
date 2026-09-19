@@ -73,6 +73,7 @@ const PANEL_GROUPS = [
       'tropical-cyclones',
       'severe-outlook',
       'drought',
+      'space-weather',
     ],
   },
   {
@@ -103,6 +104,7 @@ const PANEL_LABELS = {
   'aviation-hazards': 'Aviation Hazards',
   'conflict-reports': 'Conflict Reporting',
   drought: 'Drought',
+  'space-weather': 'Space Weather',
   lightning: 'Lightning',
   'river-flood': 'River Flood',
   satnogs: 'SatNOGS',

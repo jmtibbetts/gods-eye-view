@@ -219,6 +219,13 @@ export const DATA_CREDITS = [
       '(public domain; audio delivered directly by each broadcaster)',
   },
   {
+    key: 'noaa-swpc',
+    html:
+      'Space weather (aurora forecast, Kp, scales, alerts): ' +
+      '<a href="https://www.swpc.noaa.gov" target="_blank" rel="noopener">NOAA Space Weather Prediction Center</a> ' +
+      '(US Government work, public domain)',
+  },
+  {
     key: 'reearth-terrain',
     html:
       'Terrain (keyless globe stacks): ' +

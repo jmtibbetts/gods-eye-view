@@ -30,8 +30,11 @@ test('reference factories retain compatibility without starting acquisition or s
     'satnogs',
     'severeOutlook',
     'airQuality',
+    'spaceWeather',
   ]);
   assert.notEqual(first.scanner, second.scanner);
+  assert.notEqual(first.spaceWeather, second.spaceWeather);
+  assert.equal(typeof first.spaceWeather.fetchSpaceWeather, 'function');
   assert.notEqual(first.sdr, second.sdr);
   assert.equal(typeof first.scanner.getSeed, 'function');
   assert.equal(typeof first.sdr.getSnapshot, 'function');

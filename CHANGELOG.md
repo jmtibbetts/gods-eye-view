@@ -1,5 +1,21 @@
 # Changelog
 
+- Space weather, on the globe and in the row. A new keyless layer reads
+  four NOAA SWPC feeds directly — the OVATION aurora probability grid, the
+  planetary K index, the R/S/G scales and the alerts — and drapes the
+  aurora oval on the globe as ground-classified cells, one per whole degree
+  worth drawing, banded from the green of a quiet arc to the red of a
+  storm, so it sits on terrain and on Google 3D alike where an imagery
+  layer would vanish. The layer row says what SWPC says and no more: the
+  oval is a forecast for about half an hour ahead, named with both its
+  observation and forecast times as a probability, not a sighting; Kp is
+  the three-hourly index with its time; G is the storm now-cast; and R and
+  S are there because an R2 radio blackout is why the HF bands went quiet
+  under the web receivers. The last day's alerts, one per code, newest
+  first, close the legend. The oval is required; the index, scales and
+  alerts each degrade to "not available" alone rather than failing the
+  layer. Forty-one layers now.
+
 - Say when the satellite you are following is next over here, and when it
   next takes this ground's picture. The ISS pass finder is now the general
   one — any catalogued satellite, any observer — and gains the question an

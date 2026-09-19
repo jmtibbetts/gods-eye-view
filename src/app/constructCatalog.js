@@ -28,6 +28,7 @@ import { createApplicationTropical } from './layers/tropical.js';
 import { createApplicationAviationHazards } from './layers/aviationHazards.js';
 import { createApplicationConflictReports } from './layers/conflictReports.js';
 import { createApplicationDrought } from './layers/drought.js';
+import { createApplicationSpaceWeather } from './layers/spaceWeather.js';
 import { createApplicationLightning } from './layers/lightning.js';
 import { createApplicationRiverFlood } from './layers/riverFlood.js';
 import { createApplicationSatnogs } from './layers/satnogs.js';
@@ -75,6 +76,7 @@ const SOURCE_METHODS = Object.freeze({
   severeOutlook: ['fetchOutlook'],
   airQuality: ['fetchAirQuality'],
   volcanoes: ['getSnapshot'],
+  spaceWeather: ['fetchSpaceWeather'],
 });
 
 /** Construct the current catalog without choosing any source provider.
@@ -165,6 +167,7 @@ export function createApplicationCatalog({
         createApplicationSatnogs({ surface, source: sources.satnogs }),
         createApplicationSevereOutlook({ source: sources.severeOutlook }),
         createApplicationAirQuality({ source: sources.airQuality }),
+        createApplicationSpaceWeather({ source: sources.spaceWeather }),
         createApplicationVolcanoes({ surface, source: sources.volcanoes }),
         createApplicationAlpr({ surface, source: sources.alpr }),
         satellites,

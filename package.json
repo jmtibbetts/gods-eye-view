@@ -235,6 +235,7 @@
     "./layers/aviationHazards": "./src/layers/aviationHazards/index.js",
     "./layers/conflictReports": "./src/layers/conflictReports/index.js",
     "./layers/drought": "./src/layers/drought/index.js",
+    "./layers/space-weather": "./src/layers/spaceWeather/index.js",
     "./layers/lightning": "./src/layers/lightning/index.js",
     "./layers/riverFlood": "./src/layers/riverFlood/index.js",
     "./layers/satnogs": "./src/layers/satnogs/index.js",

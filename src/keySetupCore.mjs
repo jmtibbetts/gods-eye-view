@@ -232,6 +232,14 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     url: 'https://water.noaa.gov',
   }),
   Object.freeze({
+    id: 'noaa-swpc',
+    layers: Object.freeze(['space-weather']),
+    title: 'NOAA SPACE WEATHER PREDICTION CENTER',
+    feeds:
+      'Space Weather — the OVATION aurora oval, Kp, the R/S/G scales and alerts',
+    url: 'https://www.swpc.noaa.gov',
+  }),
+  Object.freeze({
     id: 'drought',
     layers: Object.freeze(['drought']),
     title: 'US DROUGHT MONITOR · NOAA CPC',

@@ -15,6 +15,7 @@ import { createNwpsGaugeSource } from '../layers/riverFlood/source.js';
 import { createSatnogsSource } from '../layers/satnogs/source.js';
 import { createSpcOutlookSource } from '../layers/severeOutlook/source.js';
 import { createAirNowSource } from '../layers/airQuality/source.js';
+import { createSwpcSource } from '../layers/spaceWeather/source.js';
 
 /** Construct the existing reference feeds independently of application setup. */
 export function createReferenceSources() {
@@ -36,5 +37,6 @@ export function createReferenceSources() {
     satnogs: createSatnogsSource(),
     severeOutlook: createSpcOutlookSource(),
     airQuality: createAirNowSource(),
+    spaceWeather: createSwpcSource(),
   };
 }

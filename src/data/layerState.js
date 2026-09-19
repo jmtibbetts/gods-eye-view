@@ -579,6 +579,11 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     optionOwner: 'severe-outlook',
   }),
   Object.freeze({
+    id: 'space-weather',
+    token: 'sw',
+    disposition: 'enabled-only',
+  }),
+  Object.freeze({
     id: 'storm-reports',
     token: '5',
     disposition: 'enabled-only',
