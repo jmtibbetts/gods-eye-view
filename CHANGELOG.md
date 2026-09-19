@@ -1,5 +1,14 @@
 # Changelog
 
+- Slide a readout card clear of a panel instead of hiding it under one. The
+  tracked readout is vertical-only — its card sits above or below the anchor
+  with a straight leader — so when both of those overlapped the layer panel or
+  the CCTV window there was nothing else to prefer and the panel covered the
+  card. The overlay solver now steps such a card sideways by the smallest
+  distance that clears every panel, keeping the leader vertical and the anchor
+  under the card, the same courtesy the viewport edge already got. When no
+  slide is short enough, the card stays put and is covered as before.
+
 - Make a click on a static layer actually draw its card. Eleven layers — storm
   reports, volcanoes, and the nine sharing `createLayerSelection` — selected
   correctly, highlighted correctly, and showed nothing: the readout publishes

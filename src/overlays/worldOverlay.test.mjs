@@ -1422,6 +1422,50 @@ test('a placement is only ever kept under chrome that composites ABOVE the host'
     'chrome below the host keeps an absolute veto');
 });
 
+test('a vertical-only card beside a panel slides clear of it instead of hiding under it', () => {
+  // The tracked readout is vertical-only, so when both its above and below
+  // rectangles overlap a panel there is no side placement to prefer and the
+  // panel covers the card — which is what a click beside the layer panel
+  // produced. The card now steps sideways by the smallest clearing distance,
+  // keeps its vertical leader, and keeps the anchor under itself.
+  const panel = { left: 230, top: 0, width: 170, height: 300 };
+  const paint = ({ occluders, anchorX }) => {
+    const env = installMockEnvironment({ width: 400, height: 300, dpr: 1, occluders });
+    initWorldOverlay(env.viewer);
+    setOverlayEntries('trackedReadout', [selectedEntry('TRACKED READOUT', {
+      position: positionAtScreen(anchorX, 150),
+      verticalOnly: true,
+    })]);
+    env.postRender.raise();
+    const painted = getOverlayPaintRect('trackedReadout', 'TRACKED READOUT');
+    env.cleanup();
+    return painted;
+  };
+
+  const clear = paint({ occluders: [], anchorX: 200 });
+  assert.ok(clear, 'control: the card paints with no chrome around');
+  assert.equal(clear.x + clear.w / 2, 200, 'control: the card is centred on its anchor');
+  assert.ok(clear.w > 2 * 12, 'the fixture card is wide enough to slide');
+  const overlapsPanel = rectsIntersect(clear, inflatedRect(panel));
+  assert.ok(overlapsPanel, 'fixture: centred on the anchor the card would overlap the panel');
+
+  const slid = paint({ occluders: [{ id: 'left-panel-stack', rect: panel }], anchorX: 200 });
+  assert.ok(slid, 'the card still paints');
+  assert.equal(rectsIntersect(slid, inflatedRect(panel)), false, 'the card cleared the panel');
+  assert.equal(slid.y, clear.y, 'it slid: the placement stayed on the same vertical side');
+  assert.ok(slid.x < clear.x, 'it slid away from the panel');
+  assert.equal(slid.x + slid.w, inflatedRect(panel).x, 'by the smallest distance that clears it');
+  assert.ok(slid.x + 12 <= 200 && 200 <= slid.x + slid.w - 12,
+    'the anchor, and so the vertical leader, still lands inside the card');
+
+  // Clearing the panel would need more than the leader can reach: the card
+  // stays centred and the panel covers it, exactly as before.
+  const deep = { left: 120, top: 0, width: 280, height: 300 };
+  const covered = paint({ occluders: [{ id: 'left-panel-stack', rect: deep }], anchorX: 200 });
+  assert.ok(covered, 'unplaceable under above-host chrome is still kept');
+  assert.equal(covered.x, clear.x, 'no slide the leader cannot reach');
+});
+
 test('cockpit keeps its cards and its detection lane, and hides only the tracked readout', () => {
   // Cockpit-shaped fixture: the two solid cockpit windows at their shipped
   // bounded geometry (min(340px, 28vw) wide, min(42vh, 410px) tall), bottom

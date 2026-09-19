@@ -34,6 +34,9 @@ const PAINT_TARGET_SHARED = 'shared';
 const PAINT_TARGET_DETECTION = 'detection';
 const OCCLUDER_PADDING_PX = 6;
 const OCCLUDER_REFRESH_MS = 100;
+// How far inside a slid card's edge its leader must still land, so a card
+// that stepped sideways to clear a panel still reads as attached to its anchor.
+const SLIDE_LEADER_INSET_PX = 12;
 const DEFAULT_COHORT_LIMIT = 256;
 const MAX_SOURCE_COHORT_LIMIT = 900;
 const DEFAULT_COLLISION_CAPACITY = 96;
@@ -2013,6 +2016,12 @@ function snapshotAndProject(entry, source, viewProjection, keyhole) {
   record.placementInput.verticalOnly = entry.verticalOnly;
   record.placementInput.viewportMargin = entry.viewportMargin;
   placementVariants(record.placementInput, record.placements);
+  if (entry.verticalOnly)
+    slidePlacementsClearOfChrome(
+      record.placements,
+      record.placementInput,
+      _uiOcclusionRects,
+    );
   // UI exclusion is a PREFERENCE for chrome that composites ABOVE the host, and
   // a HARD VETO for chrome that composites below it.
   //
@@ -2080,6 +2089,68 @@ function snapshotAndProject(entry, source, viewProjection, keyhole) {
   record.candidate.screenX = record.screen.x;
   record.candidate.screenY = record.screen.y;
   return record;
+}
+
+/** Scratch rectangle for the slide probe; never escapes the solver. */
+const _slideProbe = { x: 0, y: 0, w: 0, h: 0 };
+
+/**
+ * Step a vertical-only placement sideways to clear chrome.
+ *
+ * A vertical-only entry — the tracked readout, a selected CCTV card — has no
+ * side placement to fall back to, so when both its above and below
+ * rectangles overlap a panel the soft preference has nothing to prefer and
+ * the panel simply covers the card. That is exactly what a click beside the
+ * layer panel produced: the selection landed, the card drew, and the panel
+ * hid most of it.
+ *
+ * The viewport clamp already lets such a card sit off-centre over its
+ * vertical leader at a screen edge; chrome gets the same treatment. Each
+ * overlapping placement moves by the smallest horizontal distance that clears
+ * every exclusion, bounded so the anchor still lies under the card by
+ * SLIDE_LEADER_INSET_PX and so the card stays inside the viewport margin.
+ * When no such slide exists the placement is left where it was and the
+ * existing soft/hard filtering applies unchanged.
+ *
+ * Runs only for placements that actually overlap chrome, against an
+ * inventory of a couple of dozen rectangles at most, and allocates nothing.
+ */
+function slidePlacementsClearOfChrome(placements, input, exclusions) {
+  const count = exclusions.length;
+  if (count === 0) return;
+  for (let p = 0; p < placements.length; p++) {
+    const placement = placements[p];
+    if (placement.corner !== 'above' && placement.corner !== 'below') continue;
+    const rect = placement.rect;
+    if (!overlayRectIntersectsAny(rect, exclusions, count)) continue;
+    const maxReach = rect.w / 2 - SLIDE_LEADER_INSET_PX;
+    if (maxReach <= 0) continue;
+    const minX = input.viewportMargin;
+    const maxX = input.viewportWidth - rect.w - input.viewportMargin;
+    const centredX = input.anchorX - rect.w / 2;
+    let bestX = Number.NaN;
+    let bestReach = Number.POSITIVE_INFINITY;
+    _slideProbe.y = rect.y;
+    _slideProbe.w = rect.w;
+    _slideProbe.h = rect.h;
+    for (let i = 0; i < count; i++) {
+      const other = exclusions[i];
+      if (rect.y >= other.y + other.h || rect.y + rect.h <= other.y) continue;
+      for (let side = 0; side < 2; side++) {
+        const x = side === 0 ? other.x - rect.w : other.x + other.w;
+        const reach = Math.abs(x - centredX);
+        if (reach > maxReach || reach >= bestReach || x < minX || x > maxX)
+          continue;
+        _slideProbe.x = x;
+        if (overlayRectIntersectsAny(_slideProbe, exclusions, count)) continue;
+        bestX = x;
+        bestReach = reach;
+      }
+    }
+    if (Number.isNaN(bestX)) continue;
+    rect.x = Math.round(bestX);
+    placement.centerX = rect.x + rect.w / 2;
+  }
 }
 
 /**
