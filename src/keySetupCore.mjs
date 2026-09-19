@@ -129,7 +129,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
     id: 'launch-library',
     layers: Object.freeze(['rocket-launches']),
     title: 'LAUNCH LIBRARY',
-    unlocks: 'Higher space-missions request allowance',
+    unlocks: 'Higher request allowance for Space Missions and the LAUNCH panel',
     getUrl: 'https://thespacedevs.com',
     envVars: Object.freeze(['LL2_API_TOKEN']),
     tier: 'free',

@@ -297,6 +297,40 @@ test('layer paints the seed even when the live catalog fails, and honors disable
   assert.equal(h.dataSources.length, 0);
 });
 
+test('the seed can be read without enabling the layer, once, and the layer stays off', async () => {
+  // The LAUNCH panel asks "is there a system near this pad" before asking
+  // the user to turn the scanners on; that must not fetch twice or paint.
+  let seeds = 0;
+  const source = {
+    getSeed: async () => {
+      seeds++;
+      return [seedRow];
+    },
+    getSystems: async () => [],
+    getRecentCalls: async () => [],
+    getNewerCalls: async () => [],
+  };
+  const h = harness(source, { enable: false });
+  assert.equal(await h.layer.ensureScannerSeed(), true);
+  assert.equal(await h.layer.ensureScannerSeed(), true);
+  assert.equal(seeds, 1);
+  const near = h.layer.nearestScannerSystems({
+    lat: 38.8,
+    lon: -77.1,
+    limit: 3,
+  });
+  assert.equal(near[0]?.id, 'dcfd');
+  assert.equal(near[0].place, 'Washington, DC');
+  assert.equal(h.overlay.length, 0, 'not enabled: nothing painted');
+  assert.equal(h.layer.getAnalystRecords().length, 0);
+  // Enabling afterwards reuses the seed rather than fetching it again.
+  h.layer.enable(h.viewer);
+  assert.equal(await h.layer.update(h.viewer), true);
+  assert.equal(seeds, 1);
+  assert.equal(h.layer.getStats().count, 1);
+  h.layer.destroy(h.viewer);
+});
+
 test('selecting a system starts a live session and stopping tears it down', async () => {
   let newerCalls = 0;
   const source = {

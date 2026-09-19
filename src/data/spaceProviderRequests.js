@@ -15,3 +15,15 @@ export function launchLibraryRecentUrl(end) {
   url.searchParams.set('mode', 'detailed');
   return url;
 }
+
+/**
+ * Launch Library 2's upcoming feed: the next launches in net order, detailed
+ * so each carries its webcast links, status, window and latest update.
+ * @param {number} [limit]
+ */
+export function launchLibraryUpcomingUrl(limit = 12) {
+  const url = new URL('https://ll.thespacedevs.com/2.3.0/launches/upcoming/');
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('mode', 'detailed');
+  return url;
+}

@@ -700,6 +700,16 @@ export function createScannerLayer({
       return () => _listeners.delete(listener);
     },
     /**
+     * Resolve once the bundled seed is in memory, without enabling the layer
+     * — so another panel can ask "is there a system near this pad" before
+     * asking the user to turn the scanners on.
+     */
+    async ensureScannerSeed() {
+      if (_seedLoaded) return true;
+      mergeSeed(await source.getSeed());
+      return true;
+    },
+    /**
      * Systems nearest a point, optionally text-filtered ("police", "king county").
      * @param {{lat:number, lon:number, query?:string, limit?:number}} options
      */

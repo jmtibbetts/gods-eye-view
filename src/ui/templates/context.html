@@ -335,6 +335,19 @@
             <p class="audio-privacy">Sanctions matching is by MMSI only, never by name, so a listed ship whose entry carries no MMSI will not appear — absence here is not evidence a vessel is unlisted. A vessel is only called dark after repeated sightings then sustained silence; AIS coverage is patchy and a gap is not proof a transponder was switched off.</p>
           </div>
         </section>
+        <section id="launch-panel" class="panel-collapsible collapsed" data-panel-id="launch-panel" aria-label="Upcoming and live rocket launches">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">LAUNCH</span>
+              <span id="launch-layer-state" class="audio-layer-state">NONE</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="launch-panel" title="Expand Launch" aria-label="Expand Launch section">+</button>
+            </div>
+            <div id="launch-body" class="launch-body" aria-label="Upcoming and live rocket launches"></div>
+            <p id="launch-note" class="audio-privacy"></p>
+            <p class="audio-privacy">WATCH opens the operator&rsquo;s own webcast; the countdown net and flight loops you hear on it are their circuits, mixed into the stream, not a public band. LISTEN names what a radio near the range can actually receive &mdash; the range&rsquo;s trunked system where OpenMHz carries it, the tower and approach frequencies of the airfields under the closure, and nearby web receivers &mdash; and says which of them cannot hear a launch at all.</p>
+          </div>
+        </section>
         <section id="sensors-panel" class="panel-collapsible collapsed" data-panel-id="sensors-panel" aria-label="Sensors aboard the tracked satellite">
           <div class="audio-panel-inner">
             <div class="panel-header">

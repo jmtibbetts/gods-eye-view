@@ -1,5 +1,29 @@
 # Changelog
 
+- Watch a launch go, and hear what the range is saying. A LAUNCH panel in
+  the Context rail lists the next dozen launches from Launch Library 2 as
+  live countdowns — in flight, on hold, flown — with the operator's latest
+  note under each. WATCH opens the webcast in the receiver dock when the
+  publisher allows framing (YouTube, through the tracking-free embed host)
+  and on the publisher's own page when they do not (X broadcasts); FLY TO
+  PAD puts the camera on the pad with the clock hanging over it, so the
+  count, the pad and the stream share the screen. LISTEN names what a radio
+  near the range can actually hear, and is careful about it: the countdown
+  net and flight loops on a webcast are the operator's own circuits mixed
+  into the stream, and no public receiver hears them, so the panel says so
+  and offers the three things that ARE on the air — the range's trunked
+  system where OpenMHz carries it (Kennedy Space Center, a clip per
+  transmission), the tower and approach frequencies of the strips on the
+  range and the airfields under the closure (LiveATC, in its own tab), and
+  the web receivers nearby, with every HF-only KiwiSDR marked as unable to
+  hear a launch rather than offered as a way in. One press turns the right
+  layer on and tunes it. The proxy gains `/api/launches/upcoming`, held for
+  six minutes so the two LL2 feeds together stay under the keyless
+  allowance; the scanner layer can read its seed without being enabled, so
+  the panel can say what is near a pad before asking to turn scanners on.
+  Tests cover the embed rules, the phase clock either side of T-0, the
+  listing order, what LISTEN offers and refuses, and the proxy's two caches.
+
 - Follow an imaging satellite and watch it work. Track NOAA-20, Suomi NPP,
   Terra, Aqua, a Sentinel, Landsat, GOES, Himawari or Meteosat and a SENSORS
   panel opens in the Context rail naming the instrument it carries — swath,

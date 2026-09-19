@@ -4,9 +4,20 @@ import {
   readResponseTextCapped,
   coalesceProxyRequest,
 } from '../common/http.js';
-import { launchLibraryRecentUrl } from '../../../src/data/spaceProviderRequests.js';
+import {
+  launchLibraryRecentUrl,
+  launchLibraryUpcomingUrl,
+} from '../../../src/data/spaceProviderRequests.js';
 
 export const LL2_CACHE_TTL_MS = 15 * 60_000;
+/**
+ * The upcoming feed turns over faster — a scrub, a hold, a webcast going
+ * live — so it is held for a third as long. Both feeds together stay under
+ * LL2's keyless allowance of 15 requests an hour: 4 + 10, and only while a
+ * client is actually asking.
+ */
+export const LL2_UPCOMING_CACHE_TTL_MS = 6 * 60_000;
+export const LL2_UPCOMING_LIMIT = 12;
 
 /** Build LL2 request headers without exposing its optional token client-side. */
 export function launchLibraryRequestHeaders(token = process.env.LL2_API_TOKEN) {
@@ -17,16 +28,24 @@ export function launchLibraryRequestHeaders(token = process.env.LL2_API_TOKEN) {
   };
 }
 
-/** Proxy the public Launch Library 2 recent-launch feed server-side. */
-export function rocketLaunchesProxy() {
-  const ttlMs = LL2_CACHE_TTL_MS;
+function send(res, status, body, cacheState, maxAgeSeconds = 900) {
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Cache-Control':
+      status === 200 ? `public, max-age=${maxAgeSeconds}` : 'no-store',
+    'X-GEV-Cache': cacheState,
+  });
+  res.end(body);
+}
+
+/**
+ * One cached LL2 feed: memory, then disk, then upstream; stale served on a
+ * failed refresh. The recent and upcoming feeds are two of these.
+ */
+function createLaunchFeed({ key, cacheFile, ttlMs, buildUrl }) {
   const maxResponseBytes = 12 * 1024 * 1024;
   const maxDiskCacheBytes = 24 * 1024 * 1024;
-  const cachePath = path.join(
-    process.cwd(),
-    '.gev-cache',
-    'launch-library-2-v2.3.json',
-  );
+  const cachePath = path.join(process.cwd(), '.gev-cache', cacheFile);
   let cache = null;
   let diskLoaded = false;
   const inFlight = new Map();
@@ -57,18 +76,8 @@ export function rocketLaunchesProxy() {
     }
   }
 
-  function send(res, status, body, cacheState) {
-    res.writeHead(status, {
-      'Content-Type': 'application/json',
-      'Cache-Control': status === 200 ? 'public, max-age=900' : 'no-store',
-      'X-GEV-Cache': cacheState,
-    });
-    res.end(body);
-  }
-
   async function refreshUpstream() {
-    const end = new Date();
-    const url = launchLibraryRecentUrl(end);
+    const url = buildUrl(new Date());
     const upstream = await fetch(url, {
       signal: AbortSignal.timeout(20000),
       headers: launchLibraryRequestHeaders(),
@@ -88,47 +97,75 @@ export function rocketLaunchesProxy() {
     return fresh;
   }
 
+  async function serve(res) {
+    await loadDiskCache();
+    const now = Date.now();
+    const maxAge = Math.round(ttlMs / 1000);
+    if (cache && now - cache.at < ttlMs) {
+      send(res, 200, cache.body, 'HIT', maxAge);
+      return;
+    }
+    const stale = cache;
+    const request = coalesceProxyRequest(inFlight, key, refreshUpstream);
+    try {
+      const fresh = await request.promise;
+      send(res, 200, fresh.body, request.shared ? 'INFLIGHT' : 'MISS', maxAge);
+    } catch (error) {
+      // Log only a bounded status, never upstream bodies, URLs, or credentials.
+      const status = Number.isInteger(error?.upstreamStatus)
+        ? error.upstreamStatus
+        : 502;
+      if (!request.shared)
+        console.warn(
+          `[launch-library-proxy] ${key} refresh failed (HTTP ${status})${stale ? ' — serving stale cache' : ''}`,
+        );
+      if (stale) {
+        send(res, 200, stale.body, 'STALE-ERROR', maxAge);
+        return;
+      }
+      send(
+        res,
+        status,
+        JSON.stringify({ error: 'Launch Library 2 unavailable' }),
+        'NONE',
+      );
+    }
+  }
+
+  return { serve };
+}
+
+/**
+ * Proxy the public Launch Library 2 feeds server-side: `/api/launches` is
+ * the last 30 days (Space Missions), `/api/launches/upcoming` the next
+ * dozen in net order (the LAUNCH panel's countdowns and webcasts).
+ */
+export function rocketLaunchesProxy() {
+  const recent = createLaunchFeed({
+    key: 'recent-launches',
+    cacheFile: 'launch-library-2-v2.3.json',
+    ttlMs: LL2_CACHE_TTL_MS,
+    buildUrl: (now) => launchLibraryRecentUrl(now),
+  });
+  const upcoming = createLaunchFeed({
+    key: 'upcoming-launches',
+    cacheFile: 'launch-library-2-upcoming-v2.3.json',
+    ttlMs: LL2_UPCOMING_CACHE_TTL_MS,
+    buildUrl: () => launchLibraryUpcomingUrl(LL2_UPCOMING_LIMIT),
+  });
+
   function install(middlewares) {
     middlewares.use('/api/launches', async (req, res) => {
       if (req.method !== 'GET') {
         send(res, 405, JSON.stringify({ error: 'Method Not Allowed' }), 'NONE');
         return;
       }
-      await loadDiskCache();
-      const now = Date.now();
-      if (cache && now - cache.at < ttlMs) {
-        send(res, 200, cache.body, 'HIT');
+      const route = String(req.url || '/').split('?')[0];
+      if (route === '/upcoming' || route === '/upcoming/') {
+        await upcoming.serve(res);
         return;
       }
-      const stale = cache;
-      const request = coalesceProxyRequest(
-        inFlight,
-        'recent-launches',
-        refreshUpstream,
-      );
-      try {
-        const fresh = await request.promise;
-        send(res, 200, fresh.body, request.shared ? 'INFLIGHT' : 'MISS');
-      } catch (error) {
-        // Log only a bounded status, never upstream bodies, URLs, or credentials.
-        const status = Number.isInteger(error?.upstreamStatus)
-          ? error.upstreamStatus
-          : 502;
-        if (!request.shared)
-          console.warn(
-            `[launch-library-proxy] refresh failed (HTTP ${status})${stale ? ' — serving stale cache' : ''}`,
-          );
-        if (stale) {
-          send(res, 200, stale.body, 'STALE-ERROR');
-          return;
-        }
-        send(
-          res,
-          status,
-          JSON.stringify({ error: 'Launch Library 2 unavailable' }),
-          'NONE',
-        );
-      }
+      await recent.serve(res);
     });
   }
 

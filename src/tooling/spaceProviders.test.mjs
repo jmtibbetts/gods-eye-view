@@ -6,10 +6,13 @@ import {
   rocketLaunchesProxy,
   launchLibraryRequestHeaders,
   LL2_CACHE_TTL_MS,
+  LL2_UPCOMING_CACHE_TTL_MS,
+  LL2_UPCOMING_LIMIT,
 } from 'gods-eye-view/server/providers/space';
 import {
   celestrakTleUrl,
   launchLibraryRecentUrl,
+  launchLibraryUpcomingUrl,
 } from 'gods-eye-view/sources/space';
 import * as compatibility from '../../server/providers/local.js';
 
@@ -64,6 +67,56 @@ test('portable requests keep fixed origins, encode group data and preserve the 3
     mode: 'detailed',
   });
   assert.equal(end.toISOString(), '2026-03-01T12:34:56.000Z');
+  const upcoming = launchLibraryUpcomingUrl(12);
+  assert.equal(upcoming.origin, 'https://ll.thespacedevs.com');
+  assert.equal(upcoming.pathname, '/2.3.0/launches/upcoming/');
+  assert.deepEqual(Object.fromEntries(upcoming.searchParams), {
+    limit: '12',
+    mode: 'detailed',
+  });
+});
+
+test('the upcoming feed is its own cache with a shorter hold, under the keyless hourly allowance', async (t) => {
+  isolateDisk(t);
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  const asked = [];
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    asked.push(url.pathname);
+    return Response.json({
+      results: [{ id: url.pathname.includes('upcoming') ? 'up' : 'recent' }],
+    });
+  });
+  const request = install(rocketLaunchesProxy());
+  const up = await request('/api/launches', '/upcoming');
+  assert.equal(up.status, 200);
+  assert.equal(up.headers['X-GEV-Cache'], 'MISS');
+  assert.match(up.body, /"up"/);
+  assert.equal(up.headers['Cache-Control'], 'public, max-age=360');
+  const recent = await request('/api/launches', '/');
+  assert.match(recent.body, /"recent"/);
+  assert.equal(recent.headers['Cache-Control'], 'public, max-age=900');
+  assert.equal(
+    (await request('/api/launches', '/upcoming?x=1')).headers['X-GEV-Cache'],
+    'HIT',
+  );
+  assert.deepEqual(asked, ['/2.3.0/launches/upcoming/', '/2.3.0/launches/']);
+  // Past its hold the upcoming feed refreshes while recent is still fresh.
+  now += LL2_UPCOMING_CACHE_TTL_MS + 1;
+  assert.equal(
+    (await request('/api/launches', '/upcoming')).headers['X-GEV-Cache'],
+    'MISS',
+  );
+  assert.equal(
+    (await request('/api/launches', '/')).headers['X-GEV-Cache'],
+    'HIT',
+  );
+  assert.equal(asked.length, 3);
+  // 4 recent + 10 upcoming refreshes an hour is under LL2's 15 keyless.
+  assert.ok(
+    3600_000 / LL2_CACHE_TTL_MS + 3600_000 / LL2_UPCOMING_CACHE_TTL_MS < 15,
+  );
+  assert.ok(LL2_UPCOMING_LIMIT >= 8);
 });
 
 test('compatibility exports retain the same LL2 header helper and TTL', () => {

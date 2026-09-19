@@ -1253,6 +1253,218 @@ body.recording-mode .audio-dock {
   font: 7.5px/1.4 var(--font-mono);
 }
 
+/* LAUNCH — countdowns for the next launches, each with WATCH / LISTEN /
+   FLY TO PAD. Amber is the launch colour; a live one pulses. */
+.launch-body {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+}
+
+.launch-empty,
+.launch-listen-note {
+  margin: 0;
+  color: rgba(157, 214, 222, 0.72);
+  font: 8px/1.45 var(--font-mono);
+}
+
+.launch-row {
+  display: grid;
+  gap: 3px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 209, 102, 0.18);
+  border-radius: 7px;
+  background: rgba(2, 15, 20, 0.38);
+}
+
+.launch-row-flying {
+  border-color: rgba(255, 209, 102, 0.7);
+  background: rgba(38, 26, 4, 0.5);
+}
+
+.launch-row-imminent {
+  border-color: rgba(255, 209, 102, 0.45);
+}
+
+.launch-row-flown {
+  opacity: 0.72;
+}
+
+.launch-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.launch-name {
+  color: #e8feff;
+  font: 600 9.5px/1.3 var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.launch-chip {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid rgba(157, 214, 222, 0.35);
+  border-radius: 3px;
+  color: rgba(157, 214, 222, 0.85);
+  font: 7px/1.5 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.launch-chip-countdown,
+.launch-chip-imminent {
+  border-color: rgba(139, 224, 122, 0.5);
+  color: #8be07a;
+}
+
+.launch-chip-flying {
+  border-color: rgba(255, 209, 102, 0.8);
+  background: rgba(255, 209, 102, 0.16);
+  color: #ffd166;
+  animation: launch-pulse 1.2s ease-in-out infinite;
+}
+
+.launch-chip-hold {
+  border-color: rgba(255, 128, 96, 0.6);
+  color: #ff9f80;
+}
+
+.launch-clock {
+  color: #ffd166;
+  font: 600 15px/1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.launch-row-flown .launch-clock,
+.launch-row-tbd .launch-clock {
+  color: rgba(157, 214, 222, 0.66);
+  font-size: 10px;
+}
+
+.launch-meta {
+  color: rgba(157, 214, 222, 0.66);
+  font: 7.5px/1.4 var(--font-mono);
+}
+
+.launch-update {
+  color: rgba(232, 254, 255, 0.8);
+  font: 7.5px/1.4 var(--font-mono);
+  font-style: italic;
+}
+
+.launch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.launch-btn {
+  padding: 3px 8px;
+  border: 1px solid rgba(65, 220, 231, 0.3);
+  border-radius: 4px;
+  background: rgba(2, 15, 20, 0.6);
+  color: #72dce6;
+  font: 7.5px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.launch-btn:hover,
+.launch-btn:focus-visible {
+  border-color: rgba(65, 220, 231, 0.6);
+  background: rgba(4, 26, 33, 0.8);
+  outline: none;
+}
+
+.launch-btn.active {
+  border-color: rgba(255, 209, 102, 0.6);
+  color: #ffd166;
+}
+
+.launch-btn-watch {
+  border-color: rgba(255, 209, 102, 0.45);
+  color: #ffd166;
+}
+
+.launch-btn-watch.live {
+  background: rgba(255, 209, 102, 0.16);
+  animation: launch-pulse 1.2s ease-in-out infinite;
+}
+
+.launch-btn-small {
+  padding: 2px 6px;
+  font-size: 7px;
+}
+
+.launch-nocast {
+  align-self: center;
+  color: rgba(157, 214, 222, 0.5);
+  font: 7px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.launch-listen {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(65, 220, 231, 0.14);
+}
+
+.launch-listen-heading {
+  margin-top: 4px;
+  color: #72dce6;
+  font: 8px/1.3 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.launch-source {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'name btn'
+    'meta btn';
+  gap: 1px 8px;
+  align-items: center;
+  padding: 4px 7px;
+  border: 1px solid rgba(65, 220, 231, 0.14);
+  border-radius: 5px;
+  background: rgba(1, 10, 14, 0.5);
+}
+
+.launch-source-name {
+  grid-area: name;
+  color: #e8feff;
+  font: 8px/1.3 var(--font-mono);
+}
+
+.launch-source-meta {
+  grid-area: meta;
+  color: rgba(157, 214, 222, 0.66);
+  font: 7px/1.4 var(--font-mono);
+}
+
+.launch-source .launch-btn {
+  grid-area: btn;
+}
+
+@keyframes launch-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 /* SENSORS — the tracked satellite's instruments; product buttons reuse the
    imagery-sensor look so the two panels read as one family. */
 .sensors-body {

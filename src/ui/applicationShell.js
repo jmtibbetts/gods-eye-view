@@ -22,6 +22,7 @@ import { WatchlistPanel } from './watchlistPanel.js';
 import { VesselWatchPanel } from './vesselWatchPanel.js';
 import { ImageryPanel } from './imageryPanel.js';
 import { SensorsPanel } from './sensorsPanel.js';
+import { LaunchPanel } from './launchPanel.js';
 import { TimelinePanel } from './timelinePanel.js';
 import { captureSnapshot } from './snapshotExport.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -257,6 +258,7 @@ export class StyleManager extends ShellFacade {
         _timelinePanel: this._timelinePanel,
         _imageryPanel: this._imageryPanel,
         _sensorsPanel: this._sensorsPanel,
+        _launchPanel: this._launchPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -554,6 +556,7 @@ export class StyleManager extends ShellFacade {
     this._initRightPanelAdaptiveLayout();
     this._initRadioPanel();
     this._initAudioPanels();
+    this._initLaunchPanel();
     this._initCctvPanel();
     this._initGlobalContextPanel();
     this._initLocationBar();
@@ -1075,6 +1078,40 @@ export class StyleManager extends ShellFacade {
         document
           .getElementById(panelId)
           ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+      },
+      onToast: (message) => {
+        if (!this._disposed) this._showToast(message);
+      },
+    });
+  }
+
+  /** Wire the LAUNCH panel: countdowns, webcasts and what a radio near the range hears. */
+  _initLaunchPanel() {
+    this._launchPanel?.destroy();
+    this._launchPanel = new LaunchPanel({
+      elements: {
+        state: this._launchLayerState,
+        body: this._launchBody,
+        note: this._launchNote,
+      },
+      viewer: this.viewer,
+      openInDock: (url, meta) => {
+        if (!this._audioDock?.open(url, meta || {})) {
+          const tab = window.open(url, '_blank', 'noopener,noreferrer');
+          if (tab) tab.opener = null;
+        }
+      },
+      scanner: () => this.services.scannerLayer || null,
+      atc: () => this.services.atcLayer || null,
+      sdr: () => this.services.sdrLayer || null,
+      enableLayer: (layerId) =>
+        this._dataManager?.setEnabled?.(layerId, true, { origin: 'user' }),
+      isLayerEnabled: (layerId) => {
+        try {
+          return this._dataManager?.isEnabled?.(layerId) === true;
+        } catch {
+          return false;
+        }
       },
       onToast: (message) => {
         if (!this._disposed) this._showToast(message);
@@ -1849,6 +1886,7 @@ export class StyleManager extends ShellFacade {
     this._timelinePanel?.destroy();
     this._imageryPanel?.destroy();
     this._sensorsPanel?.destroy();
+    this._launchPanel?.destroy();
     this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();

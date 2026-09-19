@@ -2505,6 +2505,7 @@ its criteria cannot be silently ignored.
 | Earthquakes | USGS | `src/data/earthquakes.js` | — | 60s |
 | Satellites | CelesTrak | `src/data/satellites.js` | `/api/celestrak` | 120s |
 | Space Missions (30d) | Launch Library 2 + CelesTrak | `src/data/rocketLaunches.js` | `/api/launches` + `/api/celestrak/active` | 5 min |
+| LAUNCH panel (next 12) | Launch Library 2 upcoming | `src/data/launchWatch.js` + `src/ui/launchPanel.js` | `/api/launches/upcoming` | 60 s poll, 6 min proxy hold |
 | Traffic | OSM Overpass (+ optional TomTom live flow) | `src/data/traffic.js` | `/api/overpass` + `/api/tomtom` | viewport-driven |
 | CCTV | Austin + Caltrans (CA) + TfL London + Ontario 511 + Fintraffic (FI) + DriveBC (BC) + TxDOT (TX) + Estonia (Tallinn, Tarktee) + Live Traffic NSW + Open Calgary Open Data + Street View fallback | `src/data/cctv.js` | `/api/cctv` | 10s (active) |
 | Radio | Radio Browser (public-domain station directory) | `src/data/radio.js` | `/api/radio/stations`, `/api/radio/click/:uuid` | 45 min directory refresh |

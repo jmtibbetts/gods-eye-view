@@ -32,11 +32,13 @@ function fixture(name, overrides = {}, preview = false) {
     console: { warn: (...args) => logs.push(args.join(' ')), error: (...args) => logs.push(args.join(' ')) },
     setInterval: () => ({ unref() {} }),
     LL2_CACHE_TTL_MS: 15 * 60_000,
+    LL2_UPCOMING_CACHE_TTL_MS: 6 * 60_000,
+    LL2_UPCOMING_LIMIT: 12,
     parseTerrainPoints: () => [[1, 2]],
     resolveTerrainHeightRequest: async () => { throw new Error(detail); },
     ...overrides,
   };
-  const helpers = ['launchLibraryRequestHeaders', 'celestrakTleUrl', 'launchLibraryRecentUrl'].map(extract).join('\n');
+  const helpers = ['launchLibraryRequestHeaders', 'celestrakTleUrl', 'launchLibraryRecentUrl', 'launchLibraryUpcomingUrl', 'send', 'createLaunchFeed'].map(extract).join('\n');
   const plugin = new Function(...Object.keys(deps), `${helpers}\n${extract(name)}\nreturn ${name}();`)(...Object.values(deps));
   let middleware;
   plugin[preview ? 'configurePreviewServer' : 'configureServer']({ middlewares: { use(_route, handler) { middleware = handler; } } });
