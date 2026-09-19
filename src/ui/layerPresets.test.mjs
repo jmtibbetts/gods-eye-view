@@ -69,3 +69,22 @@ test('toast text counts layers and flags unavailable ones', () => {
   );
   assert.equal(presetToastText(PRESET, single), 'P: 1 layer on');
 });
+
+test('a preset that turns on imagery says the 3D basemap is set aside', () => {
+  // Imagery overlays borrow the 2D globe from Google 3D. From the IMAGERY
+  // panel that trade is announced; from a preset it was silent, and the user
+  // saw the 3D vanish behind radar with no explanation.
+  const withRadar = { ...PRESET, ids: ['imagery-radar', 'flights'] };
+  const on = presetToggleAction(withRadar, probes([]));
+  assert.equal(
+    presetToastText(withRadar, on),
+    'P: 2 layers on · imagery draws on the 2D globe, so Google 3D is set aside',
+  );
+  const off = presetToggleAction(
+    withRadar,
+    probes(['imagery-radar', 'flights']),
+  );
+  assert.equal(presetToastText(withRadar, off), 'P: 2 layers off');
+  const noImagery = presetToggleAction(PRESET, probes([]));
+  assert.equal(presetToastText(PRESET, noImagery), 'P: 3 layers on');
+});

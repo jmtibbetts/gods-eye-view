@@ -301,6 +301,10 @@ test('rainviewerLatest picks the newest frame and builds a tile url', () => {
     'https://tilecache.rainviewer.com/v2/radar/b/256/{z}/{x}/{y}/2/1_1.png',
   );
   assert.equal(cfg.frameTime, 2);
+  // RainViewer serves radar to zoom 7 and answers deeper requests with an
+  // HTTP 200 placeholder tile ("Zoom Level Not Supported") that Cesium would
+  // paint over the whole view. The cap is the provider's documented maximum.
+  assert.equal(cfg.maximumLevel, 7, 'radar stops where RainViewer stops');
   assert.equal(rainviewerLatest({ host: '', radar: {} }), null);
 });
 

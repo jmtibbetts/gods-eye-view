@@ -1,5 +1,16 @@
 # Changelog
 
+- Stop the weather radar from papering the map with "Zoom Level Not Supported".
+  RainViewer serves radar to zoom 7 and answers deeper requests with an HTTP
+  200 placeholder tile carrying that text, which Cesium painted as if it were
+  data — at zoom 8 and beyond every tile on screen was a grey box at 72% over
+  the basemap. The overlay now stops at RainViewer's documented maximum and
+  upsamples from there. Three of the four combination presets turn radar on,
+  and imagery can only draw on the 2D globe, so those presets now say that
+  Google 3D is set aside while imagery is on — the same thing the IMAGERY
+  panel already says — instead of letting the 3D vanish without a word.
+  Turning the overlays off (or CLEAR in the IMAGERY panel) brings it back.
+
 - Slide a readout card clear of a panel instead of hiding it under one. The
   tracked readout is vertical-only — its card sits above or below the anchor
   with a straight leader — so when both of those overlapped the layer panel or

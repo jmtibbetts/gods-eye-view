@@ -104,11 +104,22 @@ export function presetToggleAction(preset, probes) {
   return { action: 'none', ids: [], missing };
 }
 
-/** A short status line for the toast after a press. */
+/**
+ * A short status line for the toast after a press.
+ *
+ * Three of the four presets turn on an imagery overlay, and imagery can only
+ * draw on the 2D globe — the photorealistic 3D basemap is set aside while any
+ * overlay is on (see imageryOverlays/surface.js). The IMAGERY panel says so
+ * when a sensor is picked there; a preset that does the same thing has to say
+ * it too, or the 3D simply disappears with nothing to explain why.
+ */
 export function presetToastText(preset, { action, ids, missing }) {
   if (action === 'none')
     return `${preset.label}: no layers available in this build`;
   const verb = action === 'enable' ? 'on' : 'off';
-  const base = `${preset.label}: ${ids.length} layer${ids.length === 1 ? '' : 's'} ${verb}`;
-  return missing.length ? `${base} · ${missing.length} unavailable` : base;
+  let text = `${preset.label}: ${ids.length} layer${ids.length === 1 ? '' : 's'} ${verb}`;
+  if (missing.length) text += ` · ${missing.length} unavailable`;
+  if (action === 'enable' && ids.some((id) => id.startsWith('imagery-')))
+    text += ' · imagery draws on the 2D globe, so Google 3D is set aside';
+  return text;
 }

@@ -108,7 +108,13 @@ export function rainviewerLatest(payload) {
   if (!host || !frame?.path) return null;
   return {
     url: `${host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`,
-    maximumLevel: 8,
+    // RainViewer's documented maximum is zoom 7. Deeper requests do not fail:
+    // they answer HTTP 200 with a grey placeholder tile reading "Zoom Level
+    // Not Supported", which Cesium paints as if it were radar — so at zoom 8
+    // and beyond every tile on screen became that placeholder, laid at 72%
+    // over the basemap. Capping here makes Cesium upsample the last real
+    // level instead of asking for tiles that do not exist.
+    maximumLevel: 7,
     credit: 'RainViewer',
     frameTime: Number(frame.time) || null,
   };
