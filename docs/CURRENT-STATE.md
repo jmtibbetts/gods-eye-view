@@ -2518,7 +2518,7 @@ its criteria cannot be silently ignored.
 | Submarine Cables ◠ | TeleGeography public map (bundled) | `src/data/telegeographySubmarineCables.js` | — | static |
 | FIRMS Active Fires ▲ | NASA FIRMS live (VIIRS ×3 NRT, trailing 24h) | `src/data/firmsHeatmap.js` | `/api/firms` (`FIRMS_MAP_KEY`) | 10 min (proxy TTL 30 min) |
 | Scanners 🚨 | OpenMHz trunked systems (bundled catalog) + Broadcastify links | `src/layers/scanner/` via `src/app/layers/scanner.js` | — | 5 min |
-| SDR Receivers 📡 | receiverbook.de + curated WebSDR lists (bundled snapshot) | `src/layers/sdr/` via `src/app/layers/sdr.js` | — | 6 h |
+| SDR Receivers 📡 | receiverbook.de + curated WebSDR lists (bundled snapshot; `npm run check:sdr-places` audits pins against the place each name claims and marks mismatches in the seed) | `src/layers/sdr/` via `src/app/layers/sdr.js` | — | 6 h |
 | ATC 🛫 | FAA NASR + OurAirports (bundled) | `src/layers/atc/` via `src/app/layers/atc.js` | — | 6 h |
 | Imagery Overlays 🛰️ (4 slots) | NASA GIBS, EUMETSAT EUMETView, RainViewer, Copernicus Sentinel Hub (BYOK) | `src/layers/imageryOverlays/` | `/api/copernicus/*` (Sentinel-2 only) | per product |
 | Weather Alerts 🌩️ | NWS `api.weather.gov/alerts/active` | `src/layers/weatherAlerts/` via `src/app/layers/weatherAlerts.js` | — | 3 min |

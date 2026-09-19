@@ -40,6 +40,66 @@ export function sdrReceiverUrl(value) {
 }
 
 /**
+ * The place a receiver's name claims, if it claims one.
+ *
+ * Operators name receivers freely — "W4JCW | Camden, South Carolina USA",
+ * "0-30 MHz | Guipry-Messac, FRANCE", "K9DXI, Presque Isle, Wisconsin | USA"
+ * — and the directory pins them wherever the operator put the marker, which
+ * is not always the same place: the Camden receiver above is pinned near
+ * Cape Canaveral, six hundred kilometres from Camden. This pulls the most
+ * place-like segment out of a name so `scripts/check-sdr-places.mjs` can
+ * geocode it and compare, and so the card can name what the name claims.
+ *
+ * Heuristic, and returns null rather than guess: a segment is a place when
+ * it holds a comma-separated pair of words after the callsigns, frequency
+ * ranges, locator squares, emoji and software names are stripped.
+ * @param {string} name
+ * @returns {string|null}
+ */
+export function sdrStatedPlace(name) {
+  const cleaned = String(name ?? '')
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, ' ')
+    .replace(/[►◀★☆▶◄»«]/g, ' ')
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/\b\d+(?:[.,]\d+)?\s*-\s*\d+(?:[.,]\d+)?\s*[kmg]?hz\b/gi, ' ')
+    .replace(/\b\d+(?:[.,]\d+)?\s*[kmg]hz\b/gi, ' ')
+    .replace(
+      /\b(?:kiwisdr|websdr|openwebrx|ubersdr|sdr|rx|hf|vhf|uhf|antenna|loop|dipole|active|airspy|rtl-?sdr|hackrf)\b\s*\d*/gi,
+      ' ',
+    )
+    .replace(/\b[A-Z]{2}\d{2}[A-Z]{2}\b/g, ' ')
+    .replace(/\b(?:[A-Z0-9]{1,2}\d[A-Z]{1,4}(?:\/[A-Z0-9]+)?)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const segments = cleaned
+    .split(/\s*[|~#@]\s*|\s+-\s+/)
+    .map((seg) => seg.replace(/^[\s,.:;-]+|[\s,.:;-]+$/g, '').trim())
+    .filter((seg) => seg.length >= 4);
+  const placeLike = (seg) =>
+    /^[\p{L}][\p{L}\s'.-]*,\s*[\p{L}][\p{L}\s'.()-]*$/u.test(seg) &&
+    !/\d/.test(seg);
+  const best = segments
+    .filter(placeLike)
+    .sort((a, b) => b.length - a.length)[0];
+  return best ? best.replace(/\s*,\s*/g, ', ') : null;
+}
+
+/**
+ * "W. Montana, USA" → "Montana, USA"; "Northern Virginia, USA" → "Virginia,
+ * USA"; anything else → null. A geocoder answers "Montana" with the state
+ * and "W. Montana" with nothing, so the audit tries this form second — and
+ * only second, because "West Valley, OR" is a town, not the west of a valley.
+ * @param {string|null} stated
+ * @returns {string|null}
+ */
+export function sdrRegionWithoutDirection(stated) {
+  const m = String(stated ?? '').match(
+    /^(?:[NSEW]|NE|NW|SE|SW|North|South|East|West|Northern|Southern|Eastern|Western|Central)\.?\s+(?=[\p{L}])(.+)$/iu,
+  );
+  return m ? m[1] : null;
+}
+
+/**
  * Validate the bundled receiver directory. Bad rows are dropped one by one
  * (the file is a snapshot, not a feed), but a non-array payload is rejected.
  * @param {unknown} payload Parsed receivers.json.
@@ -106,6 +166,19 @@ export function normalizeSdrDirectory(payload) {
       hw: text(row.hw, 60) || null,
       usersMax: Number.isFinite(row.usersMax) ? Math.floor(row.usersMax) : null,
       src: text(row.src, 40) || null,
+      /**
+       * Set by scripts/check-sdr-places.mjs when the place the name claims
+       * geocodes far from the pin: the distance, km. A receiver so marked is
+       * drawn where the directory put it but says its position is unverified,
+       * and the LAUNCH panel leaves it out of "near the pad".
+       */
+      placeMismatchKm:
+        Number.isFinite(row.placeKm) && row.placeKm > 0
+          ? Math.round(row.placeKm)
+          : null,
+      placeStated: text(row.placeStated, 80) || null,
+      /** The name is a product's shipped default (a KiwiSDR's "Tauranga"), not a claim. */
+      placeDefault: row.placeDefault === true,
     });
   }
   return out;

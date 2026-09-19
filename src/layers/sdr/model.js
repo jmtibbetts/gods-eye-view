@@ -130,6 +130,14 @@ export function createSdrSelectedOverlayEntry({
   const band = sdrBandText(receiver.bands);
   const specs = [band, receiver.antenna, receiver.hw].filter(Boolean);
   if (specs.length) details.push(specs.join(' · '));
+  if (receiver.placeMismatchKm)
+    details.push(
+      `pin is ${receiver.placeMismatchKm} km from ${receiver.placeStated || 'the place in its name'} · position unverified`,
+    );
+  else if (receiver.placeDefault)
+    details.push(
+      'named with the software’s default location · the pin is the operator’s',
+    );
   if (receiver.usersMax) details.push(`${receiver.usersMax} listener slots`);
   if (tune?.freqHz) {
     const covers = sdrCoversFrequency(receiver, tune.freqHz);
@@ -184,5 +192,7 @@ export function mapSdrAnalystRecord(receiver, index = 0) {
     bandLowHz: receiver?.bands?.[0] ?? null,
     bandHighHz: receiver?.bands?.[1] ?? null,
     antenna: receiver?.antenna ?? null,
+    placeMismatchKm: receiver?.placeMismatchKm ?? null,
+    placeStated: receiver?.placeStated ?? null,
   };
 }

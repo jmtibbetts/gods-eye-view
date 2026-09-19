@@ -227,6 +227,7 @@ test('listen sources are what a radio near the pad can hear, each labelled for w
       { id: 'vhf', name: 'Airband WebSDR', type: 'websdr', url: 'http://b/', distanceKm: 120, ranges: [[0, 30_000_000], [118_000_000, 137_000_000]] },
       { id: 'unknown', name: 'Mystery', type: 'openwebrx', url: 'http://c/', distanceKm: 90 },
       { id: 'far', name: 'Tauranga', type: 'kiwisdr', url: 'http://d/', distanceKm: 13000, bands: [0, 30_000_000] },
+      { id: 'misplaced', name: 'W4JCW | Camden, South Carolina USA', type: 'kiwisdr', url: 'http://e/', distanceKm: 57, bands: [0, 30_000_000], placeMismatchKm: 630, placeStated: 'Camden, South Carolina USA' },
     ],
   });
   // The range's own system leads, the county system follows, 300 km is out.
@@ -241,7 +242,9 @@ test('listen sources are what a radio near the pad can hear, each labelled for w
     sources.airband[0].freqs.map((f) => f.position),
     ['TWR', 'GND', 'APP', 'CTAF'],
   );
-  // The one receiver that covers airband leads; the HF-only one says so.
+  // The one receiver that covers airband leads; the HF-only one says so; the
+  // one whose pin the directory audit could not reconcile with its name is
+  // not offered as "near the pad" at all.
   assert.deepEqual(sources.sdr.map((r) => r.id), ['vhf', 'hf', 'unknown']);
   assert.equal(sources.sdr[0].coversAirband, true);
   assert.equal(sources.sdr[1].hfOnly, true);

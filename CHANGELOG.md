@@ -1,5 +1,19 @@
 # Changelog
 
+- Web SDR receivers are pinned where their names say they are, or say so.
+  The directory's coordinates are wherever an operator dropped the marker,
+  and one KiwiSDR named "Camden, South Carolina" sat sixty kilometres from
+  Cape Canaveral — so the LAUNCH panel offered it as a receiver near the
+  pad. A new `npm run check:sdr-places` pulls the place each receiver's
+  name claims, geocodes it with Nominatim at their one-request-a-second
+  pace (cached on disk), and marks every receiver whose pin is more than
+  150 km from any plausible reading of that place: a state-level claim is
+  met anywhere in the state, a town name is met by whichever namesake the
+  pin is near, and a KiwiSDR still carrying the product's default
+  "Tauranga, New Zealand" is noted as unnamed rather than misplaced. A
+  marked receiver keeps its pin but its card says "position unverified",
+  and the LAUNCH panel leaves it out of "near the pad".
+
 - Conjunctions: where the week's close calls will be. A new layer, the
   43rd, reads CelesTrak's SOCRATES — a hundred and fifty thousand
   predicted close approaches, seventeen megabytes, eight times a day —

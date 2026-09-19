@@ -1,8 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as Cesium from 'cesium';
-import { normalizeSdrDirectory, sdrReceiverUrl } from './records.js';
-import { sdrBandText, sdrCoversFrequency, sdrTunedUrl } from './model.js';
+import {
+  normalizeSdrDirectory,
+  sdrReceiverUrl,
+  sdrRegionWithoutDirection,
+  sdrStatedPlace,
+} from './records.js';
+import {
+  createSdrSelectedOverlayEntry,
+  mapSdrAnalystRecord,
+  sdrBandText,
+  sdrCoversFrequency,
+  sdrTunedUrl,
+} from './model.js';
+import { auditReceiver, FAR_KM } from '../../../scripts/check-sdr-places.mjs';
 import { createBundledSdrSource } from './source.js';
 import { createSdrLayer } from './index.js';
 
@@ -352,4 +364,227 @@ test('listenSdr picks the nearest covering receiver, opens it tuned in the dock,
   );
   assert.equal(layer.getSdrUIState().tune.freqHz, 7.1e6);
   layer.destroy(viewer);
+});
+
+test('the place a name claims is pulled out conservatively, and never guessed', () => {
+  assert.equal(
+    sdrStatedPlace('W4JCW | Camden, South Carolina USA'),
+    'Camden, South Carolina USA',
+  );
+  assert.equal(
+    sdrStatedPlace('0-30 MHz | Guipry-Messac, FRANCE'),
+    'Guipry-Messac, FRANCE',
+  );
+  assert.equal(
+    sdrStatedPlace('🌲46º North #1 ~ K9DXI, Presque Isle, Wisconsin | USA🌲'),
+    'Presque Isle, Wisconsin',
+  );
+  assert.equal(
+    sdrStatedPlace('0-30 MHz -YO8SGV- KN37EX- KiwiSDR | Dorohoi, Romania'),
+    'Dorohoi, Romania',
+  );
+  assert.equal(
+    sdrStatedPlace('0-30 KiwiSDR2 | Hamamatsu, Japan'),
+    'Hamamatsu, Japan',
+  );
+  // A locator square, a callsign, a bare town with no region: no claim.
+  assert.equal(
+    sdrStatedPlace('0-30 MHz DL0MZ DARC OV-MAINZ | JN49AV @ DF7PN'),
+    null,
+  );
+  assert.equal(sdrStatedPlace('Kissinger Hütte'), null);
+  assert.equal(sdrStatedPlace('"Station B" #2 | Canterbury UK'), null);
+  assert.equal(sdrStatedPlace(null), null);
+});
+
+test('the audit flags a pin far from its stated place, and the layer carries the mark through', async () => {
+  const camden = {
+    lat: 34.2465,
+    lon: -80.607,
+    box: [34.216, 34.3, -80.658, -80.537],
+  };
+  const virginia = {
+    lat: 37.5,
+    lon: -78.5,
+    box: [36.54, 39.47, -83.68, -75.24],
+  };
+  const grevenMv = { lat: 53.7, lon: 12.1, box: [53.6, 53.8, 12.0, 12.2] };
+  const grevenNrw = { lat: 52.09, lon: 7.61, box: [52.0, 52.2, 7.5, 7.7] };
+  const lookup = async (q) =>
+    q.startsWith('Camden')
+      ? [camden]
+      : q === 'Virginia, USA'
+        ? [virginia]
+        : q === 'Greven, Germany'
+          ? [grevenMv, grevenNrw]
+          : [];
+  const misplaced = {
+    name: 'W4JCW | Camden, South Carolina USA',
+    lat: 28.05,
+    lon: -80.56,
+  };
+  const far = await auditReceiver(misplaced, lookup);
+  assert.equal(far.status, 'far');
+  assert.equal(far.stated, 'Camden, South Carolina USA');
+  assert.ok(far.km > 600 && far.km < 720, `${far.km} km`);
+  const ok = await auditReceiver(
+    { ...misplaced, lat: 34.25, lon: -80.6 },
+    lookup,
+  );
+  assert.equal(ok.status, 'ok');
+  assert.ok(ok.km < FAR_KM);
+  assert.equal(
+    (await auditReceiver({ name: 'Kissinger Hütte', lat: 50, lon: 9 }, lookup))
+      .status,
+    'unplaced',
+  );
+  assert.equal(
+    (
+      await auditReceiver(
+        { name: 'X | Nowhere, Atlantis', lat: 0, lon: 0 },
+        lookup,
+      )
+    ).status,
+    'unresolved',
+  );
+  // A state-level claim is met anywhere inside the state, however far from its centre.
+  assert.equal(
+    (
+      await auditReceiver(
+        { name: 'K1RA | Virginia, USA', lat: 38.74, lon: -77.8 },
+        lookup,
+      )
+    ).status,
+    'ok',
+  );
+  const montana = {
+    lat: 47,
+    lon: -109.6,
+    box: [44.36, 49.0, -116.05, -104.04],
+  };
+  const viaRegion = async (q) =>
+    q === 'Montana, USA'
+      ? [montana]
+      : q === 'W. Montana, USA'
+        ? [{ lat: 40, lon: -75, box: null }]
+        : [];
+  assert.equal(
+    (
+      await auditReceiver(
+        { name: 'W0AY | W. Montana, USA', lat: 46.59, lon: -114.03 },
+        viaRegion,
+      )
+    ).status,
+    'ok',
+  );
+  assert.equal(
+    (
+      await auditReceiver(
+        { name: 'K7KIB | West Valley, OR', lat: 45.03, lon: -123.4 },
+        async (q) =>
+          q === 'West Valley, OR'
+            ? [{ lat: 45.05, lon: -123.4, box: null }]
+            : [{ lat: 0, lon: 0, box: null }],
+      )
+    ).status,
+    'ok',
+  );
+  // The operator meant whichever Greven they are near, not the first one Nominatim lists.
+  assert.equal(
+    (
+      await auditReceiver(
+        { name: 'DF1QQ | Greven, Germany', lat: 52.13, lon: 7.55 },
+        lookup,
+      )
+    ).status,
+    'ok',
+  );
+  // A KiwiSDR never renamed says Tauranga; that is the product's default, not a claim.
+  assert.equal(
+    (
+      await auditReceiver(
+        {
+          name: '0-30 MHz SDR | Tauranga, New Zealand',
+          lat: 39.2,
+          lon: -84.58,
+        },
+        async () => [
+          { lat: -37.69, lon: 176.17, box: [-37.8, -37.6, 176.1, 176.3] },
+        ],
+      )
+    ).status,
+    'placeholder',
+  );
+  // A slash in a name is not a separator: "MA/CT Border" is one thing, and not a claim.
+  assert.equal(sdrStatedPlace('N1NTE-3 - MA/CT Border, USA'), null);
+  // A direction in front of a region is tried as the region, second: the
+  // geocoder knows Montana, not "W. Montana" — but "West Valley" is a town.
+  assert.equal(
+    sdrStatedPlace('W0AY: kiwiSDR @1 0.1-30 MHz | W. Montana, USA'),
+    'W. Montana, USA',
+  );
+  assert.equal(sdrRegionWithoutDirection('W. Montana, USA'), 'Montana, USA');
+  assert.equal(
+    sdrRegionWithoutDirection('Northern Virginia, USA'),
+    'Virginia, USA',
+  );
+  assert.equal(sdrRegionWithoutDirection('Camden, South Carolina USA'), null);
+
+  const rows = normalizeSdrDirectory({
+    receivers: [
+      {
+        ...misplaced,
+        id: 'a',
+        url: 'http://a.example/',
+        type: 'kiwisdr',
+        placeStated: far.stated,
+        placeKm: far.km,
+      },
+      {
+        ...misplaced,
+        id: 'b',
+        url: 'http://b.example/',
+        type: 'kiwisdr',
+        placeKm: 0,
+      },
+      {
+        ...misplaced,
+        id: 'c',
+        name: '0-30 MHz SDR | Tauranga, New Zealand',
+        url: 'http://c.example/',
+        type: 'kiwisdr',
+        placeDefault: true,
+      },
+    ],
+  });
+  assert.equal(rows[2].placeDefault, true);
+  assert.ok(
+    createSdrSelectedOverlayEntry({
+      id: 'sdr:c',
+      position: null,
+      receiver: rows[2],
+    }).details.some((d) => /default location/.test(d)),
+  );
+  assert.equal(rows[0].placeMismatchKm, far.km);
+  assert.equal(rows[0].placeStated, 'Camden, South Carolina USA');
+  assert.equal(rows[1].placeMismatchKm, null);
+  const entry = createSdrSelectedOverlayEntry({
+    id: 'sdr:a',
+    position: null,
+    receiver: rows[0],
+  });
+  assert.ok(
+    entry.details.some(
+      (d) => /position unverified/.test(d) && /Camden/.test(d),
+    ),
+    entry.details.join('|'),
+  );
+  assert.equal(mapSdrAnalystRecord(rows[0]).placeMismatchKm, far.km);
+  assert.ok(
+    !createSdrSelectedOverlayEntry({
+      id: 'sdr:b',
+      position: null,
+      receiver: rows[1],
+    }).details.some((d) => /unverified/.test(d)),
+  );
 });

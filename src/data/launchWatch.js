@@ -358,6 +358,9 @@ export function listenSourcesFor(record, directories = {}) {
   );
   for (const r of directories.receivers || []) {
     if (!(r.distanceKm <= 250)) continue;
+    // A pin the directory audit could not reconcile with the place in the
+    // receiver's name is not evidence of a receiver near this pad.
+    if (r.placeMismatchKm) continue;
     const ranges =
       Array.isArray(r.ranges) && r.ranges.length
         ? r.ranges

@@ -44,6 +44,7 @@
     "test:track": "node scripts/track-regression.mjs",
     "qa:map-source-tray": "node scripts/qa-map-source-tray.mjs",
     "check:imagery": "node scripts/check-imagery-catalog.mjs",
+    "check:sdr-places": "node scripts/check-sdr-places.mjs",
     "check:boundaries": "node scripts/check-import-directions.mjs && node scripts/check-package-boundaries.mjs",
     "qa:transit": "node scripts/qa-transit.mjs"
   },
