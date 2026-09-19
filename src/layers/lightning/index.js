@@ -86,7 +86,7 @@ export function createLightningLayer({
     clearEntities();
     for (const flash of flashes) {
       const color = Cesium.Color.fromCssColorString(flash.color);
-      _dataSource.entities.add({
+      const entity = _dataSource.entities.add({
         id: entityId(flash.id),
         position: Cesium.Cartesian3.fromDegrees(flash.lon, flash.lat, 0),
         point: {
@@ -99,6 +99,16 @@ export function createLightningLayer({
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
       });
+      entity.gevTrackedId = entityId(flash.id);
+      entity.gevDisplayPosition = () =>
+        Cesium.Cartesian3.fromDegrees(flash.lon, flash.lat, 0);
+      entity.gevLabelModel = {
+        title: `${flash.bandName} lightning · ${flash.satelliteName}`,
+        details: [],
+        accent: flash.color,
+        cardStyle: 'tactical',
+        selected: true,
+      };
       _flashes.set(flash.id, flash);
     }
     selection.reconcile();

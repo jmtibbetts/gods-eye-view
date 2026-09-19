@@ -1,5 +1,16 @@
 # Changelog
 
+- Make a click on a static layer actually draw its card. Eleven layers — storm
+  reports, volcanoes, and the nine sharing `createLayerSelection` — selected
+  correctly, highlighted correctly, and showed nothing: the readout publishes
+  only the layers named in `READOUT_CONTEXT_LAYERS`, and none had been named.
+  Five area layers also gave their entities a card model but no anchor to draw
+  it at, and lightning had no model at all. All are wired now, and a test
+  derives the list from the layer sources so the twelfth cannot repeat this.
+  Area layers draw the card where the click landed rather than at the
+  polygon's centroid, which for an outlook, a drought band or a shaded country
+  is usually off screen. Found by clicking, not by any test.
+
 - Add six live-data layers and one panel: River Flood (NOAA NWPS gauges, observed
   plus 24/48/72-hour forecast horizons), Drought (US Drought Monitor conditions
   and CPC monthly/seasonal outlooks), SatNOGS ground stations, Aviation Hazards

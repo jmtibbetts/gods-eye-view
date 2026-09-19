@@ -259,11 +259,30 @@ export function getActiveTrackedReadoutId() {
   return _activeEntryId;
 }
 
-/** Static-context layers whose click selection publishes the readout card. */
+/**
+ * Static-context layers whose click selection publishes the readout card.
+ *
+ * A layer that writes `gevLabelModel` and selects through the context store
+ * still draws no card until it is named here — the selection lands, the
+ * entity is highlighted, and the readout stays empty. Eleven layers shipped
+ * that way. trackedReadout.test.mjs now derives this list from the layer
+ * sources, so the next one fails a test instead of a click.
+ */
 const READOUT_CONTEXT_LAYERS = new Set([
   'military-installations',
   'alpr-cameras',
   'weather-alerts',
+  'storm-reports',
+  'volcanoes',
+  'severe-outlook',
+  'air-quality',
+  'tropical-cyclones',
+  'river-flood',
+  'drought',
+  'satnogs',
+  'aviation-hazards',
+  'lightning',
+  'conflict-reports',
 ]);
 
 /**

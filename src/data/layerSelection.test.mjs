@@ -34,16 +34,24 @@ function fakeViewer(pickResult) {
   };
 }
 
-function build({ pick, records, log = [], captured = {} } = {}) {
+function build({
+  pick,
+  records,
+  log = [],
+  captured = {},
+  anchorCardAtClick = false,
+  context = fakeContext(log),
+} = {}) {
   const entities = new Map(
     [...records.keys()].map((id) => [`test:${id}`, { id: `test:${id}` }]),
   );
   const selection = createLayerSelection({
+    anchorCardAtClick,
     layerId: 'test-layer',
     layerName: 'Test',
     source: 'Test source',
     entityPrefix: 'test:',
-    context: fakeContext(log),
+    context,
     getRecord: (id) => records.get(id),
     getEntity: (id) => entities.get(`test:${id}`),
     getDataSource: () => ({ name: 'test-layer' }),
@@ -55,7 +63,7 @@ function build({ pick, records, log = [], captured = {} } = {}) {
     }),
     screenSpaceEventHandlerFactory: fakeHandlerFactory(captured),
   });
-  return { selection, log, captured, pick };
+  return { selection, log, captured, pick, entities };
 }
 
 const RECORDS = new Map([
@@ -179,6 +187,65 @@ test('select without a context store reports false and leaves nothing selected',
   });
   assert.equal(selection.select('a'), false);
   assert.equal(selection.selectedId(), null);
+});
+
+test('an area layer draws its card where the click landed, not at the centroid', () => {
+  // A continent-sized polygon's centroid is usually off screen from the
+  // click, and a card drawn there is never seen. The readout reads the
+  // entity's anchor as the selection event fires, so it must be set first.
+  const pick = { value: { id: { id: 'test:a' } } };
+  const ground = { x: 1, y: 2, z: 3 };
+  const anchorsAtPublish = [];
+  const log = [];
+  const context = {
+    ...fakeContext(log),
+    selectEntityContext: (selected) =>
+      anchorsAtPublish.push(selected.gevDisplayPosition()),
+  };
+  const { selection, captured, entities } = build({
+    pick,
+    records: RECORDS,
+    log,
+    context,
+    anchorCardAtClick: true,
+  });
+  const entity = entities.get('test:a');
+  entity.gevDisplayPosition = () => ({ x: 9, y: 9, z: 9 });
+  const viewer = {
+    ...fakeViewer(pick),
+    camera: {
+      getPickRay: () => ({}),
+      pickEllipsoid: () => null,
+    },
+  };
+  viewer.scene.globe = { pick: () => ground };
+  selection.install(viewer);
+  captured.click({ position: { x: 5, y: 6 } });
+  assert.equal(
+    entity.gevDisplayPosition(),
+    ground,
+    'anchor moved to the click',
+  );
+  assert.deepEqual(
+    anchorsAtPublish,
+    [ground],
+    'moved before the readout read it',
+  );
+
+  // A click that misses the globe leaves the entity's own anchor alone.
+  viewer.scene.globe.pick = () => null;
+  entity.gevDisplayPosition = () => ({ x: 9, y: 9, z: 9 });
+  captured.click({ position: { x: 5, y: 6 } });
+  assert.deepEqual(entity.gevDisplayPosition(), { x: 9, y: 9, z: 9 });
+
+  // Without the option a point layer keeps its exact position.
+  const plain = build({ pick, records: RECORDS });
+  const point = plain.entities.get('test:a');
+  point.gevDisplayPosition = () => ({ x: 7, y: 7, z: 7 });
+  plain.selection.install(viewer);
+  viewer.scene.globe.pick = () => ground;
+  plain.captured.click({ position: { x: 5, y: 6 } });
+  assert.deepEqual(point.gevDisplayPosition(), { x: 7, y: 7, z: 7 });
 });
 
 test('a flat ring centroid is the mean of its vertices', () => {

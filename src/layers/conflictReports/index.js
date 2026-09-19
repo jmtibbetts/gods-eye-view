@@ -81,6 +81,8 @@ export function createConflictReportsLayer({
     getRecord: (id) => _areas.get(id),
     getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
     getDataSource: () => _dataSource,
+    // A country is large; the card goes where the click landed.
+    anchorCardAtClick: true,
     describe: (area) => {
       const c = flatRingCentroid(area.positions) || { lat: 0, lon: 0 };
       return {
@@ -116,7 +118,7 @@ export function createConflictReportsLayer({
     clearEntities();
     for (const area of areas) {
       const color = Cesium.Color.fromCssColorString(area.color);
-      _dataSource.entities.add({
+      const entity = _dataSource.entities.add({
         id: entityId(area.id),
         polygon: {
           hierarchy: new Cesium.PolygonHierarchy(
@@ -128,7 +130,14 @@ export function createConflictReportsLayer({
           outlineColor: color.withAlpha(0.8),
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         },
-      }).gevLabelModel = {
+      });
+      // A polygon has no position of its own, and the readout needs one to
+      // draw the card next to: the ring's centroid, until a click moves it.
+      const centroid = flatRingCentroid(area.positions) || { lat: 0, lon: 0 };
+      entity.gevTrackedId = entityId(area.id);
+      entity.gevDisplayPosition = () =>
+        Cesium.Cartesian3.fromDegrees(centroid.lon, centroid.lat, 0);
+      entity.gevLabelModel = {
         title: `${area.country} · ${area.events} reported`,
         details: [],
         accent: area.color,

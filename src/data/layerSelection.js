@@ -36,6 +36,11 @@ import {
  * @param {(id: string) => any} options.getEntity Entity by bare id, or falsy.
  * @param {() => any} options.getDataSource The layer's CustomDataSource.
  * @param {(record: any) => {label: string, latitude: number, longitude: number, properties?: object}} options.describe
+ * @param {boolean} [options.anchorCardAtClick=false] Draw the readout card
+ *   at the clicked ground position rather than the entity's own anchor. For
+ *   an area — an outlook, a drought band, a shaded country — the entity's
+ *   anchor is its centroid, which for anything continent-sized is usually off
+ *   screen from where the click landed, and a card placed there is never seen.
  * @param {(viewer:any) => Cesium.ScreenSpaceEventHandler} [options.screenSpaceEventHandlerFactory]
  */
 export function createLayerSelection({
@@ -48,6 +53,7 @@ export function createLayerSelection({
   getEntity,
   getDataSource,
   describe,
+  anchorCardAtClick = false,
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 }) {
@@ -57,11 +63,19 @@ export function createLayerSelection({
 
   const entityId = (id) => `${entityPrefix}${id}`;
 
-  function select(id) {
+  /**
+   * @param {string} id Bare record id.
+   * @param {object} [options]
+   * @param {any} [options.anchor] World position to draw the card at. Set
+   *   before the selection is published, because the readout reads the
+   *   entity's anchor the moment the selection event fires.
+   */
+  function select(id, { anchor = null } = {}) {
     const record = getRecord(id);
     const entity = getEntity(id);
     if (!record || !entity || !context) return false;
     _selectedId = id;
+    if (anchor) entity.gevDisplayPosition = () => anchor;
     try {
       const described = describe(record);
       context.registerEntityContext(entity, {
@@ -101,7 +115,11 @@ export function createLayerSelection({
       if (typeof pickedId === 'string' && pickedId.startsWith(entityPrefix)) {
         const id = pickedId.slice(entityPrefix.length);
         if (getRecord(id)) {
-          select(id);
+          select(id, {
+            anchor: anchorCardAtClick
+              ? groundPosition(viewer, click.position)
+              : null,
+          });
           return;
         }
       }
@@ -145,6 +163,24 @@ export function createLayerSelection({
     reconcile,
     selectedId: () => _selectedId,
   };
+}
+
+/**
+ * The ground under a screen position: terrain where it is loaded, the
+ * ellipsoid otherwise, null when the click missed the globe.
+ */
+function groundPosition(viewer, position) {
+  try {
+    const scene = viewer.scene;
+    const ray = viewer.camera.getPickRay(position);
+    const onTerrain = ray ? scene.globe?.pick?.(ray, scene) : null;
+    if (onTerrain) return onTerrain;
+    return (
+      viewer.camera.pickEllipsoid(position, scene.globe?.ellipsoid) || null
+    );
+  } catch {
+    return null;
+  }
 }
 
 /**

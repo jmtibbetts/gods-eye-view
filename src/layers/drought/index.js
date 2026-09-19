@@ -78,6 +78,8 @@ export function createDroughtLayer({
     getRecord: (id) => _bands.get(id),
     getEntity: (id) => _dataSource?.entities.getById(entityId(id)),
     getDataSource: () => _dataSource,
+    // A drought band can span the country; the card goes where the click landed.
+    anchorCardAtClick: true,
     describe: (band) => {
       const c = flatRingCentroid(band.positions) || { lat: 0, lon: 0 };
       return {
@@ -135,6 +137,12 @@ export function createDroughtLayer({
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         },
       });
+      // A polygon has no position of its own, and the readout needs one to
+      // draw the card next to: the band's centroid, until a click moves it.
+      const centroid = flatRingCentroid(band.positions) || { lat: 0, lon: 0 };
+      entity.gevTrackedId = entityId(band.id);
+      entity.gevDisplayPosition = () =>
+        Cesium.Cartesian3.fromDegrees(centroid.lon, centroid.lat, 0);
       entity.gevLabelModel = {
         title: `${product.chip} · ${band.name}`,
         details: [],

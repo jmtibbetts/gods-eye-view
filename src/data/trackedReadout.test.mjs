@@ -257,6 +257,76 @@ test('selection lifecycle ignores vessels, accepts installations, and clears wit
   }
 });
 
+/**
+ * Every layer that selects into the shared context store and writes a card
+ * model, found from the sources rather than listed here: a layer that follows
+ * the pattern is covered the day it lands.
+ */
+async function staticContextLayersFromSource() {
+  const layersDir = new URL('../layers/', import.meta.url);
+  const { readdir } = await import('node:fs/promises');
+  const found = [];
+  for (const dir of (await readdir(layersDir)).sort()) {
+    let index;
+    try {
+      index = await readFile(new URL(`${dir}/index.js`, layersDir), 'utf8');
+    } catch {
+      continue;
+    }
+    const selects = index.includes('createLayerSelection(') || index.includes('selectEntityContext(');
+    if (!selects || !index.includes('gevLabelModel')) continue;
+    const policy = await readFile(new URL(`${dir}/policy.js`, layersDir), 'utf8');
+    const id = policy.match(/export const \w+_LAYER_ID = '([^']+)'/)?.[1];
+    assert.ok(id, `${dir}/policy.js names its layer id`);
+    found.push({ dir, id, index });
+  }
+  return found;
+}
+
+test('every static-context layer that writes a click card is published by the readout', async () => {
+  // Eleven layers selected correctly, highlighted correctly, and drew no card:
+  // the readout only publishes layers it has been told about, and nothing
+  // told it. The list is derived from the sources so the twelfth cannot
+  // repeat it.
+  const layers = await staticContextLayersFromSource();
+  assert.ok(layers.length >= 12, `found ${layers.length} static-context layers`);
+  for (const { dir, id, index } of layers) {
+    // A card needs an anchor as well as a model; a polygon has no position of
+    // its own, so the layer must supply one.
+    assert.ok(index.includes('.gevTrackedId ='), `${dir} names its card entry`);
+    assert.ok(index.includes('.gevDisplayPosition ='), `${dir} anchors its card`);
+  }
+
+  const originalWindow = globalThis.window;
+  const fakeWindow = new EventTarget();
+  const viewer = { trackedEntity: null, trackedEntityChanged: makeCesiumEvent() };
+  const recorder = makeHostRecorder();
+  globalThis.window = fakeWindow;
+  _setTrackedOverlayHostForTest(recorder.host);
+  try {
+    initTrackedReadout(viewer);
+    for (const { id } of layers) {
+      const entity = {
+        gevTrackedId: `${id}:probe`,
+        gevDisplayPosition: () => ({ x: 1, y: 2, z: 3 }),
+        gevLabelModel: { title: `${id.toUpperCase()} PROBE`, details: [], accent: '#ffffff' },
+      };
+      fakeWindow.dispatchEvent(new CustomEvent('gev:entity-selected', {
+        detail: { layerId: id, entity },
+      }));
+      assert.equal(getActiveTrackedReadoutId(), `${id}:probe`, `${id} publishes its card`);
+      fakeWindow.dispatchEvent(new CustomEvent('gev:entity-selection-cleared', {
+        detail: { layerId: id },
+      }));
+      assert.equal(getActiveTrackedReadoutId(), null, `${id} clears its card`);
+    }
+  } finally {
+    destroyTrackedReadout();
+    _setTrackedOverlayHostForTest();
+    globalThis.window = originalWindow;
+  }
+});
+
 test('trackedReadout cannot resurrect a dedicated canvas or render listener', async () => {
   const source = await readFile(new URL('./trackedReadout.js', import.meta.url), 'utf8');
   for (const forbidden of [

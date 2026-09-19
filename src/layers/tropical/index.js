@@ -114,6 +114,8 @@ export function createTropicalLayer({
     getRecord: recordFor,
     getEntity: entityFor,
     getDataSource: () => _dataSource,
+    // A cone or track click far from the eye still wants its card in view.
+    anchorCardAtClick: true,
     describe: (record) =>
       _storms.has(record.id)
         ? {
@@ -259,6 +261,8 @@ export function createTropicalLayer({
       },
     });
     entity.gevTrackedId = entityId(disturbance.id);
+    entity.gevDisplayPosition = () =>
+      Cesium.Cartesian3.fromDegrees(disturbance.lon, disturbance.lat, 0);
     entity.gevLabelModel = {
       title: `${disturbance.basin} disturbance · ${disturbance.prob7day ?? '—'}% in 7 days`,
       details: [],
