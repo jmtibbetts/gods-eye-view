@@ -923,6 +923,7 @@
     "exports": ["./layers/satellites"],
     "modules": [
       "src/data/issPass.js",
+      "src/data/satellitePass.js",
       "src/data/satelliteClass.js",
       "src/layers/satellites/catalog.js",
       "src/layers/satellites/controls.js",
@@ -1371,6 +1372,7 @@
       "src/data/infrastructure.js",
       "src/data/installationFeedback.js",
       "src/data/issPass.js",
+      "src/data/satellitePass.js",
       "src/data/labelArbiter.js",
       "src/data/layerState.js",
       "src/data/lifecycle.js",
@@ -2062,6 +2064,7 @@
       "src/data/infrastructure.js",
       "src/data/installationFeedback.js",
       "src/data/issPass.js",
+      "src/data/satellitePass.js",
       "src/data/labelArbiter.js",
       "src/data/layerState.js",
       "src/data/localGeojson.js",

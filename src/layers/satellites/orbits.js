@@ -7,7 +7,8 @@ import {
   degreesLat,
   twoline2satrec,
 } from 'satellite.js';
-import { findNextIssPass } from '../../data/issPass.js';
+import { findNextImagingPass, findNextPass } from '../../data/satellitePass.js';
+import { imagingPlatformFor, swathKmFor } from './sensors.js';
 import { ORBIT_PATH_STEPS, ISS_NORAD } from './policy.js';
 
 export function createOrbits({ state: layerState, services, parts, source }) {
@@ -140,16 +141,58 @@ export function createOrbits({ state: layerState, services, parts, source }) {
    */
 
   function getNextIssPass({ latDeg, lonDeg, minElevDeg = 10 }) {
-    const sat = layerState._catalog.get(ISS_NORAD);
+    return getNextPass(ISS_NORAD, { latDeg, lonDeg, minElevDeg });
+  }
+
+  /**
+   * The next pass of any catalogued satellite above an observer.
+   * @param {number} noradId
+   * @param {{latDeg:number, lonDeg:number, minElevDeg?:number, fromMs?:number}} query
+   * @returns {{status:'no-tle'}|{status:'none'}|{status:'ok', pass:object}}
+   */
+  function getNextPass(
+    noradId,
+    { latDeg, lonDeg, minElevDeg = 10, fromMs = Date.now() },
+  ) {
+    const sat = layerState._catalog.get(Number(noradId));
     if (!sat || !sat.satrec) return { status: 'no-tle' };
-    const pass = findNextIssPass({
+    const pass = findNextPass({
       satrec: sat.satrec,
       latDeg,
       lonDeg,
-      fromMs: Date.now(),
+      fromMs,
       minElevDeg,
     });
     return pass ? { status: 'ok', pass } : { status: 'none' };
+  }
+
+  /**
+   * When an imaging satellite's swath next covers a point — the moment the
+   * instrument records that ground — or why it cannot say: a satellite that
+   * is not an imager, a parked one (it never stops looking), or no elements.
+   * @param {number} noradId
+   * @param {{latDeg:number, lonDeg:number, fromMs?:number}} query
+   * @returns {{status:'no-tle'|'not-imager'|'geostationary'|'none'}|{status:'ok', pass:object, swathKm:number}}
+   */
+  function getNextImagingPass(
+    noradId,
+    { latDeg, lonDeg, fromMs = Date.now() },
+  ) {
+    const platform = imagingPlatformFor(noradId);
+    if (!platform) return { status: 'not-imager' };
+    if (platform.orbit === 'geostationary') return { status: 'geostationary' };
+    const swathKm = swathKmFor(platform);
+    if (!swathKm) return { status: 'not-imager' };
+    const sat = layerState._catalog.get(Number(noradId));
+    if (!sat || !sat.satrec) return { status: 'no-tle' };
+    const pass = findNextImagingPass({
+      satrec: sat.satrec,
+      latDeg,
+      lonDeg,
+      fromMs,
+      swathKm,
+    });
+    return pass ? { status: 'ok', pass, swathKm } : { status: 'none' };
   }
 
   /**
@@ -316,6 +359,8 @@ export function createOrbits({ state: layerState, services, parts, source }) {
     orbitalPeriodSeconds,
     computeOrbitPath,
     getNextIssPass,
+    getNextPass,
+    getNextImagingPass,
     scoreSatelliteNameMatch,
     internationalDesignatorYear,
     lookupTleEntries,

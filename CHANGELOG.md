@@ -1,5 +1,21 @@
 # Changelog
 
+- Say when the satellite you are following is next over here, and when it
+  next takes this ground's picture. The ISS pass finder is now the general
+  one — any catalogued satellite, any observer — and gains the question an
+  imager raises that a plain pass does not: when the sub-satellite track
+  comes within half a swath of a point, which is when the instrument
+  records it. SENSORS shows both for the ground you were looking at when
+  you started tracking ("PASSES OVER 30.3°N 97.7°W"): the next overhead
+  pass with its time, peak elevation and rising direction, and the next
+  imaging pass with how far off track the spot lies (nadir is the sharp
+  pixel, the edge the coarse one), whether the sun will be up there — a
+  visible band records nothing of a night pass — and when the picture
+  publishes, from the active product's own cadence. USE THE VIEW moves the
+  observer to the ground under the screen; MY LOCATION asks the device
+  once, when pressed, and keeps the answer in the panel only. A parked
+  imager is told apart: it never stops looking.
+
 - Play a geostationary imager's newest frames. Track GOES, Himawari or
   Meteosat with a band showing and SENSORS offers PLAY THE LAST 2 H (36 h
   for the three-hourly ring composites): the last dozen published frames

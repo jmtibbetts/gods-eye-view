@@ -1068,6 +1068,31 @@ export class StyleManager extends ShellFacade {
         stop: (slotId) => this._imagerySlot(slotId)?.stopLoop?.() ?? false,
         state: (slotId) => this._imagerySlot(slotId)?.getLoop?.() ?? null,
       },
+      passes: {
+        overhead: (noradId, query) =>
+          this.services.satellitesLayer?.getNextPass?.(noradId, query) ?? null,
+        imaging: (noradId, query) =>
+          this.services.satellitesLayer?.getNextImagingPass?.(noradId, query) ??
+          null,
+      },
+      viewCenter: () => this._viewCenterDegrees(),
+      geolocate: () =>
+        new Promise((resolve) => {
+          const geo = globalThis.navigator?.geolocation;
+          if (!geo?.getCurrentPosition) {
+            resolve(null);
+            return;
+          }
+          geo.getCurrentPosition(
+            (position) =>
+              resolve({
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+              }),
+            () => resolve(null),
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 },
+          );
+        }),
       openIssStream: () => this.services.satellitesLayer?.openIssStream?.(),
       // The panel lives in the Context rail, so opening it opens the rail —
       // explicitly, or the right-stack layout folds the rail straight back

@@ -1495,6 +1495,55 @@ body.recording-mode .audio-dock {
   gap: 4px;
 }
 
+.sensors-passes {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid rgba(139, 224, 122, 0.22);
+  border-radius: 7px;
+  background: rgba(2, 15, 20, 0.38);
+}
+
+.sensors-pass {
+  display: grid;
+  gap: 1px;
+}
+
+.sensors-pass-key {
+  color: #8be07a;
+  font: 7px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.sensors-pass-value {
+  color: #e8feff;
+  font: 8px/1.45 var(--font-mono);
+}
+
+.sensors-pass-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.sensors-pass-btn {
+  padding: 2px 6px;
+  border: 1px solid rgba(65, 220, 231, 0.3);
+  border-radius: 4px;
+  background: rgba(2, 15, 20, 0.6);
+  color: #72dce6;
+  font: 7px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.sensors-pass-btn:hover,
+.sensors-pass-btn:focus-visible {
+  border-color: rgba(65, 220, 231, 0.6);
+  outline: none;
+}
+
 .sensors-fleet-heading {
   color: #72dce6;
   font: 8px/1.3 var(--font-mono);

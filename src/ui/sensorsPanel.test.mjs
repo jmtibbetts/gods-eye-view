@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import {
   SensorsPanel,
   currencyText,
+  imagingText,
   loopClockText,
+  observerText,
   orbitText,
+  overheadText,
   productsForPlatform,
 } from './sensorsPanel.js';
 import {
@@ -161,6 +164,9 @@ function panelWith(options = {}) {
     satellites: () => options.satellites || null,
     onToast: (m) => toasts.push(m),
     frameLoop: options.frameLoop || null,
+    passes: options.passes || null,
+    viewCenter: options.viewCenter || null,
+    geolocate: options.geolocate || null,
     selectSensor: async (slotId, key) => {
       selected.push([slotId, key]);
       active.set(slotId, key);
@@ -460,6 +466,93 @@ test('a loop that cannot start says so instead of doing nothing', async () => {
     findAll(elements.body, 'imagery-sensor').find((b) => b.dataset.loop).click();
     await new Promise((r) => setTimeout(r, 0));
     assert.match(toasts.at(-1), /fewer than two/);
+    panel.destroy();
+  });
+});
+
+const NOW = Date.parse('2026-09-19T12:00:00Z');
+
+test('pass text says when, how high, from where, and what the picture will be worth', () => {
+  assert.equal(observerText({ lat: 28.61, lon: -80.6 }), '28.6°N 80.6°W');
+  assert.equal(observerText({ lat: -33.9, lon: 151.2 }), '33.9°S 151.2°E');
+  assert.equal(observerText(null), '');
+  assert.equal(
+    overheadText(
+      { status: 'ok', pass: { riseMs: NOW + 72 * 60_000, maxElevDeg: 53.6, riseAzDeg: 230 } },
+      NOW,
+    ),
+    '13:12Z (in 1 h 12 min) · max 54° · rises SW',
+  );
+  assert.equal(overheadText({ status: 'none' }, NOW), 'no pass above 10° in the next 24 h');
+  assert.equal(overheadText({ status: 'no-tle' }, NOW), 'no elements for this satellite yet');
+  assert.equal(overheadText(null, NOW), '');
+  const product = { cadence: 'daily', lagDays: 1 };
+  assert.equal(
+    imagingText(
+      { status: 'ok', pass: { atMs: NOW + 75 * 60_000, offTrackKm: 380, daylight: true } },
+      NOW,
+      product,
+    ),
+    '13:15Z (in 1 h 15 min) · 380 km off track · in daylight; the picture publishes 1 day behind',
+  );
+  assert.match(
+    imagingText({ status: 'ok', pass: { atMs: NOW + 60_000, offTrackKm: 12, daylight: false } }, NOW, null),
+    /near nadir.*at night — a visible band records nothing/,
+  );
+  assert.match(imagingText({ status: 'geostationary' }, NOW), /always in view/);
+  assert.equal(imagingText({ status: 'not-imager' }, NOW), '');
+  assert.match(imagingText({ status: 'none' }, NOW), /does not cover/);
+});
+
+test('passes are predicted for the ground the user was looking at when tracking began', async () => {
+  await withFakeDom(async () => {
+    const asked = [];
+    let center = { lat: 30.27, lon: -97.74 };
+    const passes = {
+      overhead: (norad, q) => {
+        asked.push(['overhead', norad, q.latDeg, q.lonDeg]);
+        return { status: 'ok', pass: { riseMs: Date.now() + 3600_000, maxElevDeg: 40, riseAzDeg: 180 } };
+      },
+      imaging: (norad, q) => {
+        asked.push(['imaging', norad, q.latDeg, q.lonDeg]);
+        return { status: 'ok', pass: { atMs: Date.now() + 3900_000, offTrackKm: 200, daylight: true } };
+      },
+    };
+    const sats = fakeSatellites([43013]);
+    const { panel, elements, windowRef } = panelWith({
+      satellites: sats,
+      passes,
+      viewCenter: () => center,
+      geolocate: async () => ({ lat: 51.5, lon: -0.12 }),
+    });
+    panel.connect();
+    // The camera moves to the satellite once tracking starts; the observer
+    // must be the ground from BEFORE that, not the satellite's.
+    windowRef.fire('gev:awareness-subject-selected', { layerId: 'satellites', id: 43013 });
+    center = { lat: -40, lon: 100 };
+    panel.render();
+    assert.equal(asked[0][2], 30.27, 'predicted for the pre-tracking view');
+    const keys = findAll(elements.body, 'sensors-pass-key').map((k) => k.textContent);
+    assert.deepEqual(keys, ['NEXT OVERHEAD', 'IMAGES THIS GROUND']);
+    const heading = findAll(elements.body, 'sensors-fleet-heading').map((h) => h.textContent);
+    assert.ok(heading.some((h) => h.startsWith('PASSES OVER 30.3°N 97.7°W')), heading.join('|'));
+    const values = findAll(elements.body, 'sensors-pass-value').map((v) => v.textContent);
+    assert.match(values[0], /max 40° · rises S/);
+    assert.match(values[1], /200 km off track · in daylight/);
+    // Predictions are cached: re-rendering does not recompute.
+    const before = asked.length;
+    panel.render();
+    assert.equal(asked.length, before);
+    // USE THE VIEW takes the current screen centre.
+    findAll(elements.body, 'sensors-pass-btn').find((b) => b.textContent === 'USE THE VIEW').click();
+    assert.equal(asked.at(-1)[2], -40);
+    // MY LOCATION asks the device, only when pressed.
+    findAll(elements.body, 'sensors-pass-btn').find((b) => b.textContent === 'MY LOCATION').click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(asked.at(-1)[2], 51.5);
+    assert.ok(
+      findAll(elements.body, 'sensors-fleet-heading').some((h) => /YOUR LOCATION/.test(h.textContent)),
+    );
     panel.destroy();
   });
 });

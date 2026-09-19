@@ -69,6 +69,8 @@ export function createSatellitesLayer({ services, source }) {
       applySatellitePointFocusDeemphasis:
         parts.rendering.applySatellitePointFocusDeemphasis,
       getNextIssPass: parts.orbits.getNextIssPass,
+      getNextPass: parts.orbits.getNextPass,
+      getNextImagingPass: parts.orbits.getNextImagingPass,
       /** Which satellite is tracked, for the SENSORS panel; null when none. */
       getTrackedNorad: () => state._trackedNorad,
       /** Follow a satellite by NORAD number — the SENSORS panel's TRACK. */

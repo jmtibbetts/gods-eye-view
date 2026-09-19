@@ -9,6 +9,77 @@ import {
 } from '../layers/imageryOverlays/catalog.js';
 import { cadenceText } from './imageryPanel.js';
 
+/** "N", "NE", … from a bearing. */
+export function compassPoint(azDeg) {
+  const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return points[Math.round((((azDeg % 360) + 360) % 360) / 45) % 8];
+}
+
+/** "in 1 h 12 min" / "in 40 s" / "now" for a future instant. */
+export function untilText(atMs, nowMs) {
+  const s = Math.round((atMs - nowMs) / 1000);
+  if (s <= 0) return 'now';
+  if (s < 60) return `in ${s} s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `in ${m} min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `in ${h} h ${rem} min` : `in ${h} h`;
+}
+
+/** How long a computed pass is trusted before it is worked out again. */
+const PASS_CACHE_MS = 10 * 60_000;
+
+/** "28.6°N 80.6°W" */
+export function observerText(observer) {
+  if (!Number.isFinite(observer?.lat) || !Number.isFinite(observer?.lon))
+    return '';
+  const lat = `${Math.abs(observer.lat).toFixed(1)}°${observer.lat >= 0 ? 'N' : 'S'}`;
+  const lon = `${Math.abs(observer.lon).toFixed(1)}°${observer.lon >= 0 ? 'E' : 'W'}`;
+  return `${lat} ${lon}`;
+}
+
+/** "21:14Z (in 1 h 12 min) · max 54° · rises SW" for a pass, or why not. */
+export function overheadText(result, nowMs) {
+  if (!result) return '';
+  if (result.status === 'no-tle') return 'no elements for this satellite yet';
+  if (result.status === 'none') return 'no pass above 10° in the next 24 h';
+  if (result.status !== 'ok' || !result.pass) return '';
+  const { pass } = result;
+  const at = new Date(pass.riseMs).toISOString().slice(11, 16);
+  return `${at}Z (${untilText(pass.riseMs, nowMs)}) · max ${Math.round(pass.maxElevDeg)}° · rises ${compassPoint(pass.riseAzDeg)}`;
+}
+
+/**
+ * When the swath next covers this ground, and what that will be worth: the
+ * off-track distance says how coarse the pixel is, daylight says whether a
+ * visible band will show anything, and the product's cadence says when the
+ * picture can be seen here.
+ */
+export function imagingText(result, nowMs, product) {
+  if (!result) return '';
+  if (result.status === 'geostationary')
+    return 'always in view — a parked imager never stops looking here';
+  if (result.status === 'not-imager') return '';
+  if (result.status === 'no-tle') return 'no elements for this satellite yet';
+  if (result.status === 'none')
+    return 'the swath does not cover this ground in the next 24 h';
+  if (result.status !== 'ok' || !result.pass) return '';
+  const { pass } = result;
+  const at = new Date(pass.atMs).toISOString().slice(11, 16);
+  const where =
+    pass.offTrackKm < 50
+      ? 'near nadir, the sharpest pixels'
+      : `${pass.offTrackKm.toLocaleString('en-US')} km off track`;
+  const light = pass.daylight
+    ? 'in daylight'
+    : 'at night — a visible band records nothing, infrared and the day/night band still do';
+  const publish = product
+    ? `; the picture publishes ${cadenceText(product)}`
+    : '';
+  return `${at}Z (${untilText(pass.atMs, nowMs)}) · ${where} · ${light}${publish}`;
+}
+
 /**
  * The catalog products a platform's sensors publish here, each with the slot
  * that draws it — the buttons this panel offers. Joined live against the
@@ -109,6 +180,12 @@ export class SensorsPanel {
    * @param {object|null} [options.frameLoop] The imagery slots' frame loops:
    *   `{ canLoop(slotId), windowText(slotId), start(slotId), stop(slotId),
    *   state(slotId) }` — a geostationary imager's last dozen frames, played.
+   * @param {object|null} [options.passes] Pass prediction from the satellites
+   *   layer: `{ overhead(noradId, observer), imaging(noradId, observer) }`.
+   * @param {(() => {lat:number, lon:number}|null)|null} [options.viewCenter]
+   *   The ground under the middle of the screen — "here" when nothing else is.
+   * @param {(() => Promise<{lat:number, lon:number}|null>)|null} [options.geolocate]
+   *   The device's own position, asked for only when the user presses for it.
    * @param {(() => void)|null} [options.openIssStream] The ISS LIVE hand-off.
    * @param {(panelId: string) => void} [options.expandPanel]
    * @param {(message: string) => void} [options.onToast]
@@ -124,6 +201,9 @@ export class SensorsPanel {
     isLayerEnabled,
     subscribeActivity = null,
     frameLoop = null,
+    passes = null,
+    viewCenter = null,
+    geolocate = null,
     openIssStream = null,
     expandPanel = null,
     onToast = () => {},
@@ -140,6 +220,13 @@ export class SensorsPanel {
     this._subscribeActivity = subscribeActivity;
     this._frameLoop = frameLoop;
     this._loopTicker = null;
+    this._passes = passes;
+    this._viewCenter = viewCenter;
+    this._geolocate = geolocate;
+    /** Where passes are predicted for: the ground the user was looking at. */
+    this._observer = null;
+    this._observerSource = null;
+    this._passCache = new Map();
     this._unsubscribe = null;
     this._openIssStream = openIssStream;
     this._expandPanel = expandPanel;
@@ -159,6 +246,10 @@ export class SensorsPanel {
         'gev:awareness-subject-selected',
         (event) => {
           if (event?.detail?.layerId !== 'satellites') return;
+          // Where the user was looking when they started following is the
+          // natural "here"; once tracking, the screen centre is the satellite.
+          if (this._trackedNorad === null && this._observerSource !== 'device')
+            this._captureObserver('view');
           this._trackedNorad = Number(event.detail.id);
           // Following an imaging satellite is the moment the panel earns its
           // place on screen; anything else it leaves alone.
@@ -180,7 +271,60 @@ export class SensorsPanel {
       );
     }
     this._ensureSubscribed();
+    if (!this._observer) this._captureObserver('view');
     this.render();
+  }
+
+  /** Take the ground under the screen centre as the observer. */
+  _captureObserver(source) {
+    const here = this._viewCenter?.();
+    if (!Number.isFinite(here?.lat) || !Number.isFinite(here?.lon))
+      return false;
+    this._observer = { lat: here.lat, lon: here.lon };
+    this._observerSource = source;
+    this._passCache.clear();
+    return true;
+  }
+
+  async _useDeviceLocation() {
+    if (!this._geolocate || this._busy) return;
+    this._busy = true;
+    try {
+      const here = await this._geolocate();
+      if (!Number.isFinite(here?.lat) || !Number.isFinite(here?.lon)) {
+        this.onToast(
+          'Your location was not shared — passes stay for the view.',
+        );
+        return;
+      }
+      this._observer = { lat: here.lat, lon: here.lon };
+      this._observerSource = 'device';
+      this._passCache.clear();
+    } finally {
+      this._busy = false;
+      this.render();
+    }
+  }
+
+  /** Predictions for the tracked satellite over the observer, cached briefly. */
+  _passesFor(noradId) {
+    if (!this._passes || !this._observer || noradId === null) return null;
+    const key = `${noradId}:${this._observer.lat.toFixed(3)}:${this._observer.lon.toFixed(3)}`;
+    const cached = this._passCache.get(key);
+    const now = Date.now();
+    if (cached && now - cached.at < PASS_CACHE_MS) return cached;
+    const query = { latDeg: this._observer.lat, lonDeg: this._observer.lon };
+    let overhead = null;
+    let imaging = null;
+    try {
+      overhead = this._passes.overhead?.(noradId, query) ?? null;
+      imaging = this._passes.imaging?.(noradId, query) ?? null;
+    } catch {
+      /* a bad element set is not the panel's problem to explain */
+    }
+    const entry = { at: now, overhead, imaging };
+    this._passCache.set(key, entry);
+    return entry;
   }
 
   /**
@@ -292,6 +436,7 @@ export class SensorsPanel {
     }
 
     body.append(this._renderPlatform(platform));
+    body.append(this._renderPasses(platform));
     if (note) {
       const active = this._activeProductFor(platform);
       note.textContent = active
@@ -353,6 +498,80 @@ export class SensorsPanel {
       wrap.append(row);
     }
     return wrap;
+  }
+
+  /** When the tracked satellite is next over "here", and next images it. */
+  _renderPasses(platform) {
+    const wrap = this._el('div', 'sensors-passes');
+    const observer = this._observer;
+    const where = observerText(observer);
+    wrap.append(
+      this._el(
+        'div',
+        'sensors-fleet-heading',
+        where
+          ? `PASSES OVER ${where}${this._observerSource === 'device' ? ' · YOUR LOCATION' : ''}`
+          : 'PASSES',
+      ),
+    );
+    if (!observer) {
+      wrap.append(
+        this._el(
+          'p',
+          'sensors-empty',
+          'Look at a place, then track a satellite, and its passes over that ground are worked out here.',
+        ),
+      );
+      return wrap;
+    }
+    const result = this._passesFor(platform.norad);
+    const now = Date.now();
+    const overhead = overheadText(result?.overhead, now);
+    if (overhead) {
+      const line = this._el('div', 'sensors-pass');
+      line.append(this._el('span', 'sensors-pass-key', 'NEXT OVERHEAD'));
+      line.append(this._el('span', 'sensors-pass-value', overhead));
+      wrap.append(line);
+    }
+    const active = this._activeProductFor(platform);
+    const imaging = imagingText(result?.imaging, now, active?.product || null);
+    if (imaging) {
+      const line = this._el('div', 'sensors-pass');
+      line.append(this._el('span', 'sensors-pass-key', 'IMAGES THIS GROUND'));
+      line.append(this._el('span', 'sensors-pass-value', imaging));
+      wrap.append(line);
+    }
+    const controls = this._el('div', 'sensors-pass-controls');
+    controls.append(
+      this._button(
+        'USE THE VIEW',
+        'sensors-pass-btn',
+        () => {
+          this._captureObserver('view');
+          this.render();
+        },
+        'Predict for the ground under the middle of the screen',
+      ),
+    );
+    if (this._geolocate)
+      controls.append(
+        this._button(
+          'MY LOCATION',
+          'sensors-pass-btn',
+          () => void this._useDeviceLocation(),
+          'Predict for where this device is — asked for only now, kept only here',
+        ),
+      );
+    wrap.append(controls);
+    return wrap;
+  }
+
+  _button(label, className, onClick, title) {
+    const btn = this._el('button', className, label);
+    btn.type = 'button';
+    if (title) btn.title = title;
+    btn.addEventListener('click', onClick, { signal: this._abort.signal });
+    return btn;
   }
 
   _activeProductFor(platform) {
