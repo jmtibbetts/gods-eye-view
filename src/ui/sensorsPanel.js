@@ -82,6 +82,13 @@ export function currencyText(product) {
   return `published ${cadence} — the newest pass, not a live view`;
 }
 
+/** "19:50Z · 7 / 12 · STOP" — where a playing loop is. */
+export function loopClockText(loop) {
+  if (!loop) return '';
+  const at = loop.instant ? `${loop.instant.slice(11, 16)}Z` : '--:--Z';
+  return `${at} · ${loop.index + 1} / ${loop.frames} · STOP`;
+}
+
 export class SensorsPanel {
   /**
    * @param {object} options
@@ -99,6 +106,9 @@ export class SensorsPanel {
    * @param {((listener: (change: object) => void) => (() => void))|null} [options.subscribeActivity]
    *   The data manager's activity feed, so a band picked from the IMAGERY
    *   panel — or a layer toggled anywhere — is reflected here without a click.
+   * @param {object|null} [options.frameLoop] The imagery slots' frame loops:
+   *   `{ canLoop(slotId), windowText(slotId), start(slotId), stop(slotId),
+   *   state(slotId) }` — a geostationary imager's last dozen frames, played.
    * @param {(() => void)|null} [options.openIssStream] The ISS LIVE hand-off.
    * @param {(panelId: string) => void} [options.expandPanel]
    * @param {(message: string) => void} [options.onToast]
@@ -113,6 +123,7 @@ export class SensorsPanel {
     setLayerEnabled,
     isLayerEnabled,
     subscribeActivity = null,
+    frameLoop = null,
     openIssStream = null,
     expandPanel = null,
     onToast = () => {},
@@ -127,6 +138,8 @@ export class SensorsPanel {
     this._setLayerEnabled = setLayerEnabled;
     this._isLayerEnabled = isLayerEnabled || (() => false);
     this._subscribeActivity = subscribeActivity;
+    this._frameLoop = frameLoop;
+    this._loopTicker = null;
     this._unsubscribe = null;
     this._openIssStream = openIssStream;
     this._expandPanel = expandPanel;
@@ -199,6 +212,32 @@ export class SensorsPanel {
     this._abort.abort();
     this._unsubscribe?.();
     this._unsubscribe = null;
+    this._stopLoopTicker();
+  }
+
+  _stopLoopTicker() {
+    if (this._loopTicker != null) {
+      const w = this._window;
+      const clear = w?.clearInterval ? w.clearInterval.bind(w) : clearInterval;
+      clear(this._loopTicker);
+      this._loopTicker = null;
+    }
+  }
+
+  /** While a loop plays, its clock label follows the frame without a rebuild. */
+  _startLoopTicker(slotId, label) {
+    this._stopLoopTicker();
+    const w = this._window;
+    const set = w?.setInterval ? w.setInterval.bind(w) : setInterval;
+    this._loopTicker = set(() => {
+      const loop = this._frameLoop?.state?.(slotId);
+      if (!loop) {
+        this._stopLoopTicker();
+        this.render();
+        return;
+      }
+      label.textContent = loopClockText(loop);
+    }, 250);
   }
 
   _el(tag, className, text) {
@@ -455,6 +494,47 @@ export class SensorsPanel {
       wrap.append(p);
     }
 
+    // A parked imager's newest frames, played: the weather moving is what
+    // the satellite is for, and a still full disk does not show it.
+    const active = this._activeProductFor(platform);
+    if (
+      platform.orbit === 'geostationary' &&
+      active &&
+      this._frameLoop?.canLoop?.(active.slotId)
+    ) {
+      const loop = this._frameLoop.state?.(active.slotId) || null;
+      const btn = this._el('button', `imagery-sensor${loop ? ' active' : ''}`);
+      btn.type = 'button';
+      btn.dataset.loop = active.slotId;
+      const label = this._el(
+        'span',
+        'imagery-sensor-label',
+        loop
+          ? loopClockText(loop)
+          : `PLAY ${this._frameLoop.windowText?.(active.slotId) || 'the newest frames'}`.toUpperCase(),
+      );
+      btn.append(label);
+      btn.append(
+        this._el(
+          'span',
+          'imagery-sensor-reveals',
+          loop
+            ? 'Stop the loop and return to the newest published frame'
+            : `${active.product.label}, frame by frame as published — the disk moving, not a live view`,
+        ),
+      );
+      btn.addEventListener(
+        'click',
+        () => void this._toggleLoop(active.slotId),
+        { signal: this._abort.signal },
+      );
+      wrap.append(btn);
+      if (loop) this._startLoopTicker(active.slotId, label);
+      else this._stopLoopTicker();
+    } else {
+      this._stopLoopTicker();
+    }
+
     if (platform.norad === 25544 && this._openIssStream) {
       const btn = this._el('button', 'imagery-sensor');
       btn.type = 'button';
@@ -494,6 +574,25 @@ export class SensorsPanel {
         this.onToast(
           `${others.length} other imagery overlay${others.length === 1 ? '' : 's'} set aside so this band is the one on the globe — IMAGERY brings ${others.length === 1 ? 'it' : 'them'} back.`,
         );
+    } finally {
+      this._busy = false;
+      this.render();
+    }
+  }
+
+  async _toggleLoop(slotId) {
+    if (this._busy || this.destroyed || !this._frameLoop) return;
+    this._busy = true;
+    try {
+      if (this._frameLoop.state?.(slotId)) {
+        await this._frameLoop.stop?.(slotId);
+      } else {
+        const started = await this._frameLoop.start?.(slotId);
+        if (!started)
+          this.onToast(
+            'No run of frames to play yet — the service has fewer than two of them for this window.',
+          );
+      }
     } finally {
       this._busy = false;
       this.render();

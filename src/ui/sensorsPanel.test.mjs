@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   SensorsPanel,
   currencyText,
+  loopClockText,
   orbitText,
   productsForPlatform,
 } from './sensorsPanel.js';
@@ -152,13 +153,14 @@ function panelWith(options = {}) {
   const selected = [];
   const toggled = [];
   const active = new Map();
-  const windowRef = fakeWindow();
+  const windowRef = options.windowRef || fakeWindow();
   const expanded = [];
   const toasts = [];
   const panel = new SensorsPanel({
     elements,
     satellites: () => options.satellites || null,
     onToast: (m) => toasts.push(m),
+    frameLoop: options.frameLoop || null,
     selectSensor: async (slotId, key) => {
       selected.push([slotId, key]);
       active.set(slotId, key);
@@ -378,5 +380,86 @@ test('a destroyed panel stops listening', async () => {
       id: 43013,
     });
     assert.equal(elements.state.textContent, 'NONE');
+  });
+});
+
+test('a geostationary imager with a band showing offers its frames as a loop', async () => {
+  await withFakeDom(async () => {
+    let loop = null;
+    const calls = [];
+    const frameLoop = {
+      canLoop: (slotId) => slotId === 'imagery-goes',
+      windowText: () => 'the last 2 h',
+      start: async (slotId) => {
+        calls.push(`start:${slotId}`);
+        loop = { playing: true, frames: 12, index: 6, instant: '2026-09-19T19:50:00Z' };
+        return { frames: 12 };
+      },
+      stop: async (slotId) => {
+        calls.push(`stop:${slotId}`);
+        loop = null;
+        return true;
+      },
+      state: () => loop,
+    };
+    const timers = [];
+    const windowRef = fakeWindow();
+    windowRef.setInterval = (fn, ms) => {
+      timers.push({ fn, ms });
+      return timers.length;
+    };
+    windowRef.clearInterval = (id) => {
+      timers[id - 1] = null;
+    };
+    const sats = fakeSatellites([60133]);
+    const { panel, elements, active } = panelWith({ satellites: sats, frameLoop, windowRef });
+    panel.connect();
+    windowRef.fire('gev:awareness-subject-selected', { layerId: 'satellites', id: 60133 });
+    // No band showing yet: nothing to loop.
+    assert.equal(findAll(elements.body, 'imagery-sensor').filter((b) => b.dataset.loop).length, 0);
+    // Pick GeoColor, and the loop is offered for that slot.
+    active.set('imagery-goes', 'goes-east-geo');
+    panel.render();
+    const play = findAll(elements.body, 'imagery-sensor').find((b) => b.dataset.loop);
+    assert.ok(play, 'the loop button appears once a band shows');
+    assert.equal(play.dataset.loop, 'imagery-goes');
+    assert.equal(findAll(play, 'imagery-sensor-label')[0].textContent, 'PLAY THE LAST 2 H');
+    play.click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.deepEqual(calls, ['start:imagery-goes']);
+    const stop = findAll(elements.body, 'imagery-sensor').find((b) => b.dataset.loop);
+    assert.equal(findAll(stop, 'imagery-sensor-label')[0].textContent, '19:50Z · 7 / 12 · STOP');
+    assert.equal(timers.filter(Boolean).length, 1, 'a ticker follows the frame');
+    loop = { ...loop, index: 7, instant: '2026-09-19T20:00:00Z' };
+    timers[0].fn();
+    assert.equal(findAll(stop, 'imagery-sensor-label')[0].textContent, '20:00Z · 8 / 12 · STOP');
+    stop.click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.deepEqual(calls, ['start:imagery-goes', 'stop:imagery-goes']);
+    assert.equal(timers.filter(Boolean).length, 0, 'ticker cleared with the loop');
+    assert.equal(loopClockText(null), '');
+    panel.destroy();
+  });
+});
+
+test('a loop that cannot start says so instead of doing nothing', async () => {
+  await withFakeDom(async () => {
+    const frameLoop = {
+      canLoop: () => true,
+      windowText: () => 'the last 36 h',
+      start: async () => null,
+      stop: async () => false,
+      state: () => null,
+    };
+    const sats = fakeSatellites([60133]);
+    const { panel, elements, active, windowRef, toasts } = panelWith({ satellites: sats, frameLoop });
+    panel.connect();
+    windowRef.fire('gev:awareness-subject-selected', { layerId: 'satellites', id: 60133 });
+    active.set('imagery-goes', 'georing-natural');
+    panel.render();
+    findAll(elements.body, 'imagery-sensor').find((b) => b.dataset.loop).click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.match(toasts.at(-1), /fewer than two/);
+    panel.destroy();
   });
 });

@@ -1060,6 +1060,14 @@ export class StyleManager extends ShellFacade {
       },
       subscribeActivity: (listener) =>
         this._dataManager?.subscribeActivity?.(listener) ?? null,
+      frameLoop: {
+        canLoop: (slotId) => this._imagerySlot(slotId)?.canLoop?.() === true,
+        windowText: (slotId) =>
+          this._imagerySlot(slotId)?.loopWindowText?.() || '',
+        start: (slotId) => this._imagerySlot(slotId)?.startLoop?.() ?? null,
+        stop: (slotId) => this._imagerySlot(slotId)?.stopLoop?.() ?? false,
+        state: (slotId) => this._imagerySlot(slotId)?.getLoop?.() ?? null,
+      },
       openIssStream: () => this.services.satellitesLayer?.openIssStream?.(),
       // The panel lives in the Context rail, so opening it opens the rail —
       // explicitly, or the right-stack layout folds the rail straight back
@@ -1117,6 +1125,13 @@ export class StyleManager extends ShellFacade {
         if (!this._disposed) this._showToast(message);
       },
     });
+  }
+
+  /** The imagery overlay module behind a slot id, or null. */
+  _imagerySlot(slotId) {
+    const entry = this._dataManager?.layers?.get?.(slotId);
+    const module = entry?.module || entry;
+    return typeof module?.canLoop === 'function' ? module : null;
   }
 
   _initRadioPanel() {

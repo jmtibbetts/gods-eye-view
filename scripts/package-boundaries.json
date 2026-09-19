@@ -1923,6 +1923,7 @@
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
       "src/layers/imageryOverlays/surface.js",
+      "src/layers/imageryOverlays/frames.js",
       "src/layers/imageryOverlays/catalog.js",
       "src/layers/weatherAlerts/index.js",
       "src/layers/weatherAlerts/policy.js",
@@ -2418,6 +2419,7 @@
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
       "src/layers/imageryOverlays/surface.js",
+      "src/layers/imageryOverlays/frames.js",
       "src/layers/imageryOverlays/catalog.js",
       "src/layers/weatherAlerts/index.js",
       "src/layers/weatherAlerts/policy.js",
@@ -2842,6 +2844,7 @@
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
       "src/layers/imageryOverlays/surface.js",
+      "src/layers/imageryOverlays/frames.js",
       "src/layers/imageryOverlays/catalog.js"
     ],
     "external": ["cesium"]

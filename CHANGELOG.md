@@ -1,5 +1,18 @@
 # Changelog
 
+- Play a geostationary imager's newest frames. Track GOES, Himawari or
+  Meteosat with a band showing and SENSORS offers PLAY THE LAST 2 H (36 h
+  for the three-hourly ring composites): the last dozen published frames
+  cycle under the satellite, the weather moving, with the frame's time and
+  position in the button and STOP to return to the newest frame. Frames are
+  found rather than assumed — GIBS is asked (DescribeDomains) which instants
+  it holds and every candidate frame from either service is probed with one
+  tiny request before anything is drawn, so a maintenance gap or a late scan
+  is skipped instead of playing as a blank globe. The live frame is hidden
+  under the loop and comes back refreshed when it stops; a sensor change or
+  the layer turning off ends it. Every rolling product now declares how
+  often its frames arrive, and a test insists on it.
+
 - Make the imagery you picked the imagery you see. Three things could make
   a band chosen in SENSORS change nothing on the globe, and all three are
   fixed. First, the imagery overlays draw on the 2D globe, which the

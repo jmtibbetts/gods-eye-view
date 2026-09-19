@@ -54,6 +54,12 @@
 /** GIBS best-available WMTS REST endpoint (Web Mercator). */
 export const GIBS_BASE = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
 
+/*
+ * `loopStepMinutes` on a rolling product is how often its frames arrive, and
+ * is what lets SENSORS play the last dozen of them as a loop (see frames.js).
+ * A rolling product without it can only be shown at its latest frame.
+ */
+
 /**
  * Ask GIBS for its own newest frame. Only ever used for 'rolling' and 'static'
  * products — see the lagDays note above for why daily products must not.
@@ -558,6 +564,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals:
       'The Americas and Atlantic, refreshed every ~10 minutes. True colour by day, IR cloud by night.',
@@ -573,6 +580,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals:
       'The Pacific half — where the storms that reach the US west coast actually form.',
@@ -588,6 +596,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     // A visible band sees nothing at night. Its disc goes black for half of
     // every day, which is the instrument working, not the feed failing.
@@ -606,6 +615,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 6,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals:
       'Cloud-top temperature. Works in full darkness; the coldest tops are the tallest storms.',
@@ -621,6 +631,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 6,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals: 'The same thermal read on the Pacific side.',
   },
@@ -635,6 +646,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 6,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals:
       'Asia-Pacific cloud tops around the clock, unlike the visible band.',
@@ -650,6 +662,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals:
       'Airborne dust and sand that true colour loses against desert — Saharan plumes crossing the Atlantic.',
@@ -665,6 +678,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals:
       'Actively burning fire fronts by radiant temperature, every ~10 minutes rather than per overpass.',
@@ -680,6 +694,7 @@ const geostationary = [
     ext: 'png',
     maximumLevel: 6,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     archive: null,
     reveals:
       'The jet stream made visible: dry stratospheric intrusions red, moist tropical air green.',
@@ -700,6 +715,7 @@ const geostationaryEumetview = [
     wmsLayer: 'mumi:wideareacoverage_rgb_natural',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 180,
     scanMinutes: 180,
     lagMinutes: 240,
     reveals:
@@ -715,6 +731,7 @@ const geostationaryEumetview = [
     wmsLayer: 'mumi:worldcloudmap_ir108',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 180,
     scanMinutes: 180,
     lagMinutes: 240,
     reveals:
@@ -730,6 +747,7 @@ const geostationaryEumetview = [
     wmsLayer: 'mtg_fd:rgb_geocolour',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     scanMinutes: 10,
     lagMinutes: 30,
     reveals:
@@ -745,6 +763,7 @@ const geostationaryEumetview = [
     wmsLayer: 'mtg_fd:rgb_truecolour',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 10,
     scanMinutes: 10,
     lagMinutes: 30,
     daylightOnly: true,
@@ -761,6 +780,7 @@ const geostationaryEumetview = [
     wmsLayer: 'msg_iodc:rgb_natural',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 15,
     scanMinutes: 15,
     lagMinutes: 45,
     daylightOnly: true,
@@ -777,6 +797,7 @@ const geostationaryEumetview = [
     wmsLayer: 'msg_iodc:ir108',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 15,
     scanMinutes: 15,
     lagMinutes: 45,
     reveals:
@@ -792,6 +813,7 @@ const geostationaryEumetview = [
     wmsLayer: 'msg_fes:rgb_ash',
     maximumLevel: 7,
     cadence: 'rolling',
+    loopStepMinutes: 15,
     scanMinutes: 15,
     lagMinutes: 45,
     reveals:

@@ -13,6 +13,17 @@ import {
   zoomFloorFor,
 } from './policy.js';
 import { imagerySurface } from './surface.js';
+import {
+  LOOP_FRAMES,
+  describeDomainsUrl,
+  domainInstants,
+  frameConfig,
+  loopStepMinutes,
+  loopWindow,
+  loopWindowText,
+  probeFrames,
+  stepInstants,
+} from './frames.js';
 
 export * from './policy.js';
 export {
@@ -52,6 +63,12 @@ export function createImageryOverlayLayer({
   wmsProviderFactory = (options) =>
     new Cesium.WebMapServiceImageryProvider(options),
   surface = imagerySurface,
+  // Wrapped, not referenced: a browser's setInterval throws "Illegal
+  // invocation" when called off a plain object.
+  timers = {
+    set: (fn, ms) => globalThis.setInterval(fn, ms),
+    clear: (id) => globalThis.clearInterval(id),
+  },
 } = {}) {
   if (!descriptor?.id)
     throw new TypeError('Imagery overlay needs a descriptor');
@@ -71,6 +88,8 @@ export function createImageryOverlayLayer({
   let _sensorKey = slot ? slot.defaultKey : null;
   /** The last basemap swap this layer's enable caused, if any. */
   let _surfaceChange = null;
+  /** A running frame loop (see startLoop), or null. */
+  let _loop = null;
 
   /** The catalog entry currently selected, or null for a custom resolver. */
   function product() {
@@ -185,6 +204,111 @@ export function createImageryOverlayLayer({
     }
   }
 
+  /* ---------------------------------------------------------------- *
+   * Frame loop (rolling geostationary products) — see frames.js
+   * ---------------------------------------------------------------- */
+
+  function showLoopFrame(index) {
+    if (!_loop) return;
+    _loop.index = index;
+    const visible = alpha();
+    _loop.layers.forEach((frame, i) => {
+      frame.alpha = i === index ? visible : 0;
+    });
+    _viewer?.scene?.requestRender?.();
+  }
+
+  function stopLoop({ refresh = true } = {}) {
+    if (!_loop) return false;
+    const finished = _loop;
+    _loop = null;
+    if (finished.timer != null) timers.clear(finished.timer);
+    for (const frame of finished.layers) {
+      try {
+        _viewer?.imageryLayers?.remove(frame, true);
+      } catch {
+        /* scene may be tearing down */
+      }
+    }
+    if (_imageryLayer) _imageryLayer.alpha = alpha();
+    _viewer?.scene?.requestRender?.();
+    if (refresh && _enabled) void applyProvider();
+    return true;
+  }
+
+  /**
+   * Play the selected product's newest frames as a loop. Frames are found
+   * and probed before any is drawn; fewer than two answering means no loop.
+   * The live frame underneath is hidden while the loop runs and comes back,
+   * refreshed, when it stops.
+   * @param {{stepMs?: number}} [options] Dwell per frame.
+   * @returns {Promise<{frames: number, instants: string[]}|null>}
+   */
+  async function startLoop({ stepMs = 750 } = {}) {
+    const current = product();
+    const window = current ? loopWindow(current, now()) : null;
+    if (!_enabled || !window || !_viewer?.imageryLayers) return null;
+    stopLoop({ refresh: false });
+    const token = ++_request;
+    let candidates;
+    if (isWms(current)) {
+      candidates = stepInstants(window.fromMs, window.toMs, window.stepMinutes);
+    } else {
+      try {
+        const response = await fetchImpl(
+          describeDomainsUrl(current, window.fromMs, window.toMs),
+          { cache: 'no-store' },
+        );
+        candidates = response?.ok
+          ? domainInstants(await response.text(), window.fromMs, window.toMs)
+          : [];
+      } catch {
+        candidates = [];
+      }
+      // The domain answer is coarse; a late or missing scan still probes out.
+      if (!candidates.length)
+        candidates = stepInstants(
+          window.fromMs,
+          window.toMs,
+          window.stepMinutes,
+        );
+    }
+    const instants = (
+      await probeFrames(current, candidates.slice(-LOOP_FRAMES), fetchImpl)
+    ).slice(-LOOP_FRAMES);
+    if (token !== _request || !_enabled || !_viewer?.imageryLayers) return null;
+    if (instants.length < 2) return null;
+    const layers = instants.map((instant) => {
+      const config = frameConfig(current, instant, {
+        credit: descriptor.attribution,
+      });
+      const provider = config.wms
+        ? wmsProviderFactory(config.wms)
+        : providerFactory(config.url, {
+            maximumLevel: config.maximumLevel,
+            credit: config.credit,
+          });
+      const frame = imageryLayerFactory(provider, { alpha: 0 });
+      _viewer.imageryLayers.add(frame);
+      return frame;
+    });
+    if (_imageryLayer) _imageryLayer.alpha = 0;
+    _loop = {
+      instants,
+      layers,
+      index: -1,
+      timer: null,
+      stepMs,
+      product: current.key,
+    };
+    showLoopFrame(0);
+    _loop.timer = timers.set(() => {
+      if (!_loop) return;
+      showLoopFrame((_loop.index + 1) % _loop.layers.length);
+    }, stepMs);
+    return { frames: instants.length, instants };
+  }
+
   const layer = {
     id: descriptor.id,
     name: descriptor.name,
@@ -213,6 +337,7 @@ export function createImageryOverlayLayer({
       if (!_enabled) return;
       _enabled = false;
       _request++;
+      stopLoop({ refresh: false });
       removeLayer();
       _lastError = null;
       _surfaceChange = null;
@@ -239,6 +364,8 @@ export function createImageryOverlayLayer({
 
     async update() {
       if (!_enabled) return false;
+      // A loop holds its frames still; the live frame refreshes when it stops.
+      if (_loop) return false;
       return applyProvider();
     },
 
@@ -296,6 +423,46 @@ export function createImageryOverlayLayer({
       return product();
     },
 
+    /* ---------------------------------------------------------------- *
+     * Frame loop
+     * ---------------------------------------------------------------- */
+
+    /** True when the selected product publishes frames often enough to loop. */
+    canLoop() {
+      return Boolean(_enabled && loopStepMinutes(product()));
+    },
+
+    /** "the last 2 h" for the selected product, or ''. */
+    loopWindowText() {
+      return loopWindowText(product());
+    },
+
+    startLoop,
+
+    /** Stop the loop and put the live frame back. */
+    stopLoop() {
+      return stopLoop();
+    },
+
+    /** Advance one frame by hand (tests, or a paused scrub). */
+    stepLoop() {
+      if (!_loop) return null;
+      showLoopFrame((_loop.index + 1) % _loop.layers.length);
+      return _loop.instants[_loop.index];
+    },
+
+    /** Where the loop is, or null when none is running. */
+    getLoop() {
+      if (!_loop) return null;
+      return {
+        playing: true,
+        frames: _loop.instants.length,
+        index: _loop.index,
+        instant: _loop.instants[_loop.index] ?? null,
+        product: _loop.product,
+      };
+    },
+
     /**
      * Point this overlay at another sensor. Swaps the provider in place rather
      * than disabling and re-enabling, so the layer never leaves the scene and
@@ -312,6 +479,7 @@ export function createImageryOverlayLayer({
       if (!slot) return false;
       const next = productFor(descriptor.slotId, key);
       if (!next || next.key === _sensorKey) return false;
+      stopLoop({ refresh: false });
       _sensorKey = next.key;
       if (_displayDate && !isArchived(next)) _displayDate = null;
       if (!_enabled) return true;
