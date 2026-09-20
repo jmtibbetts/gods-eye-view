@@ -120,19 +120,51 @@ function suffixVariants(norm) {
 /** @type {Array|null} flat entry list for listRegions() */
 let _entries = null;
 
+/**
+ * Import a bundled JSON pack in a way BOTH runtimes accept.
+ *
+ * Node requires the `type: 'json'` import attribute to load a JSON module.
+ * Vite refuses it: it rewrites a module's JSON import to `…?import` and serves
+ * the result as JavaScript, so the type the browser then checks does not match
+ * what arrived and the import fails outright. Using only the attribute — which
+ * this did — meant every bundled pack loaded perfectly under `node:test` and
+ * never once loaded in the browser.
+ *
+ * So: plain first, because that is the path the app actually runs on, and the
+ * attributed form as the fallback for Node. Each caller passes two thunks with
+ * LITERAL specifiers rather than one built path, so the bundler can still see
+ * which files are involved.
+ *
+ * @param {() => Promise<any>} plain
+ * @param {() => Promise<any>} attributed
+ * @returns {Promise<any>} The pack's default export.
+ */
+export async function importJsonPack(plain, attributed) {
+  try {
+    const mod = await plain();
+    return mod.default || mod;
+  } catch {
+    const mod = await attributed();
+    return mod.default || mod;
+  }
+}
+
 async function loadPackFile(base) {
-  // Vite bundles these JSON files as modules; the import attribute is what Node
-  // needs to load the same files under node:test (same pattern as
-  // neighborhoodPolygons.js). One path, so no node: import reaches the browser.
-  const mod =
-    base === 'regions'
-      ? await import('./local_data/natural_earth/regions.json', {
-          with: { type: 'json' },
-        })
-      : await import('./local_data/natural_earth/marine.json', {
-          with: { type: 'json' },
-        });
-  return mod.default || mod;
+  return base === 'regions'
+    ? importJsonPack(
+        () => import('./local_data/natural_earth/regions.json'),
+        () =>
+          import('./local_data/natural_earth/regions.json', {
+            with: { type: 'json' },
+          }),
+      )
+    : importJsonPack(
+        () => import('./local_data/natural_earth/marine.json'),
+        () =>
+          import('./local_data/natural_earth/marine.json', {
+            with: { type: 'json' },
+          }),
+      );
 }
 
 function buildEntries(pack, kind) {
