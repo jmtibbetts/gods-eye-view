@@ -258,3 +258,139 @@ test('a failed load keeps its error through the disable the manager triggers', a
   assert.match(layer.getStats().error ?? '', /upstream exploded/);
   assert.throws(() => createConjunctionsLayer({}), /requires a SOCRATES source/);
 });
+
+/**
+ * A viewer whose camera sits over a chosen point, so the horizon cull has a
+ * real pose to judge against.
+ */
+function cullFixture({ cameraHeight = 12_000_000 } = {}) {
+  const ticks = [];
+  const viewTimers = {
+    set: (fn, ms) => {
+      ticks.push({ fn, ms });
+      return ticks.length;
+    },
+    clear: (id) => {
+      ticks[id - 1] = null;
+    },
+  };
+  let renders = 0;
+  // Camera on the +X axis, looking at the planet: everything with a negative
+  // x is on the far side of it.
+  const camera = {
+    positionWC: { x: 6378137 + cameraHeight, y: 0, z: 0 },
+    position: { x: 6378137 + cameraHeight, y: 0, z: 0 },
+    direction: { x: -1, y: 0, z: 0 },
+    up: { x: 0, y: 0, z: 1 },
+    heading: 0,
+    pitch: -Math.PI / 2,
+    roll: 0,
+  };
+  const viewer = {
+    camera,
+    dataSources: {
+      added: [],
+      add(ds) {
+        this.added.push(ds);
+      },
+      remove() {},
+    },
+    scene: {
+      requestRender() {
+        renders++;
+      },
+    },
+  };
+  return { viewer, camera, ticks, viewTimers, renders: () => renders };
+}
+
+async function enabledLayer(fixture, rows) {
+  const layer = createConjunctionsLayer({
+    source: { fetchConjunctions: async () => ({ conjunctions: rows }) },
+    viewTimers: fixture.viewTimers,
+    now: () => NOW,
+  });
+  layer.init(fixture.viewer);
+  layer.enable(fixture.viewer);
+  await layer.update();
+  return { layer, ds: fixture.viewer.dataSources.added[0] };
+}
+
+test('a conjunction the planet is in front of is not drawn over it', async () => {
+  const f = cullFixture();
+  const { layer, ds } = await enabledLayer(f, [row()]);
+  const entity = ds.entities.values[0];
+  const position = entity.gevDisplayPosition();
+  // Put the camera on the far side of the planet from this marker.
+  f.camera.positionWC = {
+    x: -position.x * 3,
+    y: -position.y * 3,
+    z: -position.z * 3,
+  };
+  f.ticks.find(Boolean).fn();
+  assert.equal(entity.show, false, 'the far side is not painted over the near');
+
+  // And back: a marker the camera can actually see returns.
+  f.camera.positionWC = {
+    x: position.x * 3,
+    y: position.y * 3,
+    z: position.z * 3,
+  };
+  f.ticks.find(Boolean).fn();
+  assert.equal(entity.show, true);
+  layer.destroy();
+});
+
+test('a fresh set of markers is judged before the camera moves again', async () => {
+  // Markers are rebuilt between camera moves. Waiting for a move to judge
+  // them is how a far-side dot gets drawn in the first place.
+  const f = cullFixture();
+  const { layer, ds } = await enabledLayer(f, [row()]);
+  const position = ds.entities.values[0].gevDisplayPosition();
+  f.camera.positionWC = {
+    x: -position.x * 3,
+    y: -position.y * 3,
+    z: -position.z * 3,
+  };
+  f.ticks.find(Boolean).fn();
+  assert.equal(ds.entities.values[0].show, false);
+
+  // A refresh replaces every entity, each one shown by default.
+  await layer.update();
+  assert.equal(
+    ds.entities.values[0].show,
+    false,
+    'the replacement is judged on arrival, not at the next camera move',
+  );
+  layer.destroy();
+});
+
+test('the cull costs one pose compare while the camera is still', async () => {
+  const f = cullFixture();
+  const { layer, ds } = await enabledLayer(f, [row()]);
+  const entity = ds.entities.values[0];
+  entity.show = false;
+  const tick = f.ticks.find(Boolean).fn;
+  tick();
+  assert.equal(entity.show, false, 'a still camera is not re-judged');
+  layer.destroy();
+});
+
+test('disabling stops the cull, and enabling starts exactly one', async () => {
+  const f = cullFixture();
+  const { layer } = await enabledLayer(f, [row()]);
+  assert.equal(f.ticks.filter(Boolean).length, 1);
+  layer.disable();
+  assert.equal(f.ticks.filter(Boolean).length, 0, 'no tick survives disable');
+  layer.enable(f.viewer);
+  assert.equal(f.ticks.filter(Boolean).length, 1);
+  layer.destroy();
+});
+
+test('a viewer with no camera yet is not a crash', async () => {
+  const f = cullFixture();
+  f.viewer.camera = null;
+  const { layer, ds } = await enabledLayer(f, [row()]);
+  assert.equal(ds.entities.values.length, 1, 'the marker is still built');
+  layer.destroy();
+});

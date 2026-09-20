@@ -1,10 +1,15 @@
 import * as Cesium from 'cesium';
 import { createLayerSelection } from '../../data/layerSelection.js';
 import {
+  cameraPoseSignature,
+  horizonOccluder,
+} from '../../data/iconOrientation.js';
+import {
   CONJUNCTIONS_ENTITY_PREFIX,
   CONJUNCTIONS_LAYER_ID,
   CONJUNCTIONS_PENDING_RETRY_MS,
   CONJUNCTIONS_UPDATE_MS,
+  CONJUNCTIONS_VIEW_TICK_MS,
   CONJUNCTION_FILTERS,
   DEFAULT_CONJUNCTION_FILTER,
   conjunctionFilterFor,
@@ -72,6 +77,13 @@ export function createConjunctionsLayer({
     set: (fn, ms) => globalThis.setTimeout(fn, ms),
     clear: (id) => globalThis.clearTimeout(id),
   },
+  // A separate seam from `timers`, which schedules one-shot retries: the
+  // horizon cull repeats, and mixing the two would make a test that counts
+  // scheduled retries count view ticks as well.
+  viewTimers = {
+    set: (fn, ms) => globalThis.setInterval(fn, ms),
+    clear: (id) => globalThis.clearInterval(id),
+  },
   now = () => Date.now(),
 } = {}) {
   if (typeof source?.fetchConjunctions !== 'function')
@@ -87,6 +99,9 @@ export function createConjunctionsLayer({
   let _params = { show: DEFAULT_CONJUNCTION_FILTER };
   let _payload = null;
   let _retry = null;
+  /** Repeating horizon-cull tick, and the pose it last judged. */
+  let _viewTimer = null;
+  let _poseSignature = null;
   let _summary = summarizeConjunctions(
     parseConjunctions({ conjunctions: [] }, null, 0),
   );
@@ -128,6 +143,61 @@ export function createConjunctionsLayer({
   function clearEntities() {
     if (_dataSource) _dataSource.entities.removeAll();
     _records.clear();
+  }
+
+  /**
+   * Hide the conjunctions the planet is in front of.
+   *
+   * A conjunction is drawn at its own altitude with the depth test off, so a
+   * marker a few hundred kilometres up is not swallowed by the surface it is
+   * over. Nothing then stops one on the FAR side from being painted over the
+   * near side — and under Google 3D the globe is hidden, so there is no
+   * far-side depth to stop it either. The stalk to the ground IS depth-tested,
+   * so those arrived as bare red dots with nothing under them, drifting across
+   * the planet as the camera moved.
+   *
+   * The occluder's horizon is the ellipsoid's own, so a marker high enough to
+   * clear the limb stays visible — which is where it really is.
+   *
+   * @param {{force?: boolean}} [options] Force past the camera-still check,
+   *   which a fresh set of markers needs: they are added between moves and
+   *   would otherwise wait for one before being judged at all.
+   * @returns {boolean} Whether anything changed.
+   */
+  function cullToHorizon({ force = false } = {}) {
+    const camera = _viewer?.camera;
+    if (!_enabled || !_dataSource || !camera?.positionWC) return false;
+    const signature = cameraPoseSignature(camera);
+    if (!force && signature === _poseSignature) return false;
+    _poseSignature = signature;
+    const occluder = horizonOccluder(camera);
+    let changed = false;
+    for (const entity of _dataSource.entities.values) {
+      const position = entity.gevDisplayPosition?.();
+      if (!position) continue;
+      const show = occluder.isPointVisible(position);
+      if (entity.show !== show) {
+        entity.show = show;
+        changed = true;
+      }
+    }
+    if (changed) _viewer?.scene?.requestRender?.();
+    return changed;
+  }
+
+  function startViewTicks() {
+    cullToHorizon({ force: true });
+    if (_viewTimer != null) return;
+    _viewTimer = viewTimers.set(
+      () => cullToHorizon(),
+      CONJUNCTIONS_VIEW_TICK_MS,
+    );
+  }
+
+  function stopViewTicks() {
+    if (_viewTimer != null) viewTimers.clear(_viewTimer);
+    _viewTimer = null;
+    _poseSignature = null;
   }
 
   function clearRetry() {
@@ -174,6 +244,9 @@ export function createConjunctionsLayer({
       };
     }
     selection.reconcile();
+    // A fresh marker defaults to shown, so it is judged before it can be
+    // drawn rather than waiting for the camera to move.
+    cullToHorizon({ force: true });
     _summary = summarizeConjunctions(records);
   }
 
@@ -232,10 +305,12 @@ export function createConjunctionsLayer({
       if (_dataSource) _dataSource.show = true;
       // No fetch here: the manager calls update() once enable() settles.
       selection.install(viewer || _viewer);
+      startViewTicks();
     },
 
     disable() {
       _enabled = false;
+      stopViewTicks();
       clearRetry();
       _abort?.abort();
       _abort = null;

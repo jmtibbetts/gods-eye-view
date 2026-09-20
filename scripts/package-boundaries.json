@@ -2988,6 +2988,7 @@
       "src/layers/conjunctions/policy.js",
       "src/layers/conjunctions/records.js",
       "src/layers/conjunctions/source.js",
+      "src/data/iconOrientation.js",
       "src/data/layerSelection.js",
       "src/data/pickRegistry.js",
       "src/data/inputOwnership.js"

@@ -1,5 +1,22 @@
 # Changelog
 
+- Conjunction markers stopped showing through the planet. A close approach is
+  drawn at its own altitude with the depth test off, so that a marker a few
+  hundred kilometres up is not swallowed by the surface it is over. Nothing
+  then stopped one on the FAR side of the Earth from being painted over the
+  near side — and with the globe hidden under Google 3D there was no far-side
+  depth to stop it either. Its stalk down to the ground IS depth-tested, so
+  those arrived as bare red dots with nothing underneath them, drifting across
+  the planet as the camera moved.
+
+  The layer now hides the markers the planet is in front of, on the same
+  shared horizon occluder every other point layer already uses, re-judged when
+  the camera moves and again whenever a fresh set of markers arrives — they
+  are rebuilt between camera moves, and waiting for the next one is how a
+  far-side dot got drawn in the first place. The horizon is the ellipsoid's
+  own, so a marker high enough to clear the limb stays visible, which is where
+  it really is.
+
 - Satellite imagery draws on Google 3D instead of taking it away. Turning on
   any sensor used to switch your basemap to the 2D globe, on the reasoning
   that imagery cannot be drawn over Google 3D. That was too broad a

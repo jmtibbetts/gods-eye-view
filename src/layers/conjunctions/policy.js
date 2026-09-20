@@ -36,6 +36,12 @@ export const CONJUNCTIONS_UPDATE_MS = 15 * 60 * 1000;
 /** While elements are still arriving the layer asks again sooner. */
 export const CONJUNCTIONS_PENDING_RETRY_MS = 45 * 1000;
 export const CONJUNCTIONS_FETCH_TIMEOUT_MS = 30_000;
+/**
+ * How often the layer re-judges which markers the planet is in front of.
+ * The check is one pose compare while the camera is still, so a quarter of
+ * a second costs nothing between moves and never lags one by much.
+ */
+export const CONJUNCTIONS_VIEW_TICK_MS = 250;
 
 /**
  * Probability bands, by SOCRATES's own maximum probability. The thresholds
