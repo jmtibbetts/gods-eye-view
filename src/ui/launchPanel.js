@@ -460,7 +460,7 @@ export class LaunchPanel {
     }
     actions.append(
       this._button(
-        this._listenOpen === record.id ? 'LISTEN ▴' : 'LISTEN',
+        this._listenOpen === record.id ? 'RADIO ▴' : 'RADIO',
         'launch-btn',
         () => this._toggleListen(record),
         'What a radio near the range can hear',
@@ -477,7 +477,7 @@ export class LaunchPanel {
     if (Number.isFinite(record.lat) && Number.isFinite(record.lon)) {
       actions.append(
         this._button(
-          this._followedId === record.id ? 'ON PAD' : 'FLY TO PAD',
+          this._followedId === record.id ? 'AT PAD' : 'GO TO PAD',
           `launch-btn${this._followedId === record.id ? ' active' : ''}`,
           () => this._flyToPad(record),
           'Put the camera on the pad with the clock over it',
@@ -647,7 +647,7 @@ export class LaunchPanel {
         );
         line.append(
           this._button(
-            'WATCH',
+            'PIN',
             'launch-btn launch-btn-small',
             () => void this._watchVessel(ship),
             'Pin this ship on the WATCHLIST by MMSI and turn on Live Vessels',

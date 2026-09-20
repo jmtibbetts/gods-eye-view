@@ -1034,7 +1034,7 @@ export class SdrPanel {
             : s?.error
               ? s.error
               : r
-                ? 'OPEN HERE shows this receiver on the map, tuned if a frequency is set'
+                ? 'LISTEN SELECTED opens this receiver on the map, tuned if a frequency is set'
                 : `${s?.receivers ?? 0} public receivers in the directory`,
       );
       e.playbackState.classList.toggle(

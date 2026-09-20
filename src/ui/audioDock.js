@@ -410,10 +410,9 @@ export class AudioDock {
   _render() {
     const e = this.elements;
     const s = this._state;
-    setText(
-      e.kind,
-      s.kind === 'sdr' ? 'SDR' : s.kind === 'liveatc' ? 'LIVEATC' : 'PAGE',
-    );
+    // One dock for sound and pictures: the chip says which it is doing, and
+    // the subtitle (set by whoever opened it) says where it comes from.
+    setText(e.kind, s.kind === 'video' ? 'NOW SHOWING' : 'NOW PLAYING');
     setText(e.title, s.title || (s.url ? new URL(s.url).host : ''));
     setText(e.subtitle, s.subtitle);
     if (e.note) {

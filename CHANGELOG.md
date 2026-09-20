@@ -1,5 +1,25 @@
 # Changelog
 
+- One vocabulary across the rails, and a review of why. `docs/UX-REVIEW.md`
+  looks at the shell from the user's chair — two front doors for one
+  capability, sections named after sources rather than intents, a dozen
+  verbs for five acts, matched things never shown together — and sets the
+  principle the next changes follow: the left rail is what is on the
+  globe, the right rail is what you can do with it, and one verb has one
+  name. This first pass renames without moving anything. Rows say the
+  thing before the source ("Scanners (police, fire, EMS)", "Receivers (web
+  SDR / ham)", "Airband (ATC frequencies)", "Plate Readers (ALPR)",
+  "Ground Stations (SatNOGS)", "Launches (30 days)", "Satellite Imagery",
+  "Weather Satellites", "Science Layers"); the sections match, with the
+  abbreviation kept beside the title for the people who search by it. The
+  camera console is CAMERAS. GO TO moves the camera everywhere it used to
+  be FLY TO, FLY TO PAD or FOCUS; LISTEN SELECTED opens a chosen receiver
+  where OPEN HERE did; PIN puts a droneship on the watchlist where WATCH
+  did; the launch row's radio disclosure is RADIO, so LISTEN only ever
+  plays sound. Sections that are on and waiting say READY rather than IDLE
+  or NONE, IMAGERY counts what is on, and the dock says NOW PLAYING or NOW
+  SHOWING instead of naming the software behind the frame.
+
 - The LAUNCH, SENSORS and IMAGERY sections now fold like the rest of the
   Context rail. They were missing from the collapse rules the other
   sections carry, so a "collapsed" section kept its full body on screen —

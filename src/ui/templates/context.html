@@ -144,6 +144,7 @@
           <div class="audio-panel-inner">
             <div class="panel-header">
               <span class="panel-title">SCANNERS</span>
+              <span class="panel-kicker" title="Police, fire and EMS trunked systems">POLICE · FIRE · EMS</span>
               <span id="scanner-layer-state" class="audio-layer-state">OFF</span>
               <span class="panel-divider"></span>
               <button class="panel-collapse-btn" data-collapse-target="scanner-panel" title="Expand Scanners" aria-label="Expand Scanners section">+</button>
@@ -163,7 +164,7 @@
             <div class="audio-transport" role="group" aria-label="Scanner playback">
               <button id="scanner-pause-btn" type="button" aria-label="Pause or resume scanner playback" disabled>PAUSE</button>
               <button id="scanner-stop-btn" type="button" aria-label="Stop scanning" disabled>STOP</button>
-              <button id="scanner-fly-btn" type="button" aria-label="Fly the camera to the selected system" disabled>FLY TO</button>
+              <button id="scanner-fly-btn" type="button" aria-label="Move the camera to the selected system" disabled>GO TO</button>
             </div>
             <label class="audio-volume-row" for="scanner-volume">
               <span>VOLUME</span>
@@ -181,10 +182,11 @@
         <section id="sdr-panel" class="panel-collapsible collapsed" data-panel-id="sdr-panel" aria-label="Web SDR and ham radio receivers">
           <div class="audio-panel-inner">
             <div class="panel-header">
-              <span class="panel-title">SDR / HAM</span>
+              <span class="panel-title">RECEIVERS</span>
+              <span class="panel-kicker" title="Web SDR and ham receivers">SDR · HAM</span>
               <span id="sdr-layer-state" class="audio-layer-state">OFF</span>
               <span class="panel-divider"></span>
-              <button class="panel-collapse-btn" data-collapse-target="sdr-panel" title="Expand SDR" aria-label="Expand SDR section">+</button>
+              <button class="panel-collapse-btn" data-collapse-target="sdr-panel" title="Expand Receivers" aria-label="Expand Receivers section">+</button>
             </div>
             <div class="audio-directory-row">
               <button id="sdr-enable-btn" class="panel-layer-toggle" type="button" aria-pressed="false">ENABLE</button>
@@ -222,17 +224,17 @@
             <ul id="sdr-list" class="audio-list" role="listbox" aria-label="Web SDR receivers nearest the current view"></ul>
             <div id="sdr-now" class="audio-now-card" aria-live="polite">
               <strong id="sdr-now-name">NO RECEIVER SELECTED</strong>
-              <span id="sdr-now-meta">Enable SDR, then pick a receiver from the list or a globe marker.</span>
+              <span id="sdr-now-meta">Enable Receivers, then pick one from the list or a globe marker.</span>
             </div>
             <div class="audio-transport audio-transport-primary" role="group" aria-label="Listen">
               <button id="sdr-listen-btn" class="audio-listen-btn" type="button" aria-label="Listen: open the best receiver for the chosen band inside the map" disabled>▶ LISTEN</button>
             </div>
             <div class="audio-transport" role="group" aria-label="Receiver actions">
-              <button id="sdr-open-btn" type="button" aria-label="Open the selected receiver inside the map" disabled>OPEN HERE</button>
-              <button id="sdr-fly-btn" type="button" aria-label="Fly the camera to the selected receiver" disabled>FLY TO</button>
+              <button id="sdr-open-btn" type="button" aria-label="Listen to the selected receiver inside the map" disabled>LISTEN SELECTED</button>
+              <button id="sdr-fly-btn" type="button" aria-label="Move the camera to the selected receiver" disabled>GO TO</button>
               <button id="sdr-clear-btn" type="button" aria-label="Clear the selected receiver" disabled>CLEAR</button>
             </div>
-            <div id="sdr-playback-state" class="audio-playback-state" role="status" aria-live="polite">SDR off</div>
+            <div id="sdr-playback-state" class="audio-playback-state" role="status" aria-live="polite">Receivers off</div>
             <div class="audio-links">
               <a href="https://www.receiverbook.de/map" target="_blank" rel="noopener noreferrer">DIRECTORY: RECEIVERBOOK</a>
               <a href="https://www.remotehamradio.com/" target="_blank" rel="noopener noreferrer">TRANSMIT: REMOTE HAM RADIO ↗</a>
@@ -243,10 +245,11 @@
         <section id="atc-panel" class="panel-collapsible collapsed" data-panel-id="atc-panel" aria-label="Air traffic control frequencies">
           <div class="audio-panel-inner">
             <div class="panel-header">
-              <span class="panel-title">ATC</span>
+              <span class="panel-title">AIRBAND</span>
+              <span class="panel-kicker" title="Air traffic control frequencies">ATC</span>
               <span id="atc-layer-state" class="audio-layer-state">OFF</span>
               <span class="panel-divider"></span>
-              <button class="panel-collapse-btn" data-collapse-target="atc-panel" title="Expand ATC" aria-label="Expand ATC section">+</button>
+              <button class="panel-collapse-btn" data-collapse-target="atc-panel" title="Expand Airband" aria-label="Expand Airband section">+</button>
             </div>
             <div class="audio-directory-row">
               <button id="atc-enable-btn" class="panel-layer-toggle" type="button" aria-pressed="false">ENABLE</button>
@@ -258,7 +261,7 @@
             <ul id="atc-list" class="audio-list" role="listbox" aria-label="Airports nearest the current view"></ul>
             <div id="atc-now" class="audio-now-card" aria-live="polite">
               <strong id="atc-now-name">NO AIRPORT SELECTED</strong>
-              <span id="atc-now-meta">Enable ATC, then pick an airport from the list or a globe marker.</span>
+              <span id="atc-now-meta">Enable Airband, then pick an airport from the list or a globe marker.</span>
               <div id="atc-freqs" class="audio-freq-grid" role="group" aria-label="Frequencies at the selected airport"></div>
             </div>
             <div class="audio-transport audio-transport-primary" role="group" aria-label="Listen">
@@ -266,14 +269,14 @@
             </div>
             <div class="audio-transport" role="group" aria-label="Follow the selected aircraft">
               <button id="atc-follow-btn" type="button" aria-pressed="false" aria-label="Follow the selected aircraft between ground, tower, approach and center" disabled>FOLLOW PLANE</button>
-              <button id="atc-fly-btn" type="button" aria-label="Fly the camera to the selected airport" disabled>FLY TO</button>
+              <button id="atc-fly-btn" type="button" aria-label="Move the camera to the selected airport" disabled>GO TO</button>
               <button id="atc-stop-btn" type="button" aria-label="Stop listening and close the receiver window" disabled>STOP</button>
             </div>
             <div id="atc-follow-state" class="audio-follow-card" aria-live="polite" hidden>
               <strong id="atc-follow-contact"></strong>
               <span id="atc-follow-phase"></span>
             </div>
-            <div id="atc-playback-state" class="audio-playback-state" role="status" aria-live="polite">ATC off</div>
+            <div id="atc-playback-state" class="audio-playback-state" role="status" aria-live="polite">Airband off</div>
             <div class="audio-links">
               <a href="https://www.liveatc.net/" target="_blank" rel="noopener noreferrer">AUDIO: LIVEATC.NET ↗</a>
               <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/" target="_blank" rel="noopener noreferrer">FREQUENCIES: FAA NASR</a>
@@ -285,7 +288,7 @@
           <div class="audio-panel-inner">
             <div class="panel-header">
               <span class="panel-title">MONITOR</span>
-              <span id="monitor-layer-state" class="audio-layer-state">IDLE</span>
+              <span id="monitor-layer-state" class="audio-layer-state">READY</span>
               <span class="panel-divider"></span>
               <button class="panel-collapse-btn" data-collapse-target="monitor-panel" title="Expand Monitor" aria-label="Expand Monitor section">+</button>
             </div>
@@ -305,7 +308,7 @@
           <div class="audio-panel-inner">
             <div class="panel-header">
               <span class="panel-title">WATCHLIST</span>
-              <span id="watchlist-layer-state" class="audio-layer-state">IDLE</span>
+              <span id="watchlist-layer-state" class="audio-layer-state">READY</span>
               <span class="panel-divider"></span>
               <button class="panel-collapse-btn" data-collapse-target="watchlist-panel" title="Expand Watchlist" aria-label="Expand Watchlist section">+</button>
             </div>
@@ -325,7 +328,7 @@
           <div class="audio-panel-inner">
             <div class="panel-header">
               <span class="panel-title">VESSEL WATCH</span>
-              <span id="vessel-watch-layer-state" class="audio-layer-state">IDLE</span>
+              <span id="vessel-watch-layer-state" class="audio-layer-state">READY</span>
               <span class="panel-divider"></span>
               <button class="panel-collapse-btn" data-collapse-target="vessel-watch-panel" title="Expand Vessel Watch" aria-label="Expand Vessel Watch section">+</button>
             </div>
@@ -345,14 +348,14 @@
             </div>
             <div id="launch-body" class="launch-body" aria-label="Upcoming and live rocket launches"></div>
             <p id="launch-note" class="audio-privacy"></p>
-            <p class="audio-privacy">WATCH opens the operator&rsquo;s own webcast; the countdown net and flight loops you hear on it are their circuits, mixed into the stream, not a public band. LISTEN names what a radio near the range can actually receive &mdash; the range&rsquo;s trunked system where OpenMHz carries it, the tower and approach frequencies of the airfields under the closure, and nearby web receivers &mdash; and says which of them cannot hear a launch at all.</p>
+            <p class="audio-privacy">WATCH opens the operator&rsquo;s own webcast; the countdown net and flight loops you hear on it are their circuits, mixed into the stream, not a public band. RADIO names what a radio near the range can actually receive &mdash; the range&rsquo;s trunked system where OpenMHz carries it, the tower and approach frequencies of the airfields under the closure, and nearby web receivers &mdash; and says which of them cannot hear a launch at all.</p>
           </div>
         </section>
         <section id="sensors-panel" class="panel-collapsible collapsed" data-panel-id="sensors-panel" aria-label="Sensors aboard the tracked satellite">
           <div class="audio-panel-inner">
             <div class="panel-header">
               <span class="panel-title">SENSORS</span>
-              <span id="sensors-layer-state" class="audio-layer-state">NONE</span>
+              <span id="sensors-layer-state" class="audio-layer-state">READY</span>
               <span class="panel-divider"></span>
               <button class="panel-collapse-btn" data-collapse-target="sensors-panel" title="Expand Sensors" aria-label="Expand Sensors section">+</button>
             </div>
@@ -365,7 +368,7 @@
           <div class="audio-panel-inner">
             <div class="panel-header">
               <span class="panel-title">IMAGERY</span>
-              <span id="imagery-layer-state" class="audio-layer-state">CLEAR</span>
+              <span id="imagery-layer-state" class="audio-layer-state">OFF</span>
               <span class="panel-divider"></span>
               <button id="imagery-clear-btn" class="imagery-clear-btn" type="button" aria-label="Turn off every imagery overlay" disabled>CLEAR</button>
               <button class="panel-collapse-btn" data-collapse-target="imagery-panel" title="Expand Imagery" aria-label="Expand Imagery section">+</button>

@@ -50,7 +50,7 @@ export function _renderCctvState(state) {
 
   if (this._cctvEnableBtn) {
     this._cctvEnableBtn.classList.toggle('active', enabled);
-    this._cctvEnableBtn.textContent = enabled ? 'CCTV ON' : 'CCTV OFF';
+    this._cctvEnableBtn.textContent = enabled ? 'CAMERAS ON' : 'CAMERAS OFF';
   }
 
   if (this._cctvSelect) {

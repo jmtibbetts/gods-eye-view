@@ -136,7 +136,7 @@ export class VesselWatchPanel {
         e.layerState,
         this._tracks.size
           ? `${this._sanctionHits.length} LISTED · ${this._dark.length} DARK`
-          : 'IDLE',
+          : 'READY',
       );
     if (e.empty)
       e.empty.hidden = this._tracks.size > 0 || Boolean(this._sanctionsError);

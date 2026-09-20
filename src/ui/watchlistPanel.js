@@ -200,7 +200,7 @@ export class WatchlistPanel {
     if (e.layerState)
       setText(
         e.layerState,
-        this._entries.length ? `${live}/${this._entries.length} UP` : 'IDLE',
+        this._entries.length ? `${live}/${this._entries.length} UP` : 'READY',
       );
     if (e.empty) e.empty.hidden = this._entries.length > 0;
     if (e.clearBtn) e.clearBtn.disabled = !this._entries.length;

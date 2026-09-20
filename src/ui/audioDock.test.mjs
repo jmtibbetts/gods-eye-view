@@ -88,7 +88,7 @@ test('the dock opens, retargets in place, records state and closes to about:blan
     'http://rx.example/?f=121000amz8',
   );
   assert.equal(elements.title.textContent, 'Westy RX');
-  assert.equal(elements.kind.textContent, 'SDR');
+  assert.equal(elements.kind.textContent, 'NOW PLAYING');
   assert.equal(
     elements.frame.getAttribute('referrerpolicy'),
     'no-referrer',
@@ -104,7 +104,7 @@ test('the dock opens, retargets in place, records state and closes to about:blan
     elements.frame.getAttribute('src'),
     'https://www.liveatc.net/search/?icao=KAUS',
   );
-  assert.equal(elements.kind.textContent, 'LIVEATC');
+  assert.equal(elements.kind.textContent, 'NOW PLAYING');
   assert.equal(elements.note.hidden, true, 'no note this time');
   elements.popoutBtn.listeners.click();
   assert.deepEqual(opened, ['https://www.liveatc.net/search/?icao=KAUS']);

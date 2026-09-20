@@ -188,13 +188,13 @@ function panelWith(dm, toasts = []) {
   return { panel, elements, toasts };
 }
 
-test('the panel renders one group per slot and reads CLEAR when nothing covers the globe', async () => {
+test('the panel renders one group per slot and reads OFF when nothing covers the globe', async () => {
   await withFakeDom(() => {
     const dm = fakeManager();
     const { panel, elements } = panelWith(dm);
     panel.connect();
     assert.equal(elements.list.children.length, IMAGERY_SLOT_ORDER.length);
-    assert.equal(elements.layerState.textContent, 'CLEAR');
+    assert.equal(elements.layerState.textContent, 'OFF');
     assert.equal(elements.clearBtn.disabled, true);
     assert.match(elements.note.textContent, /Nothing is covering the globe/);
     panel.destroy();
@@ -212,7 +212,7 @@ test('picking a sensor turns its slot on and says so, naming the vintage', async
       dm.layers.get('imagery-viirs').module.getSensor(),
       'viirs-n20-night',
     );
-    assert.equal(elements.layerState.textContent, 'COVERING');
+    assert.equal(elements.layerState.textContent, '1 ON');
     assert.equal(elements.clearBtn.disabled, false);
     assert.match(toasts.at(-1), /Day\/Night Band/);
     assert.match(toasts.at(-1), /1 day behind/);
@@ -256,7 +256,7 @@ test('CLEAR turns every imagery slot off, radar included', async () => {
 
     await panel.clearAll();
     assert.equal(dm.enabled.size, 0, 'radar must be cleared too');
-    assert.equal(elements.layerState.textContent, 'CLEAR');
+    assert.equal(elements.layerState.textContent, 'OFF');
     assert.match(toasts.at(-1), /photorealistic globe is back/);
     panel.destroy();
   });
@@ -267,13 +267,13 @@ test('the panel follows toggles made somewhere else', async () => {
     const dm = fakeManager();
     const { panel, elements } = panelWith(dm);
     panel.connect();
-    assert.equal(elements.layerState.textContent, 'CLEAR');
+    assert.equal(elements.layerState.textContent, 'OFF');
     // A combination preset or a restored share link flips the layer directly.
     await dm.setEnabled('imagery-goes', true);
     assert.equal(
       elements.layerState.textContent,
-      'COVERING',
-      'the panel must not sit reading CLEAR over a covered globe',
+      '1 ON',
+      'the panel must not sit reading OFF over a covered globe',
     );
     panel.destroy();
   });
@@ -402,6 +402,6 @@ test('a destroyed panel stops responding', async () => {
     panel.destroy();
     await panel.selectSensor('imagery-viirs', 'viirs-n20-night');
     assert.equal(dm.isEnabled('imagery-viirs'), false);
-    assert.equal(elements.layerState.textContent, 'CLEAR');
+    assert.equal(elements.layerState.textContent, 'OFF');
   });
 });

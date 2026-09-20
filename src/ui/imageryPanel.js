@@ -319,16 +319,17 @@ export class ImageryPanel {
     const host = this.elements.list;
     if (!host) return;
     host.replaceChildren();
-    let anyOn = false;
+    let onCount = 0;
     for (const slotId of SLOT_IDS) {
       const node = this._renderSlot(slotId);
       if (node) host.append(node);
-      if (this._isEnabled(slotId)) anyOn = true;
+      if (this._isEnabled(slotId)) onCount++;
     }
-    if (this._isEnabled('imagery-radar')) anyOn = true;
+    if (this._isEnabled('imagery-radar')) onCount++;
+    const anyOn = onCount > 0;
 
     if (this.elements.layerState)
-      this.elements.layerState.textContent = anyOn ? 'COVERING' : 'CLEAR';
+      this.elements.layerState.textContent = anyOn ? `${onCount} ON` : 'OFF';
     if (this.elements.clearBtn) this.elements.clearBtn.disabled = !anyOn;
     if (this.elements.note) {
       this.elements.note.textContent = anyOn

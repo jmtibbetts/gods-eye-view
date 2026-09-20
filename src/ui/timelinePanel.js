@@ -129,7 +129,7 @@ export class TimelinePanel {
     const layers = this._timeAwareLayers();
     if (!layers.length) {
       this.onToast(
-        'TIMELINE: turn on Orbital Imagery or a Science Overlay — nothing enabled carries an archive',
+        'TIMELINE: turn on Satellite Imagery or a Science Layer — nothing enabled carries an archive',
       );
       return;
     }
@@ -174,7 +174,7 @@ export class TimelinePanel {
         e.note,
         layers.length
           ? `Driving ${layers.map((l) => l.name).join(', ')}. Live feeds — aircraft, vessels, radar — always show now.`
-          : 'Nothing enabled carries an archive. Turn on Orbital Imagery or a Science Overlay to scrub back through it.',
+          : 'Nothing enabled carries an archive. Turn on Satellite Imagery or a Science Layer to scrub back through it.',
       );
     }
   }

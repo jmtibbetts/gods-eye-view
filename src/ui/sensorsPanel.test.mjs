@@ -229,7 +229,7 @@ test('with nothing tracked, the imaging fleet on the globe is listed with TRACK 
     const sats = fakeSatellites([43013, 60133, 25544, 12345], tracked);
     const { panel, elements } = panelWith({ satellites: sats });
     panel.connect();
-    assert.equal(elements.state.textContent, 'NONE');
+    assert.equal(elements.state.textContent, 'READY');
     const rows = findAll(elements.body, 'sensors-fleet-row');
     assert.deepEqual(
       rows.map((r) => r.dataset.norad),
@@ -334,7 +334,7 @@ test('tracking a satellite with no imager says so, and clearing returns to the f
     windowRef.fire('gev:awareness-subject-selected', { layerId: 'flights', id: 'abc' });
     assert.equal(elements.state.textContent, 'NO SENSOR');
     windowRef.fire('gev:awareness-subject-cleared', { layerId: 'satellites' });
-    assert.equal(elements.state.textContent, 'NONE');
+    assert.equal(elements.state.textContent, 'READY');
     panel.destroy();
   });
 });
@@ -385,7 +385,7 @@ test('a destroyed panel stops listening', async () => {
       layerId: 'satellites',
       id: 43013,
     });
-    assert.equal(elements.state.textContent, 'NONE');
+    assert.equal(elements.state.textContent, 'READY');
   });
 });
 

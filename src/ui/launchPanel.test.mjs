@@ -252,7 +252,7 @@ test('WATCH frames a YouTube webcast in the dock and opens anything else in its 
   });
 });
 
-test('LISTEN names the range system, the tower and the receivers, and says which cannot hear', async () => {
+test('RADIO names the range system, the tower and the receivers, and says which cannot hear', async () => {
   await withFakeDom(async () => {
     const seedAsked = [];
     const scanner = {
@@ -285,7 +285,7 @@ test('LISTEN names the range system, the tower and the receivers, and says which
     const { panel, elements, enabled, toasts } = panelWith({ layers: { scanner, atc, sdr } });
     panel.connect();
     await settle();
-    const listen = findAll(elements.body, 'launch-btn').find((b) => b.textContent === 'LISTEN');
+    const listen = findAll(elements.body, 'launch-btn').find((b) => b.textContent === 'RADIO');
     listen.click();
     await settle();
     await settle();
@@ -399,7 +399,7 @@ test('RANGE lists the space closures near the pad with the NOTAM\'s own times, a
     assert.ok(enabled.has('tfr'), 'SHOW turns the layer on');
     assert.deepEqual(focused, ['6/5000']);
 
-    const watch = findAll(elements.body, 'launch-btn-small').find((b) => b.textContent === 'WATCH');
+    const watch = findAll(elements.body, 'launch-btn-small').find((b) => b.textContent === 'PIN');
     watch.click();
     await settle();
     assert.deepEqual(pinned, ['368219920'], 'pinned by MMSI, not by the deck name');

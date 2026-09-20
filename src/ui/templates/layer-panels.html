@@ -17,7 +17,8 @@
     <div class="panel-glow"></div>
     <div class="cctv-panel-inner">
       <div class="panel-header">
-        <span class="panel-title">CCTV</span>
+        <span class="panel-title">CAMERAS</span>
+        <span class="panel-kicker" title="Public traffic and city cameras">CCTV</span>
         <span class="panel-divider"></span>
         <button class="panel-collapse-btn" data-collapse-target="cctv-panel" title="Collapse panel">+</button>
       </div>
@@ -25,9 +26,9 @@
         <img id="cctv-frame" alt="CCTV feed frame" />
       </div>
       <div id="cctv-source-badge" role="status" aria-live="polite">SOURCE · UNKNOWN</div>
-      <div id="cctv-meta">Enable CCTV to load camera intersections</div>
+      <div id="cctv-meta">Turn on Cameras to load camera intersections</div>
       <div class="cctv-controls">
-        <button id="cctv-enable-btn" class="scene-btn">CCTV OFF</button>
+        <button id="cctv-enable-btn" class="scene-btn">CAMERAS OFF</button>
         <button id="cctv-nearest-btn" class="scene-btn">NEAREST</button>
       </div>
       <div class="cctv-controls">
@@ -36,7 +37,7 @@
         <button id="cctv-next-btn" class="scene-btn">NEXT</button>
       </div>
       <div class="cctv-controls">
-        <button id="cctv-focus-btn" class="scene-btn">FOCUS</button>
+        <button id="cctv-focus-btn" class="scene-btn" title="Move the camera to this camera">GO TO</button>
         <button id="cctv-coverage-btn" class="scene-btn">COVERAGE OFF</button>
         <button id="cctv-auto-hop-btn" class="scene-btn">AUTO HOP OFF</button>
       </div>
@@ -64,7 +65,7 @@
         </div>
       </div>
       <div class="cctv-summary-label">SCENE SUMMARY</div>
-      <div id="cctv-summary">Enable CCTV to start camera-linked intelligence summaries.</div>
+      <div id="cctv-summary">Turn on Cameras to start camera-linked intelligence summaries.</div>
     </div>
   </div>
 

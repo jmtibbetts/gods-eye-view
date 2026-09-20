@@ -240,7 +240,7 @@ export class MonitorPanel {
     if (e.layerState)
       setText(
         e.layerState,
-        this._boxes.length ? `${this._boxes.length} WATCHING` : 'IDLE',
+        this._boxes.length ? `${this._boxes.length} WATCHING` : 'READY',
       );
     if (e.empty) e.empty.hidden = this._boxes.length > 0;
     if (e.clearBtn) e.clearBtn.disabled = !this._boxes.length;

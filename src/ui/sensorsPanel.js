@@ -412,7 +412,7 @@ export class SensorsPanel {
         ? platform.name.toUpperCase()
         : this._trackedNorad !== null
           ? 'NO SENSOR'
-          : 'NONE';
+          : 'READY';
     }
 
     if (!platform) {
