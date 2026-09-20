@@ -311,6 +311,15 @@ export function inspectActions(record, caps = {}) {
           'Retune as it moves: Ground → Tower → Approach → Center (the Airband section shows the phase)',
       });
     }
+  } else if (layerId === 'ais-live-vessels') {
+    if (caps.canListenMarine)
+      actions.push({
+        id: 'listen',
+        label: 'LISTEN',
+        kind: 'listen',
+        title:
+          'The nearest receiver that can actually hear this ship: Channel 16 from a coast within range, otherwise the marine HF bands',
+      });
   } else if (layerId === 'satellites') {
     if (caps.imaging && caps.panelId)
       actions.push({
@@ -603,6 +612,11 @@ export class InspectPanel {
         (AIRCRAFT_LAYERS.has(layerId) ? atc.listenAtcContact : atc.listenAtc),
       ),
       canListenSdr: Boolean(this._sdr()?.openSelectedSdrReceiver),
+      canListenMarine: Boolean(
+        this._sdr()?.listenMarineNear &&
+        Number.isFinite(record?.properties?.lat) &&
+        Number.isFinite(record?.properties?.lon),
+      ),
       canListenScanner: Boolean(
         this._scanner()?.selectScannerSystem && record?.properties?.system,
       ),
@@ -768,6 +782,22 @@ export class InspectPanel {
       const airportId = String(record.id || '').replace(/^atc:/, '');
       const result = await this._atc()?.listenAtc?.({ airportId });
       if (!result) this.onToast('Could not open this airport in the dock.');
+      return;
+    }
+    if (layerId === 'ais-live-vessels') {
+      if (!(await this._ensureLayer('sdr'))) {
+        this.onToast('Turn on Receivers to listen near a ship.');
+        return;
+      }
+      const { lat, lon } = record.properties || {};
+      const result = await this._sdr()?.listenMarineNear?.({ lat, lon });
+      if (!result?.receiver) {
+        this.onToast(result?.reason || 'No receiver can hear this ship.');
+        return;
+      }
+      this.onToast(
+        `${result.band.label} on ${result.receiver.name} — ${Math.round(result.receiver.distanceKm)} km away.`,
+      );
       return;
     }
     if (layerId === 'sdr') {

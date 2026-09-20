@@ -1,5 +1,25 @@
 # Changelog
 
+- Click a ship and hear it. A selected vessel now offers LISTEN, and the
+  receiver it opens is chosen by what can actually hear that ship rather than
+  by what is nearest.
+
+  Channel 16 is what people mean by marine radio — ships, harbours and the
+  coast guard calling each other — and it is offered first. It is also VHF,
+  which is line-of-sight: it needs a receiver on that coast, and only 141 of
+  the 1,317 public receivers in the directory cover above 30 MHz at all. So
+  when no covered coast is within reach the ladder falls through to the HF
+  marine bands, starting at 2182 kHz, where the signal bounces off the
+  ionosphere and distance stops deciding — 847 to 904 receivers cover those.
+
+  Measured against live traffic: a ship off IJmuiden opens Channel 16 on a
+  receiver 27 km away, while ships mid-Atlantic, mid-Pacific and in the
+  Singapore Strait each fall back to 2182 kHz on the nearest HF receiver,
+  1,300 to 2,300 km off. A ship nothing can hear says so, and says how far
+  the nearest Channel 16 receiver is, because "no receiver" and "the only one
+  is 900 km away" are different facts — the second one tells you your ship is
+  simply out at sea.
+
 - The globe says what you are looking at. Google 3D, Esri Satellite and Bing
   Aerial all ship without a single label — only Bing Labels and OSM carry
   their own — so on the basemaps this app defaults to, nothing on the planet

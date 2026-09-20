@@ -541,6 +541,8 @@
   "src/layers/scanner/scanner.test.mjs",
   "src/layers/scanner/source.js",
   "src/layers/sdr/index.js",
+  "src/layers/sdr/marine.js",
+  "src/layers/sdr/marine.test.mjs",
   "src/layers/sdr/model.js",
   "src/layers/sdr/policy.js",
   "src/layers/sdr/records.js",

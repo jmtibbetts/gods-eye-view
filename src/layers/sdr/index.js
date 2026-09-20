@@ -6,6 +6,7 @@ import {
   resolvePickId,
   unregisterPickOwner,
 } from '../../data/pickRegistry.js';
+import { chooseMarineListen, marineRefusalText } from './marine.js';
 import {
   SDR_ENTITY_PREFIX,
   SDR_LAYER_ID,
@@ -495,6 +496,53 @@ export function createSdrLayer({
         receiver: best,
       });
       return { receiver: best, url };
+    },
+    /**
+     * Open whatever can actually hear a ship at this position.
+     *
+     * Tries Channel 16 first and falls back through the HF marine bands, so a
+     * ship off a covered coast gets the traffic people mean by marine radio
+     * and a ship mid-ocean gets the band that carries that far — rather than
+     * a receiver tuned to a frequency it cannot possibly hear.
+     *
+     * @param {{lat: number, lon: number}} position
+     * @returns {Promise<{receiver: object, band: object, url: string}|
+     *   {receiver: null, band: null, reason: string}>}
+     */
+    async listenMarineNear({ lat, lon } = {}) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lon))
+        return { receiver: null, band: null, reason: 'no position' };
+      await loadDirectory();
+      const outcome = chooseMarineListen({
+        receiversFor: (band) =>
+          layer.findSdrReceivers({
+            lat,
+            lon,
+            freqHz: band.freqHz,
+            coveredOnly: true,
+            limit: 1,
+          }),
+      });
+      if (!outcome.band)
+        return {
+          receiver: null,
+          band: null,
+          reason: marineRefusalText(outcome),
+        };
+      const result = await layer.listenSdr({
+        freqHz: outcome.band.freqHz,
+        mode: outcome.band.mode,
+        lat,
+        lon,
+        maxKm: outcome.band.maxKm,
+      });
+      if (!result)
+        return {
+          receiver: null,
+          band: null,
+          reason: marineRefusalText(outcome),
+        };
+      return { ...result, band: outcome.band };
     },
     selectSdrReceiver: selectReceiver,
     clearSdrSelection() {

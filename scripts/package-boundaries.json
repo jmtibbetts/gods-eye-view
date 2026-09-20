@@ -887,15 +887,16 @@
   "sdr-layer": {
     "exports": ["./layers/sdr"],
     "modules": [
+      "src/data/iconOrientation.js",
+      "src/data/inputOwnership.js",
+      "src/data/markerField.js",
+      "src/data/pickRegistry.js",
       "src/layers/sdr/index.js",
+      "src/layers/sdr/marine.js",
       "src/layers/sdr/model.js",
       "src/layers/sdr/policy.js",
       "src/layers/sdr/records.js",
-      "src/layers/sdr/source.js",
-      "src/data/inputOwnership.js",
-      "src/data/pickRegistry.js",
-      "src/data/markerField.js",
-      "src/data/iconOrientation.js"
+      "src/layers/sdr/source.js"
     ],
     "external": ["cesium"]
   },
@@ -1729,6 +1730,7 @@
       "src/layers/scanner/records.js",
       "src/layers/scanner/source.js",
       "src/layers/sdr/index.js",
+      "src/layers/sdr/marine.js",
       "src/layers/sdr/model.js",
       "src/layers/sdr/policy.js",
       "src/layers/sdr/records.js",
@@ -2407,6 +2409,7 @@
       "src/layers/scanner/records.js",
       "src/layers/scanner/source.js",
       "src/layers/sdr/index.js",
+      "src/layers/sdr/marine.js",
       "src/layers/sdr/model.js",
       "src/layers/sdr/policy.js",
       "src/layers/sdr/records.js",
