@@ -85,6 +85,21 @@
             </div>
           </div>
         </section>
+        <div class="context-group" data-context-group="inspect">
+          <h3 class="context-group-heading"><span>INSPECT</span><span class="context-group-blurb">the selected thing</span></h3>
+        <section id="inspect-panel" class="panel-collapsible" data-panel-id="inspect-panel" aria-label="The selected thing and what can be done with it">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">SELECTED</span>
+              <span id="inspect-state" class="audio-layer-state">READY</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="inspect-panel" title="Collapse Selected" aria-label="Collapse Selected section">−</button>
+            </div>
+            <div id="inspect-body" class="inspect-body" aria-live="polite"></div>
+            <p id="inspect-empty" class="audio-privacy inspect-empty">Click anything on the globe &mdash; a plane, a ship, a satellite, a receiver, a closure &mdash; and its details and every action the app can take for it appear here: LISTEN to its controller, WATCH its stream, PIN it, GO TO it.</p>
+          </div>
+        </section>
+        </div>
         <div class="context-group" data-context-group="listen">
           <h3 class="context-group-heading"><span>LISTEN</span><span class="context-group-blurb">sound from the place</span></h3>
         <section id="radio-panel" class="panel-collapsible collapsed" data-panel-id="radio-panel" aria-label="Internet radio companion">

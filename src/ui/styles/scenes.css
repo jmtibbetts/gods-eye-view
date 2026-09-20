@@ -747,33 +747,39 @@
 #global-context-panel.collapsed #launch-panel,
 #global-context-panel.collapsed #sensors-panel,
 #global-context-panel.collapsed #imagery-panel,
+#global-context-panel.collapsed #inspect-panel,
 #launch-panel.collapsed .audio-panel-inner > :not(.panel-header),
 #sensors-panel.collapsed .audio-panel-inner > :not(.panel-header),
-#imagery-panel.collapsed .audio-panel-inner > :not(.panel-header) {
+#imagery-panel.collapsed .audio-panel-inner > :not(.panel-header),
+#inspect-panel.collapsed .audio-panel-inner > :not(.panel-header) {
   display: none !important;
 }
 
 #global-context-panel #launch-panel.collapsed,
 #global-context-panel #sensors-panel.collapsed,
-#global-context-panel #imagery-panel.collapsed {
+#global-context-panel #imagery-panel.collapsed,
+#global-context-panel #inspect-panel.collapsed {
   width: 100%;
 }
 
 #launch-panel.collapsed .panel-title,
 #sensors-panel.collapsed .panel-title,
-#imagery-panel.collapsed .panel-title {
+#imagery-panel.collapsed .panel-title,
+#inspect-panel.collapsed .panel-title {
   font-size: 8px;
   letter-spacing: 1.8px;
 }
 
 #launch-panel.collapsed .audio-panel-inner,
 #sensors-panel.collapsed .audio-panel-inner,
-#imagery-panel.collapsed .audio-panel-inner {
+#imagery-panel.collapsed .audio-panel-inner,
+#inspect-panel.collapsed .audio-panel-inner {
   padding-bottom: 10px;
 }
 
 #launch-panel.collapsed .panel-header,
 #sensors-panel.collapsed .panel-header,
-#imagery-panel.collapsed .panel-header {
+#imagery-panel.collapsed .panel-header,
+#inspect-panel.collapsed .panel-header {
   margin-bottom: 2px;
 }

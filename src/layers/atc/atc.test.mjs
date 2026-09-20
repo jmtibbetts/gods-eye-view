@@ -5,6 +5,7 @@ import {
   atcContactFromContext,
   atcDistanceKm,
   atcFacilityName,
+  atcCenterFrequencyFor,
   atcFollowTarget,
   atcFrequencyFor,
   atcNearestAirports,
@@ -100,6 +101,14 @@ const PAYLOAD = {
         [351.9, 'UHF'],
       ],
     },
+    {
+      id: 'ZHU',
+      artcc: '',
+      name: 'Houston',
+      lat: 29.96,
+      lon: -95.33,
+      freqs: [[121.5, 'LOW/HIGH']],
+    },
   ],
 };
 
@@ -113,11 +122,34 @@ test('directory rows are validated, UHF dropped, positions typed', () => {
   const t74 = directory.airports[2];
   assert.equal(t74.towered, false);
   assert.equal(t74.freqs[1].position, 'WX');
-  assert.equal(directory.centers.length, 1);
+  assert.equal(
+    directory.centers.length,
+    1,
+    'a site that lists only guard is the facility, not a sector',
+  );
   assert.deepEqual(
     directory.centers[0].freqs.map((f) => f.mhz),
     [128.05],
     'UHF center frequency is dropped',
+  );
+  const guarded = normalizeAtcDirectory({
+    airports: [],
+    centers: [
+      {
+        id: 'X',
+        lat: 1,
+        lon: 1,
+        freqs: [
+          [121.5, 'LOW/HIGH'],
+          [127.45, 'LOW'],
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(
+    guarded.centers[0].freqs.map((f) => f.mhz),
+    [127.45],
+    '121.5 is never offered as a controller',
   );
   assert.equal(normalizeAtcFrequency(['TWR', 254.25]), null);
   assert.equal(normalizeAtcFrequency(['NOPE', 121.0]), null);
@@ -267,6 +299,25 @@ test('follow target routes approach through the provider TRACON and en-route to 
   );
   assert.equal(abroad.position, 'APP');
   assert.equal(abroad.airport.id, 'KAUS');
+});
+
+test('a Center site answers on the sector for the altitude', () => {
+  const site = {
+    freqs: [
+      { mhz: 124.75, sector: 'LOW' },
+      { mhz: 132.975, sector: 'HIGH' },
+      { mhz: 134.1, sector: 'ULTRA-HIGH' },
+    ],
+  };
+  assert.equal(atcCenterFrequencyFor(site, 9000).mhz, 124.75);
+  assert.equal(atcCenterFrequencyFor(site, 31000).mhz, 132.975);
+  assert.equal(atcCenterFrequencyFor(site, 39000).mhz, 134.1);
+  assert.equal(atcCenterFrequencyFor(site, null).mhz, 124.75);
+  const lowOnly = { freqs: [{ mhz: 127.45, sector: 'LOW' }] };
+  assert.equal(atcCenterFrequencyFor(lowOnly, 37000).mhz, 127.45);
+  const shared = { freqs: [{ mhz: 126.5, sector: 'LOW/HIGH' }] };
+  assert.equal(atcCenterFrequencyFor(shared, 5000).mhz, 126.5);
+  assert.equal(atcCenterFrequencyFor({ freqs: [] }, 5000), null);
 });
 
 test('tracked-contact context text is parsed into numbers', () => {

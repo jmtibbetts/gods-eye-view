@@ -1443,7 +1443,8 @@
 }
 #right-context-rail #global-context-panel:not(.collapsed) #launch-panel,
 #right-context-rail #global-context-panel:not(.collapsed) #sensors-panel,
-#right-context-rail #global-context-panel:not(.collapsed) #imagery-panel {
+#right-context-rail #global-context-panel:not(.collapsed) #imagery-panel,
+#right-context-rail #global-context-panel:not(.collapsed) #inspect-panel {
   flex: 0 0 auto;
 }
 

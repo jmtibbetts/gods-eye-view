@@ -169,6 +169,42 @@ export function atcFrequencyFor(airport, position) {
   return null;
 }
 
+/** Above this a Center works the contact on its high-altitude sector. */
+export const ATC_HIGH_SECTOR_FT = 24_000;
+
+/**
+ * The Center sector frequency for a contact's altitude: LOW below FL240,
+ * HIGH above it, ULTRA-HIGH above FL350 where a site has one; a site's
+ * only frequency otherwise.
+ * @param {{freqs: Array<{mhz:number, sector?:string}>}} center
+ * @param {number|null} altitudeFt
+ * @returns {object|null}
+ */
+export function atcCenterFrequencyFor(center, altitudeFt) {
+  const freqs = center?.freqs || [];
+  if (!freqs.length) return null;
+  const alt = Number(altitudeFt);
+  const band = !Number.isFinite(alt)
+    ? null
+    : alt >= 35_000
+      ? 'ULTRA-HIGH'
+      : alt >= ATC_HIGH_SECTOR_FT
+        ? 'HIGH'
+        : 'LOW';
+  const sectorOf = (f) => String(f.sector || '').toUpperCase();
+  const order =
+    band === 'ULTRA-HIGH'
+      ? ['ULTRA-HIGH', 'HIGH', 'LOW/HIGH', 'LOW']
+      : band === 'HIGH'
+        ? ['HIGH', 'LOW/HIGH', 'ULTRA-HIGH', 'LOW']
+        : ['LOW', 'LOW/HIGH', 'HIGH', 'ULTRA-HIGH'];
+  for (const wanted of order) {
+    const found = freqs.find((f) => sectorOf(f) === wanted);
+    if (found) return found;
+  }
+  return freqs[0];
+}
+
 /**
  * Resolve the follow target for a contact: the airport, phase and frequency.
  * The approach position is taken from the field's approach provider when
@@ -198,7 +234,7 @@ export function atcFollowTarget(contact, directory) {
       ? atcNearestCenter(directory.centers, contact.lat, contact.lon)
       : null;
     if (center) {
-      const frequency = center.freqs[0] || null;
+      const frequency = atcCenterFrequencyFor(center, contact.altitudeFt);
       return { airport, phase, position: 'CTR', frequency, center };
     }
     // No Center data (outside the US): fall back to the nearest approach.

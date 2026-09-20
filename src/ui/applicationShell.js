@@ -23,6 +23,10 @@ import { VesselWatchPanel } from './vesselWatchPanel.js';
 import { ImageryPanel } from './imageryPanel.js';
 import { SensorsPanel } from './sensorsPanel.js';
 import { LaunchPanel } from './launchPanel.js';
+import { InspectPanel } from './inspectPanel.js';
+import { PANEL_FOR_LAYER, PANEL_SECTION_NAMES } from './layerPanel.js';
+import { getSelectedEntityContext } from '../data/contextStore.js';
+import { imagingPlatformFor } from '../layers/satellites/sensors.js';
 import { TimelinePanel } from './timelinePanel.js';
 import { captureSnapshot } from './snapshotExport.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -259,6 +263,7 @@ export class StyleManager extends ShellFacade {
         _imageryPanel: this._imageryPanel,
         _sensorsPanel: this._sensorsPanel,
         _launchPanel: this._launchPanel,
+        _inspectPanel: this._inspectPanel,
       }),
       operations: {
         _updateTrafficSyncChip: (...args) =>
@@ -557,6 +562,7 @@ export class StyleManager extends ShellFacade {
     this._initRadioPanel();
     this._initAudioPanels();
     this._initLaunchPanel();
+    this._initInspectPanel();
     this._initOpenPanelRequests();
     this._initCctvPanel();
     this._initGlobalContextPanel();
@@ -1176,6 +1182,54 @@ export class StyleManager extends ShellFacade {
           return null;
         }
       })(),
+      enableLayer: (layerId) =>
+        this._dataManager?.setEnabled?.(layerId, true, { origin: 'user' }),
+      isLayerEnabled: (layerId) => {
+        try {
+          return this._dataManager?.isEnabled?.(layerId) === true;
+        } catch {
+          return false;
+        }
+      },
+      onToast: (message) => {
+        if (!this._disposed) this._showToast(message);
+      },
+    });
+  }
+
+  /**
+   * INSPECT: the selected thing and the actions the app can take for it,
+   * read from the context store every layer already publishes into. The
+   * panel is told what the services can do and offers only that.
+   */
+  _initInspectPanel() {
+    this._inspectPanel?.destroy();
+    this._inspectPanel = new InspectPanel({
+      elements: {
+        section: this._inspectPanelSection,
+        state: this._inspectState,
+        body: this._inspectBody,
+        empty: this._inspectEmpty,
+      },
+      viewer: this.viewer,
+      getSelected: () =>
+        getSelectedEntityContext({ dataManager: this._dataManager }),
+      atc: () => this.services.atcLayer || null,
+      sdr: () => this.services.sdrLayer || null,
+      scanner: () => this.services.scannerLayer || null,
+      satellites: () => this.services.satellitesLayer || null,
+      tfr: () => this.services.tfrLayer || null,
+      pinWatch: (value) => this._watchlistPanel?.add?.(value) ?? false,
+      isPinned: (value) => this._watchlistPanel?.has?.(value) === true,
+      vesselStatus: (mmsi) => this._vesselWatchPanel?.statusFor?.(mmsi) ?? null,
+      isImagingSatellite: (noradId) => Boolean(imagingPlatformFor(noradId)),
+      panelFor: (layerId) => {
+        const panelId = PANEL_FOR_LAYER[layerId];
+        return panelId
+          ? { panelId, name: PANEL_SECTION_NAMES[panelId] || 'CONTEXT' }
+          : null;
+      },
+      openPanel: (panelId) => this.openContextSection(panelId),
       enableLayer: (layerId) =>
         this._dataManager?.setEnabled?.(layerId, true, { origin: 'user' }),
       isLayerEnabled: (layerId) => {
@@ -1966,6 +2020,7 @@ export class StyleManager extends ShellFacade {
     this._imageryPanel?.destroy();
     this._sensorsPanel?.destroy();
     this._launchPanel?.destroy();
+    this._inspectPanel?.destroy();
     this._openPanelHandler?.();
     this._openPanelHandler = null;
     this._audioDock?.destroy();

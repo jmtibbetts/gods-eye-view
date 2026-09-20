@@ -201,8 +201,12 @@ export function createSelection({
         properties: {
           mmsi: record.mmsi,
           type: record.type,
+          // The AIS code as words ("71" → "CARGO"), for readers that show
+          // the record rather than draw it.
+          typeName: components.cards.vesselTypeShort?.(record) || '',
           speedKt: record.speed,
           course: record.course,
+          heading: record.heading,
           destination: record.destination,
         },
       });

@@ -97,7 +97,8 @@ thing shows its verbs beside itself. One verb has one name everywhere.
 | **WATCH** | video plays in the dock | WATCH · LIVE (kept, as a state of WATCH) |
 | **SHOW** | draw it on the globe (a product, a closure, a footprint) | OPEN, SHOW ON MAP |
 | **GO TO** | move the camera there | FLY TO, FLY TO PAD, FOCUS |
-| **TRACK** | keep the camera on a moving thing | FOLLOW, ON PAD |
+| **TRACK** | keep the camera on a moving thing | ON PAD |
+| **FOLLOW** | retune the radio as a plane moves between Ground, Tower, Approach and Center | FOLLOW PLANE (kept; it is a different act from TRACK) |
 | **PIN** | add to the watchlist | — |
 | **PANEL ›** | open the section that owns the controls | — |
 
@@ -136,7 +137,7 @@ collapse state and every test keep working:
 
 - **INSPECT** — the selected thing: its name, its card lines, and the
   actions the app can do for it right now. A plane offers LISTEN (its
-  controller), TRACK (follow it between Ground, Tower, Approach and Center)
+  controller), FOLLOW (retune between Ground, Tower, Approach and Center)
   and PIN. A satellite offers SENSORS, PIN and — for the ISS — WATCH. A
   receiver, scanner system or airport offers LISTEN. A camera offers WATCH.
   A ship offers PIN and says whether VESSEL WATCH has it. A launch pad
@@ -167,3 +168,24 @@ NOW SHOWING for video — with the source as its subtitle.
    beside the object they belong to.
 
 Each step ships on its own, verified live, with the gates green.
+
+## What shipped
+
+All three. Vocabulary landed first (rows, sections, verbs, status words,
+the dock title), then structure (the filter and the seven groups on the
+left, the verb headings on the right with SENSORS and TIMELINE under
+IMAGERY, PANEL › on the rows that have a section), then INSPECT at the top
+of the Context rail. INSPECT reads the selection the app already keeps and
+offers only what its services report they can do: a plane's LISTEN turns
+Airband on if it is off and plays the controller the card names; FOLLOW is
+the same switch the Airband section has; PIN puts the callsign, MMSI or
+satellite name on the WATCHLIST and reads PINNED once it is there; a ship
+carries its VESSEL WATCH verdict as far as the OFAC table allows; a closure
+links its NOTAM. Two things stayed where they were on purpose. The CAMERAS
+console is its own surface — a selected camera's frame and controls are
+the console, and a second card would duplicate it — and SPACE MISSIONS
+keeps its roster, since a mission is a mode of the rail rather than a
+thing on the globe. One latent bug surfaced on the way: the radio layers
+registered their selection on the field dot they hide when something is
+selected, so the shared selection slot dropped it the moment anything
+read it; they now register the visible marker.

@@ -51,6 +51,8 @@ Jon Tibbetts captured the following PNGs from this fork using `scripts/capture-r
 - `25-layer-combinations.png`
 - `26-imagery-sensors.png`
 - `27-goes-geocolor.png`
+- `28-inspect-aircraft.png`
+- `29-data-layer-groups.png`
 
 These are original captures of this project's own interface and are covered by the repository's MIT License. They are live-data shots: each one shows whatever the feeds were reporting at capture time rather than a staged scene, so a quiet weather day yields a quiet picture and rerunning the script on an active day is the fix.
 

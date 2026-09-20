@@ -110,7 +110,7 @@ export const PANEL_FOR_LAYER = Object.freeze({
   'ais-live-vessels': 'vessel-watch-panel',
 });
 /** What the PANEL › button says it opens. */
-const PANEL_SECTION_NAMES = Object.freeze({
+export const PANEL_SECTION_NAMES = Object.freeze({
   'radio-panel': 'RADIO',
   'scanner-panel': 'SCANNERS',
   'sdr-panel': 'RECEIVERS',

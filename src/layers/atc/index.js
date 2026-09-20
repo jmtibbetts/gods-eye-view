@@ -306,7 +306,13 @@ export function createAtcLayer({
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
     });
-    publishContext(airport, entity);
+    // The selection is published on the visible marker, not the field dot it
+    // replaces: the field dot is hidden while selected, and the context store
+    // drops a selection whose entity is not shown. The dot keeps the id tag
+    // so a scan of visible entities still resolves it to the same record.
+    publishContext(airport, _selectedEntity || entity);
+    if (_selectedEntity?.__gevContextId)
+      entity.__gevContextId = _selectedEntity.__gevContextId;
     publishCard();
     return true;
   }
@@ -751,6 +757,26 @@ export function createAtcLayer({
           ? position
           : _selectedPosition,
       );
+    },
+    /**
+     * Listen to the controller the selected aircraft would be talking to
+     * right now — one press beside the aircraft, without turning FOLLOW on.
+     * Loads the directory on first use.
+     * @returns {Promise<object|null>} The listen target, or null when no
+     *   aircraft is selected or no published VHF frequency applies.
+     */
+    async listenAtcContact() {
+      if (!_loaded) await loadDirectory();
+      const contact = readFollowContact();
+      if (!contact) return null;
+      const target = atcFollowTarget(contact, {
+        airports: _airports,
+        byFaa: _byFaa,
+        centers: _centers,
+      });
+      if (!target?.frequency || (!target.airport && !target.center))
+        return null;
+      return listenTo({ ...target, reason: 'user' });
     },
     /** Stop reporting a listen target (the dock closes through the shell). */
     stopAtc() {

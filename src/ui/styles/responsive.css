@@ -313,6 +313,8 @@
 #right-context-rail #launch-panel,
 #right-context-rail #sensors-panel,
 #right-context-rail #imagery-panel,
+#right-context-rail #inspect-panel,
+#right-context-rail #inspect-panel.collapsed,
 #right-context-rail #sdr-panel.collapsed,
 #right-context-rail #atc-panel.collapsed,
 #right-context-rail #timeline-panel.collapsed,

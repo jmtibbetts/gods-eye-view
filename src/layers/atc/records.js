@@ -25,6 +25,9 @@ const code = (value, max = 12) =>
     .slice(0, max);
 
 /** VHF airband and the nav-band ATIS/AWOS voice channels (MHz). */
+/** The VHF emergency frequency, listed at every Center site. */
+const ATC_GUARD_MHZ = 121.5;
+
 export function isAtcVhfMhz(mhz) {
   return Number.isFinite(mhz) && mhz >= 108 && mhz <= 137;
 }
@@ -101,9 +104,14 @@ function normalizeCenter(row) {
     Math.abs(lon) > 180
   )
     return null;
+  // 121.5 is guard — the emergency frequency every site lists and no
+  // controller works a sector on. A site that carries nothing else is the
+  // facility's own entry, not a place a contact would be talking to.
   const freqs = (Array.isArray(row.freqs) ? row.freqs : [])
     .map((f) =>
-      Array.isArray(f) && isAtcVhfMhz(Number(f[0]))
+      Array.isArray(f) &&
+      isAtcVhfMhz(Number(f[0])) &&
+      Math.abs(Number(f[0]) - ATC_GUARD_MHZ) > 0.0005
         ? {
             position: 'CTR',
             mhz: Math.round(Number(f[0]) * 1000) / 1000,

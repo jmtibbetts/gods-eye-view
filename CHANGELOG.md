@@ -1,5 +1,33 @@
 # Changelog
 
+- INSPECT: the selected thing and every action the app can take for it,
+  in one place at the top of the Context rail. Click a plane and the card
+  shows its controller — "ATC Austin Approach 125.325" — with LISTEN
+  beside it, which turns Airband on if it is off and plays that frequency
+  in the dock; FOLLOW is the same retune-as-it-moves switch the Airband
+  section has, and PIN puts the callsign on the WATCHLIST and reads PINNED
+  once it is there. A satellite offers its SENSORS panel and, for the ISS,
+  WATCH; a ship carries its VESSEL WATCH verdict (OFAC-listed with the
+  program, not on the list, or the list unavailable — never a guess) and
+  pins by MMSI; a receiver, scanner system or airport offers LISTEN; a
+  flight restriction links its NOTAM; anything with a position offers GO
+  TO, except the things the camera is already following. Nothing appears
+  that the app cannot do: each action is offered only when the service
+  behind it is present and says it can act. The section reads the
+  selection the app already keeps, so there is no second notion of
+  "selected", and it refreshes as a tracked aircraft's altitude and
+  controller change. On the way, the Receivers, Scanners and Airband layers
+  stopped registering their selection on the field dot they hide while
+  something is selected — the shared selection slot dropped it the moment
+  anything read it — and register the visible marker instead; the
+  WATCHLIST, VESSEL WATCH and MONITOR rows say GO TO like everything else.
+  And the Center leg of the aircraft follow no longer offers 121.5: guard
+  is listed at every Center site and is nobody's sector, so it is dropped
+  when the directory loads (a site with nothing else is the facility's own
+  entry and is skipped), and the sector frequency is chosen for the
+  contact's altitude — LOW below FL240, HIGH above, ULTRA-HIGH above FL350
+  where a site has one.
+
 - The rails are grouped by what they hold, and each row knows where its
   controls are. DATA LAYERS has a filter box at the top ("planes", "radar",
   "scanners" — it matches names, sources and the meta line, and Escape

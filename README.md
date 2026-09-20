@@ -88,11 +88,13 @@ This is [**jmtibbetts/gods-eye-view**](https://github.com/jmtibbetts/gods-eye-vi
 | Added | What it does |
 | ----- | ------------ |
 | 🚀 **LAUNCH** | The next launches as live countdowns — WATCH opens the operator's webcast in the dock, GO TO PAD puts the camera on the pad with the clock over it, and RADIO names what a radio near the range can actually hear: the range's own trunked system on OpenMHz, the tower and approach frequencies of the airfields under the closure, and the nearby web receivers, with the ones that cannot hear a launch labelled as such |
+| 🔍 **INSPECT** | Click anything — a plane, a ship, a satellite, a receiver, a closure — and one card at the top of the Context rail shows what it is and every action the app can take for it: LISTEN to the plane's controller, FOLLOW it between Ground, Tower, Approach and Center, WATCH the ISS, PIN it, GO TO it, open the section with the deeper controls. Only actions the app can actually perform appear |
 | 🎯 **MONITOR** | Draw a watch circle anywhere and every enabled layer reports what is inside it, flagging new arrivals as they appear |
 | 📌 **WATCHLIST** | Pin an aircraft callsign or ICAO24, or a vessel MMSI or name, and it turns green the moment that contact shows up on any layer |
 | 🚢 **VESSEL WATCH** | Which ships in view are on the OFAC sanctions list — matched by MMSI, never by name — and which tracked ships have stopped transmitting |
 | 🕰️ **TIMELINE** | Scrub daily satellite imagery back through a fortnight of archive, or press PLAY and watch it run forward |
 | 🧩 **Layer combinations** | One press stacks the layers that only work together, like radar under live flights |
+| 🧭 **Two rails, one vocabulary** | The left rail is what is on the globe — forty-three layers in seven groups (Sky & space, Sea, Ground, Events, Weather, Imagery, Listen) with a filter box — and the right rail is what you can do with it: INSPECT, LISTEN, WATCH, IMAGERY, ALERTS. A row whose controls live in a section says so with PANEL ›, and one verb means one thing everywhere: LISTEN plays sound, WATCH plays video, SHOW draws on the globe, GO TO moves the camera, PIN adds to the watchlist. The reasoning is in [docs/UX-REVIEW.md](docs/UX-REVIEW.md) |
 | 📸 **Snapshot** | One click saves the current view as a captioned PNG stamped with coordinates and UTC time |
 
 ![Live flights over the continental United States with weather radar beneath them and active NWS warning polygons](docs/media/20-storm-and-air.png)
@@ -146,6 +148,14 @@ Start with the included data sources, then add your own. Each layer is a separat
 - **📸 Snapshot:** One click saves the current view — globe, overlay labels and all — as a captioned PNG stamped with coordinates and UTC time.
 - **🔗 Share Links:** Camera, style, layers, and even one tracked target serialize into a URL — a live target is a handoff, not a bookmark.
 - **🏠 Reset Globe:** One control — or one sentence — back to the full Earth.
+
+![The INSPECT card showing a tracked business jet at FL490 with its Center frequency and LISTEN, FOLLOW and PIN buttons](docs/media/28-inspect-aircraft.png)
+
+_INSPECT sits at the top of the Context rail and shows whatever is selected, with the actions the app can actually take for it. A tracked aircraft names the controller it would be talking to right now — here a Center sector at FL490 — and **LISTEN** plays that frequency, **FOLLOW** retunes as it crosses into the next one, **PIN** puts it on the WATCHLIST._
+
+![The DATA LAYERS panel with its filter box, the COMBINATIONS row and the SKY & SPACE group, the satellites row carrying a SENSORS PANEL link](docs/media/29-data-layer-groups.png)
+
+_The left rail is what is on the globe: a filter box, the one-press combinations, then the layers grouped by the part of the world they draw. A row whose controls live in the Context rail says so — **SENSORS PANEL ›** opens the rail, expands that section and scrolls to it._
 
 ![The DATA LAYERS panel showing a COMBINATIONS row with STORM + AIR, SEVERE WX and SEA + WX above the movement layers](docs/media/25-layer-combinations.png)
 

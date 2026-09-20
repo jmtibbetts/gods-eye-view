@@ -1253,6 +1253,7 @@ body.ui-clean-view #timeline-panel,
 body.ui-clean-view #launch-panel,
 body.ui-clean-view #sensors-panel,
 body.ui-clean-view #imagery-panel,
+body.ui-clean-view #inspect-panel,
 body.ui-clean-view #global-context-panel,
 body.ui-clean-view #scene-panel {
   opacity: 0 !important;

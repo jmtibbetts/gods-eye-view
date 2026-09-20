@@ -123,6 +123,7 @@ body.recording-mode #timeline-panel,
 body.recording-mode #launch-panel,
 body.recording-mode #sensors-panel,
 body.recording-mode #imagery-panel,
+body.recording-mode #inspect-panel,
 body.recording-mode #global-context-panel,
 body.recording-mode #gev-voice-control,
 body.recording-mode #scene-panel {

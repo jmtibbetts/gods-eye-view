@@ -128,6 +128,23 @@ export class VesselWatchPanel {
     this.render();
   }
 
+  /**
+   * What this panel knows about one ship, for INSPECT to show beside it.
+   * @param {string|number} mmsi
+   * @returns {{listed: object|null, tableLoaded: boolean, tableError: string|null, darkText: string}|null}
+   */
+  statusFor(mmsi) {
+    const key = String(mmsi ?? '').trim();
+    if (!key) return null;
+    const dark = this._dark.find((track) => String(track.mmsi) === key);
+    return {
+      listed: this._sanctions.get(key) || null,
+      tableLoaded: this._sanctions.size > 0,
+      tableError: this._sanctionsError,
+      darkText: dark ? silenceText(dark.silentMs) : '',
+    };
+  }
+
   render() {
     if (this.destroyed) return;
     const e = this.elements;
@@ -191,7 +208,7 @@ export class VesselWatchPanel {
       </div>
       <div class="vessel-watch-meta"></div>
       <div class="vessel-watch-actions">
-        <button type="button" data-act="fly">FLY TO</button>
+        <button type="button" data-act="fly">GO TO</button>
       </div>`;
     setText(li.querySelector('strong'), title);
     setText(li.querySelector('.vessel-watch-state'), state);

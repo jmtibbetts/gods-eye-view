@@ -612,6 +612,8 @@
       "src/ui/imageryPanel.js",
       "src/ui/sensorsPanel.js",
       "src/ui/launchPanel.js",
+      "src/ui/inspectPanel.js",
+      "src/data/contextStore.js",
       "src/data/launchWatch.js",
       "src/layers/satellites/sensors.js",
       "src/ui/timelineEngine.js"
@@ -2001,6 +2003,7 @@
       "src/ui/imageryPanel.js",
       "src/ui/sensorsPanel.js",
       "src/ui/launchPanel.js",
+      "src/ui/inspectPanel.js",
       "src/data/launchWatch.js",
       "src/ui/timelineEngine.js",
       "src/data/feedNumbers.js",

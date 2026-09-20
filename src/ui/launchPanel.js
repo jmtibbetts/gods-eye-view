@@ -19,7 +19,7 @@ import {
  *
  * WATCH opens the operator's webcast: framed in the receiver dock when the
  * publisher allows it (YouTube), otherwise on the publisher's own page.
- * FLY TO PAD puts the camera on the pad with a clock over it, so the
+ * GO TO PAD puts the camera on the pad with a clock over it, so the
  * countdown, the pad and the stream are on screen together. LISTEN lists
  * what a radio near the range can actually hear — the range's own trunked
  * system where one is on OpenMHz, the tower and approach frequencies of the
@@ -75,7 +75,7 @@ export class LaunchPanel {
    * @param {object} options
    * @param {object} options.elements `{ state, body, note }`.
    * @param {(url: string, init?: object) => Promise<Response>} [options.fetchImpl]
-   * @param {object|null} [options.viewer] The Cesium viewer, for FLY TO PAD and the pad clock.
+   * @param {object|null} [options.viewer] The Cesium viewer, for GO TO PAD and the pad clock.
    * @param {(url: string, meta: object) => void} options.openInDock The receiver dock hand-off.
    * @param {(url: string) => void} [options.openTab] Open a page in its own tab.
    * @param {() => object|null} [options.scanner] The scanner layer when registered.

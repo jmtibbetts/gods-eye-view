@@ -134,6 +134,14 @@ export class WatchlistPanel {
     return 'added';
   }
 
+  /** Is this identifier already pinned? */
+  has(raw) {
+    const value = watchEntryLabel(raw);
+    return (
+      Boolean(value) && this._entries.some((entry) => entry.value === value)
+    );
+  }
+
   removeEntry(id) {
     this._entries = this._entries.filter((entry) => entry.id !== id);
     this._hits.delete(id);
@@ -221,7 +229,7 @@ export class WatchlistPanel {
         </div>
         <div class="watchlist-entry-meta"></div>
         <div class="watchlist-entry-actions">
-          <button type="button" data-act="fly">FLY TO</button>
+          <button type="button" data-act="fly">GO TO</button>
           <button type="button" data-act="remove">REMOVE</button>
         </div>`;
       setText(li.querySelector('strong'), entry.value);

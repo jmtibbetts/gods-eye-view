@@ -80,7 +80,13 @@ const SHOTS = [
     panels: ['global-context-panel', 'timeline-panel'],
     settle: 18_000,
     clip: '#right-context-rail',
-    hideSections: ['radio-panel', 'scanner-panel', 'sdr-panel', 'atc-panel'],
+    hideSections: [
+      'inspect-panel',
+      'radio-panel',
+      'scanner-panel',
+      'sdr-panel',
+      'atc-panel',
+    ],
   },
   {
     name: '26-imagery-sensors',
@@ -97,6 +103,7 @@ const SHOTS = [
     clip: '#imagery-panel',
     clipWithin: '#right-context-rail',
     hideSections: [
+      'inspect-panel',
       'radio-panel',
       'scanner-panel',
       'sdr-panel',
@@ -120,6 +127,7 @@ const SHOTS = [
     // The rail does not scroll to an expanded panel, so the sections above
     // IMAGERY are hidden to lift it into frame. Each has its own capture.
     hideSections: [
+      'inspect-panel',
       'radio-panel',
       'scanner-panel',
       'sdr-panel',
@@ -138,6 +146,30 @@ const SHOTS = [
     view: { lon: -98, lat: 39, height: 7_000_000 },
     panels: ['data-panel'],
     settle: 6_000,
+    clip: '#data-panel',
+  },
+  {
+    name: '28-inspect-aircraft',
+    caption:
+      'INSPECT: a tracked aircraft with its controller frequency and LISTEN, FOLLOW and PIN beside it',
+    layers: ['flights'],
+    view: { lon: -97.7, lat: 30.2, height: 250_000 },
+    panels: ['global-context-panel', 'inspect-panel'],
+    // The highest airborne contact in view: at cruise the controller is a
+    // Center sector, which is the case that used to be three panels away.
+    trackHighest: 'flights',
+    settle: 14_000,
+    clip: '[data-context-group="inspect"]',
+    clipWithin: '#right-context-rail',
+  },
+  {
+    name: '29-data-layer-groups',
+    caption:
+      'DATA LAYERS grouped by the part of the world a row draws, with the filter box and PANEL › links',
+    layers: ['flights', 'satellites'],
+    view: { lon: -98, lat: 39, height: 7_000_000 },
+    panels: ['data-panel'],
+    settle: 8_000,
     clip: '#data-panel',
   },
 ];
@@ -277,6 +309,27 @@ try {
     }, shot.hideSections || []);
 
     await new Promise((r) => setTimeout(r, shot.settle));
+
+    // Track the highest airborne contact of a layer so the shot shows a
+    // selection rather than an empty INSPECT card. Whatever is overhead the
+    // day this runs is what the picture shows.
+    if (shot.trackHighest) {
+      const tracked = await page.evaluate((layerId) => {
+        const gev = window.__godsEyeView;
+        const module = gev.dataManager.layers.get(layerId)?.module;
+        const records = module?.getAnalystRecords?.(2000) || [];
+        const airborne = records
+          .filter((r) => Number.isFinite(r.lat) && !r.onGround)
+          .sort((a, b) => (b.altitudeM || 0) - (a.altitudeM || 0));
+        const pick = airborne[0];
+        if (!pick) return null;
+        return module.trackById?.(pick.icao24 || pick.id)
+          ? pick.callsign
+          : null;
+      }, shot.trackHighest);
+      if (!tracked) console.warn(`no airborne ${shot.trackHighest} to track`);
+      await new Promise((r) => setTimeout(r, 5_000));
+    }
 
     const path = `${outDir}${shot.name}.png`;
     if (shot.clip) {

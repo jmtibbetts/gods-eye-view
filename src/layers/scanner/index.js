@@ -327,7 +327,13 @@ export function createScannerLayer({
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
     });
-    publishContext(system, entity);
+    // The selection is published on the visible marker, not the field dot it
+    // replaces: the field dot is hidden while selected, and the context store
+    // drops a selection whose entity is not shown. The dot keeps the id tag
+    // so a scan of visible entities still resolves it to the same record.
+    publishContext(system, _selectedEntity || entity);
+    if (_selectedEntity?.__gevContextId)
+      entity.__gevContextId = _selectedEntity.__gevContextId;
     startSession(system);
     publishCard();
     return true;

@@ -263,7 +263,7 @@ export class MonitorPanel {
         </div>
         <div class="monitor-box-meta"></div>
         <div class="monitor-box-actions">
-          <button type="button" data-act="fly">FLY TO</button>
+          <button type="button" data-act="fly">GO TO</button>
           <button type="button" data-act="remove">REMOVE</button>
         </div>`;
       setText(li.querySelector('strong'), box.name);

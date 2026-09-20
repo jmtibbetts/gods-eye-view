@@ -413,8 +413,31 @@ presentation work stop during disposal; layer restoration retains its existing
 compensation and latest-intent rules. Clear Selected Layers shares this owner,
 so an older restore cannot replay over a newer Clear action.
 
+INSPECT (`#inspect-panel`, `src/ui/inspectPanel.js`) is the first section
+of the rail. It renders `getSelectedEntityContext({ dataManager })` — the
+same slot voice and the Cockpit read — on `gev:entity-selected`,
+`gev:entity-selection-cleared`, `gev:awareness-subject-selected` and
+`gev:awareness-subject-cleared`, each deferred one tick because the tracking
+layers publish their event before they write the record, plus a 1.5 s poll
+for live values (a tracked aircraft's altitude and controller). Card lines
+come from the layer's `gevLabelModel` when it drew one (the viewer's tracked
+entity for flights, military and satellites), from a per-layer reader for
+the radio and vessel layers, and from flat properties otherwise. Actions
+come from `inspectActions(record, capabilities)`, a pure registry keyed by
+layer: an action is offered only when the shell reports the service behind
+it (`atc.listenAtcContact`, `sdr.openSelectedSdrReceiver`,
+`scanner.selectScannerSystem`, `satellites.openIssStream`, the WATCHLIST's
+`add`/`has`, VESSEL WATCH's `statusFor`, `PANEL_FOR_LAYER`). LISTEN and
+FOLLOW on an aircraft enable the `atc` layer first; GO TO is withheld for
+tracked layers because the camera is already on them. Re-renders are
+skipped when the card's signature is unchanged. The Receivers, Scanners and
+Airband layers register their selection on the visible marker entity (the
+field dot is hidden while selected, and `isContextRecordActive` treats a
+hidden entity as gone) and copy the context id onto the field dot so
+visible-entity scans still resolve it.
+
 The Context rail's sections are wrapped in verb groups in `context.html`
-(`.context-group[data-context-group]`: `listen` holds Radio, Scanners,
+(`.context-group[data-context-group]`: `inspect` holds Selected; `listen` holds Radio, Scanners,
 Receivers and Airband; `watch` holds Launch; `imagery` holds Imagery with
 Sensors and Timeline as `.context-subsection` children; `alerts` holds
 Monitor, Watchlist and Vessel Watch). The wrappers are presentation only:
