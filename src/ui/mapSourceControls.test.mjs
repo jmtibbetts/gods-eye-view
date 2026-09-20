@@ -168,7 +168,49 @@ test('provider-driven fallback updates the active chip and durable state notific
   assert.equal(f.chip('osm').getAttribute('aria-pressed'), 'true');
   assert.equal(f.statusElement.textContent, 'OSM');
   assert.equal(f.statusElement.classList.contains('warn'), true);
-  assert.deepEqual(f.calls, [['state'], ['state']]);
+  assert.deepEqual(f.calls, [
+    ['state'],
+    ['error', 'Source unavailable; using OSM'],
+    ['state'],
+  ]);
+  f.controls.destroy();
+});
+
+test('a map change nobody asked for says why it happened', () => {
+  const f = fixture();
+  f.change('osm', 'Google 3D stopped loading its tiles; using the globe');
+  f.emit();
+  assert.deepEqual(
+    f.calls.filter((call) => call[0] === 'error'),
+    [['error', 'Google 3D stopped loading its tiles; using the globe']],
+    'the fallback is announced, not only painted',
+  );
+  f.emit();
+  f.emit();
+  assert.equal(
+    f.calls.filter((call) => call[0] === 'error').length,
+    1,
+    'repainting the same state does not repeat the announcement',
+  );
+  f.controls.destroy();
+});
+
+test('a failure that returns after a clean switch is announced again', () => {
+  const f = fixture();
+  f.change('osm', 'Esri Satellite tile requests failed; using OSM');
+  f.emit();
+  f.change('esri-imagery');
+  f.emit();
+  f.change('osm', 'Esri Satellite tile requests failed; using OSM');
+  f.emit();
+  assert.deepEqual(
+    f.calls.filter((call) => call[0] === 'error'),
+    [
+      ['error', 'Esri Satellite tile requests failed; using OSM'],
+      ['error', 'Esri Satellite tile requests failed; using OSM'],
+    ],
+    'a second failure is a second thing to know about',
+  );
   f.controls.destroy();
 });
 

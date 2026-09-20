@@ -15,7 +15,22 @@ export function createMapSourceControls({
 }) {
   let destroyed = false;
   let generation = 0;
+  let reportedError = null;
   const removers = [];
+  // The controller can change the map without being asked: a surface whose
+  // tiles stop arriving falls back so the planet does not vanish. That has to
+  // say so, or the basemap silently becomes a different one. Every state we
+  // observe reports its error once; the controller clears the error at the
+  // start of each switch, so the same message recurring is announced again.
+  const reportError = (message) => {
+    if (!message) {
+      reportedError = null;
+      return;
+    }
+    if (message === reportedError) return;
+    reportedError = message;
+    onError(message);
+  };
   const bind = (element, type, listener) => {
     element.addEventListener(type, listener);
     removers.push(() => element.removeEventListener(type, listener));
@@ -44,14 +59,14 @@ export function createMapSourceControls({
     } catch (error) {
       if (!destroyed && current === generation) {
         render(controller.getState());
-        onError(error?.message || String(error));
+        reportError(error?.message || String(error));
       }
       throw error;
     }
     if (destroyed || current !== generation) return state;
-    render(controller.getState());
-    if (state?.activeId === before && stackId !== before && state?.lastError)
-      onError(state.lastError);
+    const settled = controller.getState();
+    render(settled);
+    reportError(settled.lastError);
     if (syncShare) onStateChanged();
     return state;
   }
@@ -65,11 +80,15 @@ export function createMapSourceControls({
       },
       bind,
     });
-    render(controller.getState());
+    const state = controller.getState();
+    render(state);
+    reportError(state.lastError);
   }
   const unsubscribe = subscribe(() => {
     if (destroyed) return;
-    render(controller.getState());
+    const state = controller.getState();
+    render(state);
+    reportError(state.lastError);
     onStateChanged();
   });
   refresh();
