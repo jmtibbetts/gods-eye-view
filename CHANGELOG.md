@@ -1,5 +1,29 @@
 # Changelog
 
+- The marine bands are a catalog now, and the panel buttons come out of it.
+  There were two marine frequencies in the app: one preset on Channel 16 and,
+  since the ship LISTEN action, a short fallback ladder. They were written
+  twice and could drift.
+
+  One catalog holds all ten: Channel 16, the MF calling frequency at
+  2182 kHz, all five HF radiotelephony distress and calling frequencies
+  (4125, 6215, 8291, 12290, 16420 kHz), NAVTEX on 518 kHz, and the two DSC
+  channels every GMDSS station guards. Each one carries what it is for, how
+  far it reaches, and whether it is voice or data. The ship's ladder and the
+  Receivers panel's buttons are both derived from it, so a frequency can no
+  longer be right in one place and wrong in the other.
+
+  Only voice bands are in the ladder. A LISTEN that opens a data carrier and
+  plays warbling is not listening to a ship, and the tests enforce it.
+
+  The panel gets MARINE VHF, MARINE HF and NAVTEX rather than all ten,
+  because the preset row is the beginner set and ten marine entries would
+  bury the rest of it. NAVTEX says what it is: navigational warnings
+  broadcast around the clock, as FSK data — you will hear the carrier, and
+  reading the message needs a decoder this app does not have. 2182 kHz says
+  that the US Coast Guard stopped guarding it in 2013, because a calling
+  frequency nobody answers is worth knowing about before you sit on it.
+
 - Click a ship and hear it. A selected vessel now offers LISTEN, and the
   receiver it opens is chosen by what can actually hear that ship rather than
   by what is nearest.

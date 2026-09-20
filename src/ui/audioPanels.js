@@ -19,6 +19,8 @@ import { cameraPoseSignature } from '../data/iconOrientation.js';
  * flights, panel disclosure).
  */
 
+import { marinePresets } from '../layers/sdr/marine.js';
+
 const LIST_REFRESH_MS = 1500;
 
 /**
@@ -175,13 +177,14 @@ export const SDR_PRESETS = Object.freeze({
     hint: 'Pilots talking to control towers. AM voice, busiest near big airports in daytime. LISTEN picks the nearest tower frequency.',
     airband: true,
   }),
-  marine: Object.freeze({
-    label: 'Marine',
-    freqHz: 156_800_000,
-    mode: 'nbfm',
-    band: [156_000_000, 162_500_000],
-    hint: 'Channel 16: ships, harbors and the coast guard calling each other. Needs a receiver near the water.',
-  }),
+  // The marine entries come from the band catalog the ship's own LISTEN
+  // action uses, so a button here and the ladder there cannot drift apart.
+  ...Object.fromEntries(
+    Object.entries(marinePresets()).map(([id, preset]) => [
+      id,
+      Object.freeze(preset),
+    ]),
+  ),
   ham2m: Object.freeze({
     label: 'Ham 2 m',
     freqHz: 146_520_000,
