@@ -970,7 +970,9 @@ export class SdrPanel {
         enabled
           ? s?.selected
             ? 'SELECTED'
-            : `${s?.receivers ?? 0} RX`
+            : // "RX" is the operator's shorthand for a receiver, and this
+              // section is for people who have never used one.
+              `${s?.receivers ?? 0} RECEIVERS`
           : lifecycle === 'enabling'
             ? 'SYNC'
             : 'OFF',

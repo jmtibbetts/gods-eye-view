@@ -92,6 +92,53 @@ function bandText(lowHz, highHz) {
     : `${number(low, lowUnit)} ${lowUnit}–${number(high, highUnit)} ${highUnit}`;
 }
 
+/** Values that are plainly an ISO-8601 instant, not prose that starts with digits. */
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/;
+const MONTHS = Object.freeze([
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
+]);
+
+/**
+ * An instant a person can read: the UTC stamp the rest of the app speaks in,
+ * plus how far off it is while that is the useful part. A raw
+ * "2026-09-20T06:15:00-04:00" is what the feed said, not what the reader
+ * asked; an alert's value is almost always "how long have I got".
+ *
+ * @param {string} value An ISO-8601 instant.
+ * @param {number} [now]
+ * @returns {string} The readable form, or '' when it does not parse.
+ */
+export function instantText(value, now = Date.now()) {
+  const ms = Date.parse(String(value));
+  if (!Number.isFinite(ms)) return '';
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, '0');
+  const sameYear = d.getUTCFullYear() === new Date(now).getUTCFullYear();
+  const stamp = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${sameYear ? '' : ' ' + d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}Z`;
+  const deltaMs = ms - now;
+  const away = Math.abs(deltaMs);
+  if (away > 7 * 86_400_000) return stamp;
+  const minutes = Math.round(away / 60_000);
+  const span =
+    minutes < 60
+      ? `${minutes} min`
+      : minutes < 1440
+        ? `${Math.floor(minutes / 60)} h ${minutes % 60 ? (minutes % 60) + ' min' : ''}`.trim()
+        : `${Math.round(minutes / 1440)} d`;
+  return `${stamp} · ${deltaMs >= 0 ? `in ${span}` : `${span} ago`}`;
+}
+
 /**
  * Layers whose flat properties read better as a sentence than as a list.
  * Everything else falls through to "KEY value" lines.
@@ -208,8 +255,11 @@ export function inspectLines(
       if (SKIP_PROPERTY_KEYS.has(key)) continue;
       if (value === null || value === undefined) continue;
       if (typeof value === 'object') continue;
-      const text = String(value).trim();
-      if (!text || /^https?:\/\//i.test(text)) continue;
+      const raw = String(value).trim();
+      if (!raw || /^https?:\/\//i.test(raw)) continue;
+      // A property that only repeats the title is not a second fact.
+      if (raw.toLowerCase() === title.toLowerCase()) continue;
+      const text = ISO_INSTANT.test(raw) ? instantText(raw) || raw : raw;
       lines.push(`${propertyLabel(key)} ${text}`);
     }
   }

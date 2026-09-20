@@ -1,5 +1,17 @@
 # Changelog
 
+- A card states a time as a time. Most of the forty-three layers describe a
+  selection as flat key/value pairs, which INSPECT renders as they come —
+  so a flood advisory read "EXPIRES 2026-09-20T06:15:00-04:00", which is
+  what the feed said rather than what the reader asked. An ISO instant in
+  any layer's properties now reads "20 SEP 10:15Z · in 6 h 15 min", in the
+  UTC the rest of the app speaks, with the offset while that is the useful
+  part and dropped once it is not. A property that only repeats the card's
+  own title is dropped too: a Flood Advisory titled FLOOD ADVISORY does not
+  need a line saying EVENT Flood Advisory. And the Receivers chip counts
+  "1317 RECEIVERS" rather than "1317 RX" — RX is what an operator calls a
+  receiver, and this section is for people who have never used one.
+
 - The dock finishes saying what it is. Its chip learned NOW PLAYING and NOW
   SHOWING in the first vocabulary pass, but every control around it still
   called whatever was inside "the receiver" — so a SpaceX webcast offered

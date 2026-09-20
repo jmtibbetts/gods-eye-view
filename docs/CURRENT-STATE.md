@@ -438,7 +438,10 @@ layers publish their event before they write the record, plus a 1.5 s poll
 for live values (a tracked aircraft's altitude and controller). Card lines
 come from the layer's `gevLabelModel` when it drew one (the viewer's tracked
 entity for flights, military and satellites), from a per-layer reader for
-the radio and vessel layers, and from flat properties otherwise. Actions
+the radio, camera and vessel layers, and from flat properties otherwise. The
+flat path renders an ISO-8601 value through `instantText` (UTC stamp plus
+the offset while it is within a week) and drops a property whose value only
+repeats the card's title. Actions
 come from `inspectActions(record, capabilities)`, a pure registry keyed by
 layer: an action is offered only when the shell reports the service behind
 it (`atc.listenAtcContact`, `sdr.openSelectedSdrReceiver`,

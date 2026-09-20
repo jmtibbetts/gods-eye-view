@@ -5,6 +5,7 @@ import {
   inspectActions,
   inspectKicker,
   inspectLines,
+  instantText,
   pinValueFor,
   vesselStatusText,
 } from './inspectPanel.js';
@@ -223,6 +224,57 @@ test('a camera offers WATCH, which opens the console that holds its frame', () =
       properties: { camera: 'x', place: 'Denver, CO', feed: 'jpeg' },
     }).lines,
     ['Denver, CO', 'STILL FRAMES'],
+  );
+});
+
+test('an instant is read as a time, with how far off it is while that matters', () => {
+  const now = Date.parse('2026-09-20T04:00:00Z');
+  assert.equal(
+    instantText('2026-09-20T06:15:00-04:00', now),
+    '20 SEP 10:15Z · in 6 h 15 min',
+  );
+  assert.equal(
+    instantText('2026-09-20T04:30:00Z', now),
+    '20 SEP 04:30Z · in 30 min',
+  );
+  assert.equal(
+    instantText('2026-09-19T22:00:00Z', now),
+    '19 SEP 22:00Z · 6 h ago',
+  );
+  // Far enough away that the offset stops being the useful part.
+  assert.equal(instantText('2026-10-30T10:00:00Z', now), '30 OCT 10:00Z');
+  // Another year is named, so a stamp is never ambiguous.
+  assert.equal(instantText('2025-01-02T03:04:00Z', now), '2 JAN 2025 03:04Z');
+  assert.equal(instantText('not a date', now), '');
+  assert.equal(instantText('', now), '');
+});
+
+test('a generic card reads its times, and never repeats its own title', () => {
+  const { title, lines } = inspectLines({
+    layerId: 'weather-alerts',
+    label: 'FLOOD ADVISORY',
+    properties: {
+      event: 'Flood Advisory',
+      severity: 'Minor',
+      area: 'Pickaway, OH; Ross, OH',
+      expires: '2026-09-20T06:15:00-04:00',
+      // Not a date, even though it starts with digits.
+      time: '1800',
+    },
+  });
+  assert.equal(title, 'FLOOD ADVISORY');
+  assert.ok(
+    !lines.some((line) => /^EVENT/.test(line)),
+    'the event repeats the title, so it is not a second fact',
+  );
+  assert.ok(lines.includes('SEVERITY Minor'));
+  assert.ok(lines.includes('TIME 1800'), 'a bare number is left alone');
+  const expires = lines.find((line) => line.startsWith('EXPIRES'));
+  assert.match(expires, /^EXPIRES 20 SEP 10:15Z/);
+  assert.doesNotMatch(
+    expires,
+    /T06:15/,
+    'the feed spelling does not reach the card',
   );
 });
 
