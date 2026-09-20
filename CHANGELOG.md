@@ -1,5 +1,28 @@
 # Changelog
 
+- The planet stopped disappearing. Google's 3D tiles are served against a
+  session token the tileset picks up with its first root request, and
+  Google expires it after a while; nothing renewed it, so every content
+  request began answering 400, Cesium marked each tile failed and stopped
+  asking, and the surface drew nothing at all. Because the Google stack
+  hides the globe underneath it, "nothing" was empty space where the Earth
+  had been — with the satellites behind it still drawn, since there was no
+  longer anything to hide them. The stray dots drifting across the view
+  were the far side of the constellation showing through a hole the size
+  of a planet. The stack now watches its own tiles and, after three
+  failures, fetches a fresh root — a new session — and swaps the live
+  surface for it. That happens once per activation: a surface that fails
+  again after being renewed is not a stale session but one that cannot
+  draw, so the map falls back to the globe rather than renewing forever.
+
+- A map that changes itself says so. A fallback was announced only when
+  the switch answered a click, so a source that failed on its own moved
+  the basemap under the viewer with nothing but an amber MAP label to show
+  for it. The tray now reports each state's error once, whoever caused it,
+  so losing Google 3D reads "Google 3D stopped loading its tiles; using
+  the globe" instead of Bing quietly appearing. A renewal that works stays
+  quiet; only a real loss speaks.
+
 - A selected thing is credited to its source once. The INSPECT card paired
   the layer's own name with the source under a header that already names
   the kind, so a web receiver read RECEIVER · SDR Receivers · Web SDR

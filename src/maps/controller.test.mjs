@@ -42,9 +42,15 @@ function fixture(registry, options = {}) {
         add(value) {
           primitives.push(value);
         },
+        // Cesium answers false for a primitive it does not hold, and removes
+        // nothing. A splice at index -1 takes the LAST one instead, which
+        // made this double happily destroy a primitive it was not asked about.
         remove(value) {
-          primitives.splice(primitives.indexOf(value), 1);
+          const at = primitives.indexOf(value);
+          if (at < 0) return false;
+          primitives.splice(at, 1);
           value.destroy?.();
+          return true;
         },
       },
     },
@@ -478,5 +484,117 @@ test('a listener that switches again from inside ready sees a settled state, and
   assert.equal(env.controller.getState().status, 'ready');
   assert.equal(seen.at(-1), 'second:ready');
   assert.notEqual(outer.status, 'error');
+  env.controller.destroy();
+});
+
+test('a 3D surface whose tiles stop loading is renewed, and only then given up', async () => {
+  // Google's photorealistic tiles carry a session token that expires. Every
+  // content request then answers 400, Cesium marks each tile failed and stops
+  // retrying, and because the globe is hidden under the tileset the result is
+  // not a coarser map — it is empty space where the planet was.
+  const dead = { show: true, tileFailed: event() };
+  const fresh = { show: true, tileFailed: event() };
+  let renewals = 0;
+  const registry = createDefaultMapSources({
+    googleTileset: dead,
+    renewGoogleTileset: async () => {
+      renewals += 1;
+      return fresh;
+    },
+  });
+  for (const source of registry.sources) {
+    if (!source.imagery) continue;
+    source.imagery = async () => ({
+      id: source.descriptor.id,
+      errorEvent: event(),
+    });
+    source.terrain = null;
+  }
+  const env = fixture(registry);
+  // The application adds the caller-owned tileset to the scene itself.
+  env.viewer.scene.primitives.add(dead);
+  await env.controller.setStack('photoreal');
+  assert.equal(env.viewer.scene.globe.show, false);
+
+  // One failure is a tile, not an outage.
+  dead.tileFailed.raise();
+  await settle();
+  assert.equal(renewals, 0, 'a single failure does not rebuild the surface');
+
+  dead.tileFailed.raise();
+  dead.tileFailed.raise();
+  await settle();
+  assert.equal(renewals, 1, 'a run of failures renews the session');
+  assert.equal(env.controller.getActiveId(), 'photoreal');
+  assert.ok(env.primitives.includes(fresh), 'the fresh surface is added');
+  assert.ok(!env.primitives.includes(dead), 'the dead one is taken away');
+  assert.equal(fresh.show, true);
+
+  // The renewal is watched in its turn, and a second collapse gives up
+  // rather than renewing forever.
+  fresh.tileFailed.raise();
+  fresh.tileFailed.raise();
+  fresh.tileFailed.raise();
+  await settle();
+  assert.equal(renewals, 1, 'the surface is not renewed a second time');
+  assert.equal(env.controller.getActiveId(), 'esri-imagery');
+  assert.equal(env.viewer.scene.globe.show, true, 'the planet comes back');
+  assert.equal(
+    env.controller.getState().lastError,
+    'Google 3D stopped loading its tiles; using the globe',
+  );
+  env.controller.destroy();
+});
+
+test('a 3D surface with no way to renew falls back rather than staying blank', async () => {
+  const dead = { show: true, tileFailed: event() };
+  const registry = createDefaultMapSources({ googleTileset: dead });
+  for (const source of registry.sources) {
+    if (!source.imagery) continue;
+    source.imagery = async () => ({
+      id: source.descriptor.id,
+      errorEvent: event(),
+    });
+    source.terrain = null;
+  }
+  const env = fixture(registry);
+  await env.controller.setStack('photoreal');
+  dead.tileFailed.raise();
+  dead.tileFailed.raise();
+  dead.tileFailed.raise();
+  await settle();
+  assert.equal(env.controller.getActiveId(), 'esri-imagery');
+  assert.equal(env.viewer.scene.globe.show, true);
+  env.controller.destroy();
+});
+
+test('leaving the 3D surface stops watching it, so a late failure cannot move the map', async () => {
+  const dead = { show: true, tileFailed: event() };
+  let renewals = 0;
+  const registry = createDefaultMapSources({
+    googleTileset: dead,
+    renewGoogleTileset: async () => {
+      renewals += 1;
+      return { show: true, tileFailed: event() };
+    },
+  });
+  for (const source of registry.sources) {
+    if (!source.imagery) continue;
+    source.imagery = async () => ({
+      id: source.descriptor.id,
+      errorEvent: event(),
+    });
+    source.terrain = null;
+  }
+  const env = fixture(registry);
+  await env.controller.setStack('photoreal');
+  await env.controller.setStack('osm');
+  assert.equal(dead.tileFailed.size, 0, 'the watcher is released');
+  dead.tileFailed.raise();
+  dead.tileFailed.raise();
+  dead.tileFailed.raise();
+  await settle();
+  assert.equal(renewals, 0);
+  assert.equal(env.controller.getActiveId(), 'osm');
   env.controller.destroy();
 });

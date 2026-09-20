@@ -14,6 +14,7 @@ export function createDefaultMapSources({
   googleTileset = null,
   cesiumToken = '',
   googleApiKey = '',
+  renewGoogleTileset = null,
 } = {}) {
   const ionToken = String(cesiumToken || '').trim();
   const hasIon = Boolean(ionToken);
@@ -43,6 +44,18 @@ export function createDefaultMapSources({
           available: Boolean(googleTileset),
           unavailableReason: photorealUnavailableReason(hasIon || hasGoogle),
           tileset: googleTileset,
+          // Google's 3D tiles carry a session token that expires. When it
+          // does, every content request answers 400 and the surface goes
+          // blank — and the globe is hidden underneath it, so "blank" means
+          // empty space where the planet was. Renewing fetches a fresh root
+          // and a fresh session; the fallback is for when even that cannot
+          // draw, because a map that is gone is worse than a plainer one.
+          ...(renewGoogleTileset ? { renewTileset: renewGoogleTileset } : {}),
+          tileFailureFallback: {
+            id: hasIon ? 'bing-aerial' : 'esri-imagery',
+            threshold: 3,
+            message: 'Google 3D stopped loading its tiles; using the globe',
+          },
         };
       const imagery =
         descriptor.kind === 'ion'

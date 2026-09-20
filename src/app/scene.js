@@ -95,6 +95,20 @@ export async function createApplicationScene({
     requestRender: governorRequestRender,
     ...mapOptions,
     googleTileset: tileset,
+    // Google's 3D session token expires; a renewal is a fresh load from the
+    // same route, which fetches a new root and a new session. Without it, a
+    // tab left open long enough loses the planet rather than the detail.
+    renewGoogleTileset: async ({ signal } = {}) => {
+      signal?.throwIfAborted();
+      const renewed = await loadPhotorealisticTileset(Cesium, {
+        googleApiKey,
+        cesiumToken,
+      });
+      signal?.throwIfAborted();
+      if (!renewed.tileset)
+        throw renewed.errors.at(-1) || new Error('no tiles');
+      return renewed.tileset;
+    },
     cesiumToken,
     initialStack: tileset ? 'photoreal' : 'esri-imagery',
     // Task 5 (height-datum fix): rebroadcast stack changes as a window

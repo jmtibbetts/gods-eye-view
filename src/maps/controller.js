@@ -38,6 +38,8 @@ export class MapSourceController {
     this._imageryLayer = null;
     this._activeImageryProvider = null;
     this._removeImageryErrorListener = null;
+    this._removeTilesetErrorListener = null;
+    this._renewedTilesetGen = null;
     this._terrainMode = null;
     this._destroyed = false;
   }
@@ -172,8 +174,111 @@ export class MapSourceController {
     this._removeImageryLayer();
     this._credits.show(source.credit || null);
     this._showTileset(tileset);
+    this._watchTileset(source, tileset, gen);
     this.viewer.scene.globe.show = false;
     // Terrain is intentionally untouched while the globe is hidden.
+  }
+
+  /**
+   * A 3D surface that stops drawing leaves NOTHING behind: the globe is
+   * hidden under a tileset, so a tileset that cannot load its content is not
+   * a degraded map, it is empty space where the planet was.
+   *
+   * Google's Photorealistic 3D Tiles make this routine rather than rare. The
+   * root document carries a session token that expires; every content request
+   * then answers 400 INVALID_ARGUMENT, Cesium marks each tile failed and stops
+   * retrying, and a tab left open long enough is looking at a black hole with
+   * an atmosphere around it. The tileset's own state reads healthy throughout
+   * — ready, tilesLoaded — because nothing is pending.
+   *
+   * So a failing tileset is renewed once from its own factory, which fetches a
+   * fresh root and a fresh session. If that does not bring the surface back,
+   * the stack falls back to a globe that can draw, and says why.
+   *
+   * @param {object} source The map source that owns this tileset.
+   * @param {object} tileset The live Cesium3DTileset.
+   * @param {number} gen Switch generation; a newer switch abandons this watch.
+   * @returns {void}
+   */
+  _watchTileset(source, tileset, gen) {
+    this._removeTilesetErrorListener?.();
+    this._removeTilesetErrorListener = null;
+    const failureEvent = tileset?.tileFailed;
+    if (!failureEvent?.addEventListener) return;
+    const fallback = source?.tileFailureFallback || null;
+    const threshold = Math.max(1, Number(fallback?.threshold) || 3);
+    let failures = 0;
+    let handling = false;
+    const remove = failureEvent.addEventListener(() => {
+      if (this._destroyed || gen !== this._switchGen || handling) return;
+      failures += 1;
+      if (failures < threshold) return;
+      handling = true;
+      void this._recoverTileset(source, tileset, gen, { fallback })
+        .then((outcome) => {
+          if (outcome === 'renewed') failures = 0;
+        })
+        .finally(() => {
+          handling = false;
+        });
+    });
+    this._removeTilesetErrorListener = () => {
+      try {
+        remove?.();
+      } catch {
+        /* the event is gone with the tileset */
+      }
+    };
+  }
+
+  /**
+   * Bring a dead 3D surface back, or get off it.
+   * @returns {Promise<'renewed'|'fell-back'|'stuck'>}
+   */
+  async _recoverTileset(source, tileset, gen, { fallback }) {
+    const id = source?.descriptor?.id;
+    // Once per activation, not once per tileset: the renewal is watched in
+    // its turn, and a fresh surface that also collapses is not a stale
+    // session — it is a surface that cannot draw, and renewing it again
+    // would loop for as long as the failures keep arriving.
+    const renewed = this._renewedTilesetGen === gen;
+    if (!renewed && typeof source?.renewTileset === 'function') {
+      try {
+        const fresh = await source.renewTileset({ signal: this._abort.signal });
+        if (this._destroyed || gen !== this._switchGen) return 'stuck';
+        if (fresh && fresh !== tileset) {
+          this._renewedTilesetGen = gen;
+          this._tilesets.delete(id);
+          this.viewer.scene.primitives.add(fresh);
+          this._ownedTilesets.add(fresh);
+          source.tileset = fresh;
+          this._showTileset(fresh);
+          this._watchTileset(source, fresh, gen);
+          if (this.viewer.scene.primitives.remove(tileset))
+            this._ownedTilesets.delete(tileset);
+          else this._dispose(tileset);
+          this._requestRender('map-stack');
+          return 'renewed';
+        }
+      } catch {
+        /* the fallback below is the answer to a renewal that cannot happen */
+      }
+    }
+    if (this._destroyed || gen !== this._switchGen) return 'stuck';
+    if (!fallback?.id || !this.isStackAvailable(fallback.id)) return 'stuck';
+    const message = fallback.message || `${id || 'The 3D map'} stopped loading`;
+    this._onError?.(message, this.getStack(id));
+    const expectedGen = this._switchGen + 1;
+    const state = await this.setStack(fallback.id, { silent: true });
+    if (
+      !this._destroyed &&
+      this._switchGen === expectedGen &&
+      state?.activeId === fallback.id
+    ) {
+      this._lastError = message;
+      this._emitChange('error');
+    }
+    return 'fell-back';
   }
 
   _showTileset(active) {
@@ -205,6 +310,8 @@ export class MapSourceController {
     this._removeImageryErrorListener?.();
     this._removeImageryErrorListener = null;
     this._watchProvider(resolution, gen);
+    this._removeTilesetErrorListener?.();
+    this._removeTilesetErrorListener = null;
     this._showTileset(null);
     this.viewer.scene.globe.show = true;
     this._activeId = resolution.effectiveStackId;
@@ -325,6 +432,8 @@ export class MapSourceController {
     this._abort.abort();
     this._isSwitching = false;
     this._removeImageryLayer();
+    this._removeTilesetErrorListener?.();
+    this._removeTilesetErrorListener = null;
     this._credits.destroy();
     for (const promise of this._imageryProviders.values())
       void Promise.resolve(promise).then(
