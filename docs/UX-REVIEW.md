@@ -77,9 +77,19 @@ its ARIA label, "RECEIVER DOCK" in the code, and its kind chip says SDR /
 LIVEATC / PAGE even when it is showing the ISS or a launch webcast. It is
 the app's one NOW PLAYING surface for audio *and* video and should say so.
 
-**7. The right rail competes with itself.** DISPLAY, CCTV and CONTEXT share
-70 vh; CCTV alone, expanded, is a console of calibration controls most
-sessions never touch, sitting above the section people open most.
+**7. The right rail competes with itself — and the camera console was
+winning.** Measured live rather than read off the stylesheet: the rail does
+not share its 70 vh between DISPLAY, CCTV and CONTEXT at all. In the
+tactical HUD it shows one expanded panel and hides every collapsed sibling,
+so the three do not crowd each other; they replace each other. Cameras is
+on by default, and the layer nominates its first catalogued camera as
+"active" the moment the catalog lands so a frame is ready — which the panel
+read as a selection and opened itself for. A first-time visitor therefore
+got the camera calibration console, with the Context rail — every verb the
+app has — hidden behind it and no visible way back. DISPLAY is reachable
+only through the style-parameter path while CONTEXT is open, which is
+tolerable for a panel of toggles that all have keyboard shortcuts, and is
+not tolerable for the rail of verbs.
 
 ## The principle
 

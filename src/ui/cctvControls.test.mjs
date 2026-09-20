@@ -218,3 +218,137 @@ test('disposing during camera enable prevents the delayed focus and future click
   assert.equal(enables, 1);
   assert.equal(focuses, 0);
 });
+
+test('the camera console opens for a camera you chose, not the one the catalog nominated', (t) => {
+  const prior = globalThis.document;
+  globalThis.document = {
+    createElement: () => ({
+      classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+      dataset: {},
+      style: {},
+      append() {},
+      appendChild() {},
+      addEventListener() {},
+      setAttribute() {},
+    }),
+  };
+  t.after(() => {
+    globalThis.document = prior;
+  });
+  const expanded = [];
+  const controls = new CctvControls({
+    elements: {},
+    cctv: {},
+    actions: {
+      isEnabled: () => true,
+      setPanelCollapsed: (id, collapsed) => expanded.push([id, collapsed]),
+    },
+  });
+  t.after(() => controls.destroy());
+
+  const state = (overrides) => ({
+    enabled: true,
+    activeCameraId: 'cam-a',
+    activeCameraChosen: false,
+    cameras: [],
+    ...overrides,
+  });
+
+  // The layer nominates its first record so a frame is ready. Cameras is on
+  // by default, and the right rail shows one panel at a time, so opening on
+  // this would hand a first-time visitor the calibration console instead of
+  // the Context rail.
+  controls._renderCctvState(state());
+  assert.deepEqual(
+    expanded,
+    [],
+    'a nominated camera does not open the console',
+  );
+
+  controls._renderCctvState(state({ activeCameraChosen: true }));
+  assert.deepEqual(
+    expanded,
+    [['cctv-panel', false]],
+    'choosing a camera opens the console that holds its frame',
+  );
+
+  controls._renderCctvState(state({ activeCameraChosen: true }));
+  assert.equal(expanded.length, 1, 'a routine refresh does not reopen it');
+
+  controls._renderCctvState(
+    state({ activeCameraId: 'cam-b', activeCameraChosen: true }),
+  );
+  assert.equal(expanded.length, 2, 'a different chosen camera opens it again');
+});
+
+test('clicking the camera the catalog had nominated still opens the console', (t) => {
+  const prior = globalThis.document;
+  globalThis.document = {
+    createElement: () => ({
+      classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+      dataset: {},
+      style: {},
+      append() {},
+      appendChild() {},
+      addEventListener() {},
+      setAttribute() {},
+    }),
+  };
+  t.after(() => {
+    globalThis.document = prior;
+  });
+  const expanded = [];
+  const controls = new CctvControls({
+    elements: {},
+    cctv: {},
+    actions: {
+      isEnabled: () => true,
+      setPanelCollapsed: (id, collapsed) => expanded.push([id, collapsed]),
+    },
+  });
+  t.after(() => controls.destroy());
+  const base = { enabled: true, activeCameraId: 'cam-a', cameras: [] };
+  controls._renderCctvState({ ...base, activeCameraChosen: false });
+  controls._renderCctvState({ ...base, activeCameraChosen: true });
+  assert.deepEqual(expanded, [['cctv-panel', false]]);
+});
+
+test('an auto-hop transition still opens the console only on the first one', (t) => {
+  const prior = globalThis.document;
+  globalThis.document = {
+    createElement: () => ({
+      classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+      dataset: {},
+      style: {},
+      append() {},
+      appendChild() {},
+      addEventListener() {},
+      setAttribute() {},
+    }),
+  };
+  t.after(() => {
+    globalThis.document = prior;
+  });
+  const expanded = [];
+  const controls = new CctvControls({
+    elements: {},
+    cctv: {},
+    actions: {
+      isEnabled: () => true,
+      setPanelCollapsed: (id, collapsed) => expanded.push([id, collapsed]),
+    },
+  });
+  t.after(() => controls.destroy());
+  const hop = (id) => ({
+    enabled: true,
+    autoHop: true,
+    activeCameraId: id,
+    activeCameraChosen: true,
+    cameras: [],
+  });
+  controls._renderCctvState(hop('cam-a'));
+  assert.equal(expanded.length, 1, 'the first hop opens it');
+  controls._renderCctvState(hop('cam-b'));
+  controls._renderCctvState(hop('cam-c'));
+  assert.equal(expanded.length, 1, 'later hops do not pop it open again');
+});

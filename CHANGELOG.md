@@ -1,5 +1,17 @@
 # Changelog
 
+- The camera console no longer opens itself at boot, in front of everything
+  else. Cameras is on by default and the layer nominates its first
+  catalogued camera the moment the catalog lands, so a frame is ready to
+  draw; the console treated that nomination as a selection and expanded for
+  it. Because the right rail shows one panel at a time and hides the
+  collapsed rest, a first-time visitor got the camera calibration console
+  and the Context rail — INSPECT, LISTEN, WATCH, IMAGERY, ALERTS — was
+  hidden behind it with no visible way back. The console now opens for a
+  camera you chose: clicked on the globe, picked in the panel, or asked for
+  by voice. Clicking the very camera the catalog had nominated still opens
+  it, and an auto-hop still opens it only on its first transition.
+
 - A selected camera is a selected thing. The Cameras layer kept its active
   camera to itself, so clicking one filled the console on the right but left
   the shared selection slot empty: INSPECT had nothing to show for a camera

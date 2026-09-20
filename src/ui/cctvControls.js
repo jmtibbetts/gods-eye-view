@@ -31,6 +31,7 @@ export class CctvControls {
     this._cctvSummaryTypingTimer = null;
     this._lastCctvSummaryText = '';
     this._lastSeenCctvActiveId = null;
+    this._lastChosenCctvActiveId = null;
     this._cctvChipHideTimer = null;
     this._cctvChipWasBusy = false;
     this._cctvFrameRequestToken = 0;

@@ -164,6 +164,11 @@ export function createPresentation({
         hoverId: layerState._hoverCardId,
       },
       activeCameraId: activeId,
+      // Whether the active camera was CHOSEN or is merely the first record
+      // the catalog loaded. The layer nominates a default at init and at
+      // enable so a frame is ready; that is not a selection, and a surface
+      // that opens itself for one opens on its own at boot.
+      activeCameraChosen: Boolean(active?.activationDone),
       activeCamera: active ? getPublicCameraState(active, activeId) : null,
       cameras: layerState._records.map((record) =>
         getPublicCameraState(record, activeId),

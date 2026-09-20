@@ -33,11 +33,25 @@ export function _renderCctvState(state) {
   // from re-expanding a panel the user deliberately collapsed, and timed
   // auto-hop transitions only expand on the first activation so the panel
   // does not pop open on every hop.
+  //
+  // The camera must have been CHOSEN. The layer nominates its first record
+  // as active when the catalog lands so a frame is ready, and Cameras is on
+  // by default — so without this the calibration console opened itself at
+  // boot, and the right rail shows one panel at a time, which meant a
+  // first-time visitor got the console instead of the Context rail and no
+  // visible way back to it.
   const effectiveActiveId = enabled ? activeId || null : null;
+  const chosen = Boolean(state?.activeCameraChosen);
   const isFirstActivation = this._lastSeenCctvActiveId === null;
+  // Two guards, because they answer different questions. The seen id keeps
+  // auto-hop's "only the first transition" rule reading the same as before,
+  // whether or not the layer had nominated a camera by then; the chosen id
+  // is what the console opens for, so clicking the very camera the catalog
+  // nominated still opens it.
   if (
     effectiveActiveId &&
-    effectiveActiveId !== this._lastSeenCctvActiveId &&
+    chosen &&
+    effectiveActiveId !== this._lastChosenCctvActiveId &&
     (!state?.autoHop || isFirstActivation)
   ) {
     this.actions.setPanelCollapsed('cctv-panel', false, {
@@ -45,6 +59,7 @@ export function _renderCctvState(state) {
     });
   }
   this._lastSeenCctvActiveId = effectiveActiveId;
+  this._lastChosenCctvActiveId = chosen ? effectiveActiveId : null;
 
   this._updateCctvSyncChip(state?.loading, enabled);
 

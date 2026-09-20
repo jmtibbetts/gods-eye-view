@@ -413,6 +413,15 @@ presentation work stop during disposal; layer restoration retains its existing
 compensation and latest-intent rules. Clear Selected Layers shares this owner,
 so an older restore cannot replay over a newer Clear action.
 
+The Cameras panel auto-expands only for a chosen camera. The layer
+nominates its first catalogued record as active at init and at enable so a
+frame is ready, which is not a selection; `uiState()` reports
+`activeCameraChosen` from the record's `activationDone` flag, which only
+`setActiveCamera` sets, and `cctvPresentation` requires it before expanding.
+It tracks the last CHOSEN id separately from the last seen id, so clicking
+the nominated camera still opens the console while auto-hop keeps its
+"first transition only" rule.
+
 The Cameras layer publishes its active camera into the shared selection
 slot (`publishContext` in `src/layers/cctv/selection.js`, through a
 `context` service supplied by `src/app/layers/cctv.js`) and clears it on
