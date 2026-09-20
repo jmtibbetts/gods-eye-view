@@ -1,5 +1,16 @@
 # Changelog
 
+- A selected camera is a selected thing. The Cameras layer kept its active
+  camera to itself, so clicking one filled the console on the right but left
+  the shared selection slot empty: INSPECT had nothing to show for a camera
+  and voice's "the selected one" could not see it either, while its monitor
+  plane was the loudest thing on the globe. It publishes now, like every
+  other layer, and INSPECT shows the camera with where it is, whether it
+  sends video or still frames, WATCH (which opens the console holding its
+  frame), CAMERAS PANEL › and GO TO — the last through the layer's own
+  framing, since the console knows which way the camera is pointed and a
+  fly-to-the-pin does not.
+
 - Both rails hold their place while you scroll, and a folded section is a
   line rather than a card. The Context rail is 726 px tall on a 1257 px
   screen and its twelve folded sections came to 1,186 px, so half its verbs

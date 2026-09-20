@@ -785,13 +785,22 @@ test('Global Context uses its dedicated right rail without a duplicate Data Laye
   assert.match(html, /id="global-context-missions-btn"/);
 });
 
-test('Global Context standby describes both chooser modes', () => {
-  const match = html.match(
-    /<div id="context-mode-standby"[\s\S]*?<\/div>/,
+test('Global Context says what each chooser mode does, on the mode itself', () => {
+  // The description used to be a dashed box below the buttons restating
+  // them. It is on the buttons now, where the choice is made.
+  const flights = html.match(
+    /<button\s+id="global-context-flights-btn"[\s\S]*?<\/button>/,
   );
-  assert.ok(match, 'Global Context standby is missing');
-  assert.match(match[0], /CONTACTS — nearest planes · vessels · sites/);
-  assert.match(match[0], /SPACE MISSIONS — launches &amp; orbital assets/);
+  const missions = html.match(
+    /<button\s+id="global-context-missions-btn"[\s\S]*?<\/button>/,
+  );
+  assert.ok(flights && missions, 'Global Context mode buttons are missing');
+  assert.match(flights[0], /title="Cycles the nearest contacts[^"]+"/);
+  assert.match(missions[0], /title="The last thirty days of launches[^"]+"/);
+  const standby = html.match(/<p id="context-mode-standby"[\s\S]*?<\/p>/);
+  assert.ok(standby, 'Global Context standby line is missing');
+  assert.match(standby[0], /Neither mode is on/);
+  assert.match(html, /<p class="context-mode-label">MODE<\/p>/);
 });
 
 test('cockpit briefing cycle control keeps its state as the accessible name', () => {

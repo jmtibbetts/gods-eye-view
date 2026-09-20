@@ -58,6 +58,7 @@ function vessel(overrides = {}) {
 }
 
 const ALL_CAPS = Object.freeze({
+  canWatchCamera: true,
   canListenAtc: true,
   atcAnnotation: 'ATC Austin Tower 121.0',
   atcFollowing: false,
@@ -185,6 +186,43 @@ test('receivers, scanners and airports offer LISTEN when their layer can play', 
   assert.deepEqual(
     ids(inspectActions(airport, { ...ALL_CAPS, panelId: null })),
     ['listen', 'goto'],
+  );
+});
+
+test('a camera offers WATCH, which opens the console that holds its frame', () => {
+  const camera = {
+    id: 'cctv:aus-12',
+    layerId: 'cctv',
+    layerName: 'Cameras',
+    latitude: 30.2,
+    longitude: -97.7,
+    properties: {
+      camera: 'aus-12',
+      place: 'Austin, TX',
+      provider: 'TxDOT',
+      feed: 'mp4',
+    },
+  };
+  const actions = inspectActions(camera, {
+    ...ALL_CAPS,
+    panelId: 'cctv-panel',
+    panelName: 'CAMERAS',
+  });
+  assert.deepEqual(ids(actions), ['watch', 'panel', 'goto']);
+  const noConsole = inspectActions(camera, {
+    ...ALL_CAPS,
+    canWatchCamera: false,
+    panelId: null,
+  });
+  assert.deepEqual(ids(noConsole), ['goto']);
+  // The operator is the card's source line, so the body does not repeat it.
+  assert.deepEqual(inspectLines(camera).lines, ['Austin, TX', 'VIDEO FEED']);
+  assert.deepEqual(
+    inspectLines({
+      layerId: 'cctv',
+      properties: { camera: 'x', place: 'Denver, CO', feed: 'jpeg' },
+    }).lines,
+    ['Denver, CO', 'STILL FRAMES'],
   );
 });
 

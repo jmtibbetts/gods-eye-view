@@ -97,6 +97,15 @@ function bandText(lowHz, highHz) {
  * Everything else falls through to "KEY value" lines.
  */
 const LINE_READERS = Object.freeze({
+  cctv(p) {
+    // The operator is already the card's source line; repeating it here is
+    // how the old panels read, and it is what this section is fixing.
+    const feed = String(p.feed || '').toLowerCase();
+    return [
+      p.place || '',
+      feed ? (/mp4|hls|webm/.test(feed) ? 'VIDEO FEED' : 'STILL FRAMES') : '',
+    ];
+  },
   'ais-live-vessels'(p) {
     const speed = Number(p.speedKt);
     const direction = Number.isFinite(Number(p.heading))
@@ -294,6 +303,14 @@ export function inspectActions(record, caps = {}) {
         kind: 'listen',
         title: 'Play this system, a clip per transmission',
       });
+  } else if (layerId === 'cctv') {
+    if (caps.canWatchCamera)
+      actions.push({
+        id: 'watch',
+        label: 'WATCH',
+        kind: 'watch',
+        title: 'Open this camera in the CAMERAS console',
+      });
   } else if (layerId === 'tfr') {
     if (record.properties?.page)
       actions.push({
@@ -382,6 +399,7 @@ export class InspectPanel {
    * @param {() => object|null} [options.scanner] The Scanners layer.
    * @param {() => object|null} [options.satellites] The satellites layer.
    * @param {() => object|null} [options.tfr] The Flight Restrictions layer.
+   * @param {() => object|null} [options.cctv] The Cameras layer.
    * @param {(value: string) => 'added'|'exists'|false} [options.pinWatch]
    * @param {(value: string) => boolean} [options.isPinned]
    * @param {(mmsi: string) => object|null} [options.vesselStatus]
@@ -403,6 +421,7 @@ export class InspectPanel {
     scanner = () => null,
     satellites = () => null,
     tfr = () => null,
+    cctv = () => null,
     pinWatch = null,
     isPinned = () => false,
     vesselStatus = () => null,
@@ -427,6 +446,7 @@ export class InspectPanel {
     this._scanner = scanner;
     this._satellites = satellites;
     this._tfr = tfr;
+    this._cctv = cctv;
     this._pinWatch = pinWatch;
     this._isPinned = isPinned;
     this._vesselStatus = vesselStatus;
@@ -530,6 +550,7 @@ export class InspectPanel {
       imaging:
         layerId === 'satellites' && this._isImagingSatellite(Number(record.id)),
       canWatchIss: Boolean(this._satellites()?.openIssStream),
+      canWatchCamera: Boolean(this._cctv()?.selectCamera),
       canFocusTfr: Boolean(this._tfr()?.focusTfr),
       panelId: panel?.panelId || null,
       panelName: panel?.name || null,
@@ -633,7 +654,10 @@ export class InspectPanel {
           await this._follow();
           break;
         case 'watch':
-          this._satellites()?.openIssStream?.();
+          if (record.layerId === 'cctv') {
+            const panel = this._panelFor('cctv');
+            if (panel?.panelId) this._openPanel(panel.panelId);
+          } else this._satellites()?.openIssStream?.();
           break;
         case 'sensors':
         case 'panel': {
@@ -735,6 +759,12 @@ export class InspectPanel {
       return;
     if (record.layerId === 'tfr' && this._tfr()?.focusTfr) {
       if (this._tfr().focusTfr(record.properties?.notam)) return;
+    }
+    // A camera is framed by its own layer: the console knows the pose to
+    // look along, which a plain fly-to-the-pin does not.
+    if (record.layerId === 'cctv' && this._cctv()?.focusCamera) {
+      const result = this._cctv().focusCamera(record.properties?.camera);
+      if (result === 'focused') return;
     }
     const current = viewer.camera.positionCartographic?.height;
     const height = Number.isFinite(current)

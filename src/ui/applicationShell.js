@@ -1219,6 +1219,7 @@ export class StyleManager extends ShellFacade {
       scanner: () => this.services.scannerLayer || null,
       satellites: () => this.services.satellitesLayer || null,
       tfr: () => this.services.tfrLayer || null,
+      cctv: () => this.services.cctvLayer || null,
       pinWatch: (value) => this._watchlistPanel?.add?.(value) ?? false,
       isPinned: (value) => this._watchlistPanel?.has?.(value) === true,
       vesselStatus: (mmsi) => this._vesselWatchPanel?.statusFor?.(mmsi) ?? null,

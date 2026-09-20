@@ -12,6 +12,41 @@ export function createSelection({
 }) {
   const { CCTV_ACTIVATION_RESULT } = services.activation;
   const { resolvePickId } = services.picking;
+  const context = services.context || null;
+
+  /**
+   * Publish the active camera into the shared selection slot every other
+   * layer writes its click into. Without it a chosen camera existed only
+   * inside this layer: the INSPECT card had nothing to show for it and
+   * voice's `scope:'selected'` could not see it, even while its monitor
+   * plane was the loudest thing on the globe.
+   * @param {object} record Active camera record.
+   * @returns {void}
+   */
+  function publishContext(record) {
+    const camera = record?.camera;
+    if (!context?.registerEntityContext || !camera?.id) return;
+    try {
+      context.registerEntityContext(record, {
+        id: `cctv:${camera.id}`,
+        layerId: 'cctv',
+        layerName: 'Cameras',
+        source: camera.provider || 'Public camera feed',
+        label: camera.name || camera.id,
+        latitude: camera.lat,
+        longitude: camera.lon,
+        properties: {
+          camera: camera.id,
+          place: camera.city || '',
+          provider: camera.provider || '',
+          feed: camera.feedType || '',
+        },
+      });
+      context.selectEntityContext(record);
+    } catch {
+      /* context store unavailable — the console still works */
+    }
+  }
 
   /**
    * Returns the camera record for the currently active camera. A stale ID falls
@@ -146,6 +181,7 @@ export function createSelection({
     parts.cards.refreshAmbientCards();
     // ADJUST mode follows the active camera.
     layerState._gizmo?.refresh();
+    publishContext(record);
     parts.presentation.notifyListeners();
     return CCTV_ACTIVATION_RESULT.ACTIVATED;
   }
@@ -174,6 +210,11 @@ export function createSelection({
     parts.rendering.refreshCoverageStyles();
     parts.cards.refreshAmbientCards();
     layerState._gizmo?.refresh();
+    try {
+      context?.clearSelectedEntityContextForLayer?.('cctv');
+    } catch {
+      /* ignore */
+    }
     parts.presentation.notifyListeners();
     return true;
   }

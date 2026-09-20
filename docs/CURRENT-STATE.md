@@ -413,6 +413,13 @@ presentation work stop during disposal; layer restoration retains its existing
 compensation and latest-intent rules. Clear Selected Layers shares this owner,
 so an older restore cannot replay over a newer Clear action.
 
+The Cameras layer publishes its active camera into the shared selection
+slot (`publishContext` in `src/layers/cctv/selection.js`, through a
+`context` service supplied by `src/app/layers/cctv.js`) and clears it on
+deactivation, so a chosen camera reaches INSPECT, voice's `scope:'selected'`
+and anything else reading that slot. The camera record itself is the
+carrier, as the vessel layer does.
+
 INSPECT (`#inspect-panel`, `src/ui/inspectPanel.js`) is the first section
 of the rail. It renders `getSelectedEntityContext({ dataManager })` — the
 same slot voice and the Cockpit read — on `gev:entity-selected`,

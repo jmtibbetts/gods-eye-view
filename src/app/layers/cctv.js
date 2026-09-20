@@ -1,4 +1,5 @@
 import { createCctvLayer } from '../../layers/cctv/index.js';
+import * as context from '../../data/contextStore.js';
 import * as sprites from '../../data/spriteOrder.js';
 import * as activation from '../../cctvFocusRequest.js';
 import * as overlays from '../../overlays/worldOverlay.js';
@@ -18,6 +19,7 @@ export function createApplicationCctv({ surface, source }) {
       overlays,
       locations,
       picking,
+      context,
       terrain,
       ground,
       mesh,
