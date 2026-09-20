@@ -196,7 +196,12 @@ test('the panel renders one group per slot and reads OFF when nothing covers the
     assert.equal(elements.list.children.length, IMAGERY_SLOT_ORDER.length);
     assert.equal(elements.layerState.textContent, 'OFF');
     assert.equal(elements.clearBtn.disabled, true);
-    assert.match(elements.note.textContent, /Nothing is covering the globe/);
+    assert.match(elements.note.textContent, /Nothing is covering the map/);
+    assert.match(
+      elements.note.textContent,
+      /keeps Google 3D/,
+      'picking a sensor no longer costs the basemap',
+    );
     panel.destroy();
   });
 });
@@ -216,20 +221,18 @@ test('picking a sensor turns its slot on and says so, naming the vintage', async
     assert.equal(elements.clearBtn.disabled, false);
     assert.match(toasts.at(-1), /Day\/Night Band/);
     assert.match(toasts.at(-1), /1 day behind/);
-    assert.match(
-      elements.note.textContent,
-      /photorealistic 3D basemap is set aside/,
-    );
+    assert.match(elements.note.textContent, /Google 3D included/);
     panel.destroy();
   });
 });
 
-test('when enabling costs the 3D basemap, the toast says so', async () => {
+test('when enabling DOES cost the 3D basemap, the toast still says so', async () => {
   await withFakeDom(async () => {
     const dm = fakeManager();
-    // Imagery cannot draw over Google 3D, so the layer swaps the basemap. The
-    // user is losing the photorealistic globe — saying nothing would read as a
-    // bug, which is exactly how this was misdiagnosed before.
+    // A sensor is normally painted onto whichever map is showing. A feed with
+    // no single-image form still has to swap the basemap, and the user losing
+    // the photorealistic globe wordlessly reads as a bug — which is exactly
+    // how this was misdiagnosed before.
     dm.layers.get('imagery-goes').module.getSurfaceChange = () => ({
       switched: true,
       from: 'photoreal',
@@ -239,7 +242,18 @@ test('when enabling costs the 3D basemap, the toast says so', async () => {
     panel.connect();
     await panel.selectSensor('imagery-goes', 'goes-east-geo');
     assert.match(toasts.at(-1), /Switched to the 2D globe/);
-    assert.match(toasts.at(-1), /cannot draw over Google 3D/);
+    assert.match(toasts.at(-1), /cannot be drawn on Google 3D/);
+    panel.destroy();
+  });
+});
+
+test('a sensor that draws on the map you are on reports no trade at all', async () => {
+  await withFakeDom(async () => {
+    const dm = fakeManager();
+    const { panel, toasts } = panelWith(dm);
+    panel.connect();
+    await panel.selectSensor('imagery-goes', 'goes-east-geo');
+    assert.doesNotMatch(toasts.at(-1), /Switched to the 2D globe/);
     panel.destroy();
   });
 });

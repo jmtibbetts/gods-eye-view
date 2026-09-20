@@ -1,5 +1,26 @@
 # Changelog
 
+- Satellite imagery draws on Google 3D instead of taking it away. Turning on
+  any sensor used to switch your basemap to the 2D globe, on the reasoning
+  that imagery cannot be drawn over Google 3D. That was too broad a
+  conclusion: an imagery LAYER cannot — it paints on the globe, and the
+  globe is hidden under the tiles — but an image can. A rectangle whose
+  material is a picture and whose classification is the rendered tiles is
+  draped onto the 3D surface itself, the same way the weather-alert polygons
+  already lie on it; over a city it wraps the buildings.
+
+  What that needs is a picture rather than a tile pyramid, and every product
+  in the catalog is also a WMS layer, so every one of them can be asked for
+  as a single image of whatever the camera is looking at. So on Google 3D a
+  sensor is now painted onto Google 3D, redrawn when the camera settles
+  somewhere else, and the map you chose stays the map you are on. Leaving
+  the 3D surface hands the overlay back to the imagery layer, which is
+  sharper and cheaper where the globe is there to paint on.
+
+  Radar is the exception and says so: it comes from a tile service that
+  speaks no WMS, so it has no single-image form and still borrows a surface
+  it can be seen on.
+
 - The planet stopped disappearing. Google's 3D tiles are served against a
   session token the tileset picks up with its first root request, and
   Google expires it after a while; nothing renewed it, so every content

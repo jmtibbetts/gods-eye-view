@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {
   ALL_IMAGERY_PRODUCTS,
   clampToAvailable,
+  drapeSourceFor,
+  EUMETVIEW_WMS,
+  GIBS_WMS,
   IMAGERY_OVERLAYS,
   IMAGERY_SLOTS,
   IMAGERY_SLOT_ORDER,
@@ -307,6 +310,49 @@ test('tile URLs carry the product, matrix set, time and extension', () => {
   );
 });
 
+test('every catalog product can be asked for as one image', () => {
+  // A drape needs a picture, not a pyramid. If a product could not be
+  // expressed as a WMS layer it would have to keep taking the basemap away,
+  // so this is the property that makes draping a rule rather than a favour.
+  const missing = [];
+  for (const [slotId, slot] of Object.entries(IMAGERY_SLOTS))
+    for (const product of slot.products)
+      if (!drapeSourceFor(product)) missing.push(`${slotId}/${product.key}`);
+  assert.deepEqual(missing, []);
+});
+
+test('a GIBS product is draped from the GIBS WMS, by its own layer id', () => {
+  const product = productFor('imagery-viirs', 'viirs-n20-fire');
+  const source = drapeSourceFor(product, '2026-09-17');
+  assert.equal(source.url, GIBS_WMS);
+  assert.equal(
+    source.layers,
+    'VIIRS_NOAA20_CorrectedReflectance_BandsM11-I2-I1',
+  );
+  assert.deepEqual(source.parameters, { TIME: '2026-09-17' });
+});
+
+test("GIBS's latest frame is asked for by saying nothing, not by saying 'default'", () => {
+  // `default` is a REST path segment. As a TIME value it is a date GIBS
+  // cannot parse, and the request fails rather than returning the newest.
+  const source = drapeSourceFor(productFor('imagery-goes', null));
+  assert.deepEqual(source.parameters, {});
+});
+
+test('an outside WMS product is draped from its own service, with its own terms', () => {
+  const product = Object.values(IMAGERY_SLOTS)
+    .flatMap((slot) => slot.products)
+    .find((entry) => entry.wmsLayer && !entry.gibsId);
+  const source = drapeSourceFor(product);
+  assert.equal(source.layers, product.wmsLayer);
+  assert.equal(source.url, product.wmsUrl || EUMETVIEW_WMS);
+});
+
+test('a product naming no layer at all cannot be drawn, and says so', () => {
+  assert.equal(drapeSourceFor({ key: 'nothing' }), null);
+  assert.equal(drapeSourceFor(null), null);
+});
+
 test('an unknown product key degrades to the slot default, never to nothing', () => {
   assert.equal(
     productFor('imagery-viirs', 'retired-sensor').key,
@@ -369,11 +415,13 @@ test('rainviewerLatest picks the newest frame and builds a tile url', () => {
   assert.equal(rainviewerLatest({ host: '', radar: {} }), null);
 });
 
-function fakeViewer() {
+function fakeViewer({ globeShown = true } = {}) {
   const layers = [];
   return {
     layers,
-    scene: { requestRender() {} },
+    // The globe's visibility is what decides which renderer can draw, so a
+    // viewer double that omits it can only ever test half the behaviour.
+    scene: { globe: { show: globeShown }, requestRender() {} },
     imageryLayers: {
       add: (l) => layers.push(l),
       remove: (l) => {
@@ -549,43 +597,133 @@ test('the layer applies that clamp when TIMELINE scrubs a lagging product', asyn
   );
 });
 
-function surfaceLayer(id, surface) {
-  const viewer = fakeViewer();
+function fakeDrape() {
+  const calls = [];
+  let showing = false;
+  const drape = {
+    calls,
+    async show(source, options) {
+      calls.push(['show', source.layers, options?.alpha]);
+      showing = true;
+      return true;
+    },
+    clear() {
+      calls.push(['clear']);
+      showing = false;
+    },
+    isShowing: () => showing,
+    getLastError: () => null,
+    destroy() {
+      calls.push(['destroy']);
+      showing = false;
+    },
+  };
+  return drape;
+}
+
+function surfaceLayer(
+  id,
+  surface,
+  { globeShown = true, drape = null, eventTarget = null } = {},
+) {
+  const viewer = fakeViewer({ globeShown });
+  const events = eventTarget || new EventTarget();
   const layer = createImageryOverlayLayer({
     descriptor: IMAGERY_OVERLAYS.find((d) => d.id === id),
     now: () => AT,
     surface,
+    eventTarget: events,
     providerFactory: (url) => ({ url }),
     imageryLayerFactory: (provider, opts) => ({ provider, opts }),
+    ...(drape ? { drapeFactory: () => drape } : {}),
   });
   layer.init(viewer);
-  return { layer, viewer };
+  return { layer, viewer, events };
+}
+
+/** Announce a settled stack change the way the map controller does. */
+function announceStack(events) {
+  events.dispatchEvent(
+    new CustomEvent('gev:map-stack-changed', { detail: { status: 'ready' } }),
+  );
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-test('enabling an overlay borrows a surface that can actually show it', async () => {
+test('an overlay on the 3D surface is draped onto it, not swapped away from it', async () => {
   const surface = createSurfaceCoordinator();
   const ctrl = fakeStackController({ active: 'photoreal' });
   surface.attach(ctrl);
-  const { layer, viewer } = surfaceLayer('imagery-viirs', surface);
+  const drape = fakeDrape();
+  const { layer, viewer } = surfaceLayer('imagery-viirs', surface, {
+    globeShown: false,
+    drape,
+  });
   await layer.enable(viewer);
-  // Under photoreal the globe is hidden and imagery draws nothing at all, so
-  // enabling must move to a globe stack or the layer is silently dead.
-  assert.deepEqual(ctrl.calls, ['esri-imagery']);
-  assert.equal(layer.getSurfaceChange().switched, true);
-  assert.equal(layer.getSurfaceChange().from, 'photoreal');
+  assert.deepEqual(ctrl.calls, [], 'the basemap the user chose is left alone');
+  assert.equal(layer.getSurfaceChange().switched, false);
+  assert.equal(drape.calls[0][0], 'show');
+  assert.equal(viewer.layers.length, 0, 'an imagery layer there draws nothing');
 
   layer.disable();
   await tick();
-  assert.deepEqual(
-    ctrl.calls,
-    ['esri-imagery', 'photoreal'],
-    'the last overlay off must hand the photorealistic basemap back',
-  );
+  assert.deepEqual(ctrl.calls, [], 'and nothing has to be handed back');
+  assert.equal(drape.isShowing(), false);
 });
 
-test('a second overlay does not switch again, and only the last one restores', async () => {
+test('a draped overlay releases no hold, so another overlay still gets its surface back', async () => {
+  // Release is counted. A drape that released a surface it never took would
+  // decrement the radar overlay's hold, and radar's own disable would then
+  // find the count already at zero and never restore the basemap.
+  const surface = createSurfaceCoordinator();
+  const ctrl = fakeStackController({ active: 'photoreal' });
+  surface.attach(ctrl);
+  const borrower = await surface.retain();
+  assert.equal(borrower.switched, true);
+  assert.deepEqual(ctrl.calls, ['esri-imagery']);
+
+  const { layer, viewer } = surfaceLayer('imagery-viirs', surface, {
+    globeShown: false,
+    drape: fakeDrape(),
+  });
+  await layer.enable(viewer);
+  layer.disable();
+  await tick();
+  assert.deepEqual(ctrl.calls, ['esri-imagery'], 'the holder still holds');
+
+  await surface.release();
+  assert.deepEqual(ctrl.calls, ['esri-imagery', 'photoreal']);
+});
+
+test('an overlay with no single-image form still borrows a surface it can be seen on', async () => {
+  const surface = createSurfaceCoordinator();
+  const ctrl = fakeStackController({ active: 'photoreal' });
+  surface.attach(ctrl);
+  const viewer = fakeViewer({ globeShown: false });
+  const layer = createImageryOverlayLayer({
+    descriptor: radarDescriptor,
+    surface,
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({
+        host: 'https://h',
+        radar: { past: [{ time: 100, path: '/v2/radar/z' }] },
+      }),
+    }),
+    providerFactory: (url) => ({ url }),
+    imageryLayerFactory: (provider, opts) => ({ provider, opts }),
+  });
+  layer.init(viewer);
+  await layer.enable(viewer);
+  assert.deepEqual(ctrl.calls, ['esri-imagery']);
+  assert.equal(layer.getSurfaceChange().switched, true);
+
+  layer.disable();
+  await tick();
+  assert.deepEqual(ctrl.calls, ['esri-imagery', 'photoreal']);
+});
+
+test('a second borrower does not switch again, and only the last one restores', async () => {
   const surface = createSurfaceCoordinator();
   const ctrl = fakeStackController({ active: 'photoreal' });
   surface.attach(ctrl);
@@ -602,6 +740,85 @@ test('a second overlay does not switch again, and only the last one restores', a
   b.layer.disable();
   await tick();
   assert.deepEqual(ctrl.calls, ['esri-imagery', 'photoreal']);
+});
+
+test('leaving the 3D surface hands the overlay back to the imagery layer', async () => {
+  const surface = createSurfaceCoordinator();
+  const ctrl = fakeStackController({ active: 'photoreal' });
+  surface.attach(ctrl);
+  const drape = fakeDrape();
+  const { layer, viewer, events } = surfaceLayer('imagery-viirs', surface, {
+    globeShown: false,
+    drape,
+  });
+  layer.attachMapStackController(ctrl);
+  await layer.enable(viewer);
+  assert.equal(viewer.layers.length, 0);
+
+  // The user picks a globe stack by hand: the globe comes back, and the
+  // sharper renderer takes over from the drape.
+  viewer.scene.globe.show = true;
+  announceStack(events);
+  await tick();
+  assert.equal(viewer.layers.length, 1, 'the imagery layer draws there');
+  assert.equal(drape.isShowing(), false, 'and the drape is taken down');
+  layer.destroy();
+});
+
+test('arriving at the 3D surface takes down the layer that cannot draw there', async () => {
+  const surface = createSurfaceCoordinator();
+  const ctrl = fakeStackController({ active: 'esri-imagery' });
+  surface.attach(ctrl);
+  const drape = fakeDrape();
+  const { layer, viewer, events } = surfaceLayer('imagery-viirs', surface, {
+    globeShown: true,
+    drape,
+  });
+  layer.attachMapStackController(ctrl);
+  await layer.enable(viewer);
+  assert.equal(viewer.layers.length, 1);
+
+  viewer.scene.globe.show = false;
+  announceStack(events);
+  await tick();
+  assert.equal(viewer.layers.length, 0, 'an inert layer is not left behind');
+  assert.equal(drape.isShowing(), true);
+  layer.destroy();
+});
+
+test('switching sensor while draped redraws the drape, not a dead imagery layer', async () => {
+  const surface = createSurfaceCoordinator();
+  const drape = fakeDrape();
+  const { layer, viewer } = surfaceLayer('imagery-viirs', surface, {
+    globeShown: false,
+    drape,
+  });
+  await layer.enable(viewer);
+  const first = drape.calls.filter((call) => call[0] === 'show').length;
+  await layer.setSensor('modis-terra-true');
+  const shows = drape.calls.filter((call) => call[0] === 'show');
+  assert.equal(shows.length, first + 1);
+  assert.equal(shows.at(-1)[1], 'MODIS_Terra_CorrectedReflectance_TrueColor');
+  assert.equal(viewer.layers.length, 0);
+});
+
+test('destroying a draped overlay releases its drape and its stack listener', async () => {
+  const surface = createSurfaceCoordinator();
+  const ctrl = fakeStackController({ active: 'photoreal' });
+  surface.attach(ctrl);
+  const drape = fakeDrape();
+  const { layer, viewer, events } = surfaceLayer('imagery-viirs', surface, {
+    globeShown: false,
+    drape,
+  });
+  layer.attachMapStackController(ctrl);
+  await layer.enable(viewer);
+  layer.destroy();
+  assert.ok(drape.calls.some((call) => call[0] === 'destroy'));
+  const before = drape.calls.length;
+  announceStack(events);
+  await tick();
+  assert.equal(drape.calls.length, before, 'a dead layer answers nothing');
 });
 
 test('a basemap the user chose by hand is never yanked back', async () => {

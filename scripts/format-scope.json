@@ -444,6 +444,8 @@
   "src/layers/weatherAlerts/source.js",
   "src/layers/weatherAlerts/weatherAlerts.test.mjs",
   "src/layers/imageryOverlays/catalog.js",
+  "src/layers/imageryOverlays/drape.js",
+  "src/layers/imageryOverlays/drape.test.mjs",
   "src/layers/imageryOverlays/index.js",
   "src/layers/imageryOverlays/policy.js",
   "src/layers/imageryOverlays/surface.js",

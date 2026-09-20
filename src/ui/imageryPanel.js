@@ -229,12 +229,14 @@ export class ImageryPanel {
         await dm?.setEnabled?.(slotId, true, { origin: 'user' });
       }
       if (product) {
-        // Naming the basemap trade matters more than naming the sensor: the
-        // user is about to lose the photorealistic 3D, and if we let that
-        // happen wordlessly they will read it as the globe breaking.
+        // A sensor is painted onto whichever map is showing, Google 3D
+        // included, so there is usually no trade to report. A feed that has
+        // no single-image form still has to borrow a surface, and when that
+        // happens the swap matters more than the sensor's name: losing the
+        // photorealistic 3D wordlessly reads as the globe breaking.
         const swap = layer.getSurfaceChange?.();
         const traded = swap?.switched
-          ? ' Switched to the 2D globe — imagery cannot draw over Google 3D.'
+          ? ` Switched to the 2D globe — ${product.label} cannot be drawn on Google 3D.`
           : '';
         this.onToast(`${product.label} — ${cadenceText(product)}.${traded}`);
       }
@@ -333,8 +335,8 @@ export class ImageryPanel {
     if (this.elements.clearBtn) this.elements.clearBtn.disabled = !anyOn;
     if (this.elements.note) {
       this.elements.note.textContent = anyOn
-        ? 'Imagery is drawn on the 2D globe, so the photorealistic 3D basemap is set aside while any sensor is on. CLEAR brings it back.'
-        : 'Nothing is covering the globe. Picking a sensor switches to the 2D basemap, because imagery cannot draw over Google 3D.';
+        ? 'A sensor is painted onto whichever map is showing, Google 3D included. CLEAR takes it off.'
+        : 'Nothing is covering the map. A sensor is painted onto the map you are already on, so picking one keeps Google 3D.';
     }
     this._rendered = true;
   }

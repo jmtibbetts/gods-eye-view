@@ -1930,6 +1930,7 @@
       "src/ui/audioDock.js",
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
+      "src/layers/imageryOverlays/drape.js",
       "src/layers/imageryOverlays/surface.js",
       "src/layers/imageryOverlays/frames.js",
       "src/layers/imageryOverlays/catalog.js",
@@ -2443,6 +2444,7 @@
       "src/data/markerField.js",
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
+      "src/layers/imageryOverlays/drape.js",
       "src/layers/imageryOverlays/surface.js",
       "src/layers/imageryOverlays/frames.js",
       "src/layers/imageryOverlays/catalog.js",
@@ -2898,6 +2900,7 @@
     "modules": [
       "src/layers/imageryOverlays/index.js",
       "src/layers/imageryOverlays/policy.js",
+      "src/layers/imageryOverlays/drape.js",
       "src/layers/imageryOverlays/surface.js",
       "src/layers/imageryOverlays/frames.js",
       "src/layers/imageryOverlays/catalog.js"

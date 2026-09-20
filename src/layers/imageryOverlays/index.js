@@ -4,6 +4,7 @@ import {
   IMAGERY_OVERLAYS,
   IMAGERY_SLOTS,
   clampToAvailable,
+  drapeSourceFor,
   gibsTileUrl,
   isArchived,
   isWms,
@@ -13,6 +14,7 @@ import {
   zoomFloorFor,
 } from './policy.js';
 import { imagerySurface } from './surface.js';
+import { createImageryDrape } from './drape.js';
 import {
   LOOP_FRAMES,
   describeDomainsUrl,
@@ -63,6 +65,8 @@ export function createImageryOverlayLayer({
   wmsProviderFactory = (options) =>
     new Cesium.WebMapServiceImageryProvider(options),
   surface = imagerySurface,
+  drapeFactory = (options) => createImageryDrape(options),
+  eventTarget = globalThis.window ?? null,
   // Wrapped, not referenced: a browser's setInterval throws "Illegal
   // invocation" when called off a plain object.
   timers = {
@@ -90,6 +94,12 @@ export function createImageryOverlayLayer({
   let _surfaceChange = null;
   /** A running frame loop (see startLoop), or null. */
   let _loop = null;
+  /** Paints this product onto a hidden-globe surface; built on first need. */
+  let _drape = null;
+  /** Unsubscribes the stack listener that keeps the presentation honest. */
+  let _unlistenStack = null;
+  /** Whether this layer is one of the surface coordinator's holders. */
+  let _retained = false;
 
   /** The catalog entry currently selected, or null for a custom resolver. */
   function product() {
@@ -105,6 +115,78 @@ export function createImageryOverlayLayer({
       }
     }
     _imageryLayer = null;
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Which renderer draws this overlay
+   *
+   * Cesium's imagery layer paints on the globe. Under the photoreal stack
+   * the globe is hidden, so there the same product is draped onto the 3D
+   * tiles instead (see drape.js). The choice is made from the scene rather
+   * than remembered, because the stack can change under a layer that is
+   * already on — by share link, by preset, or by the user's own hand.
+   * ---------------------------------------------------------------- */
+
+  /** True when the globe is not the surface, so an imagery layer would be inert. */
+  function globeHidden() {
+    try {
+      return _viewer?.scene?.globe?.show === false;
+    } catch {
+      return false;
+    }
+  }
+
+  /** The day or instant the current selection should be shown at. */
+  function selectedTime(current) {
+    return _displayDate && isArchived(current)
+      ? clampToAvailable(current, _displayDate, now())
+      : liveTimeFor(current, now());
+  }
+
+  /**
+   * How this product would be draped, or null if it cannot be.
+   *
+   * A descriptor with its own resolver (radar) builds a tile template from a
+   * service that speaks no WMS, so it has no single-image form and keeps the
+   * older behaviour of borrowing a surface it can be seen on.
+   */
+  function drapeSource() {
+    const current = product();
+    if (!current) return null;
+    return drapeSourceFor(current, selectedTime(current), now());
+  }
+
+  function ensureDrape() {
+    if (!_drape && _viewer)
+      _drape = drapeFactory({ viewer: _viewer, id: descriptor.id });
+    return _drape;
+  }
+
+  function clearDrape() {
+    _drape?.clear();
+  }
+
+  /**
+   * Draw this overlay with whichever renderer the current surface allows,
+   * and take down the other one.
+   * @returns {Promise<boolean>}
+   */
+  async function present() {
+    if (!_enabled) return false;
+    const source = globeHidden() ? drapeSource() : null;
+    if (!source) {
+      clearDrape();
+      return applyProvider();
+    }
+    removeLayer();
+    const drawn = await ensureDrape()?.show(source, { alpha: alpha() });
+    if (drawn) {
+      _lastUpdate = Date.now();
+      _lastError = null;
+    } else {
+      _lastError = _drape?.getLastError?.() || `${descriptor.name} unavailable`;
+    }
+    return Boolean(drawn);
   }
 
   /**
@@ -145,12 +227,8 @@ export function createImageryOverlayLayer({
           : {}),
       };
     }
-    const time =
-      _displayDate && isArchived(current)
-        ? clampToAvailable(current, _displayDate, now())
-        : liveTimeFor(current, now());
     return {
-      url: gibsTileUrl(current, time),
+      url: gibsTileUrl(current, selectedTime(current)),
       maximumLevel: current.maximumLevel,
       credit: descriptor.attribution,
     };
@@ -232,7 +310,7 @@ export function createImageryOverlayLayer({
     }
     if (_imageryLayer) _imageryLayer.alpha = alpha();
     _viewer?.scene?.requestRender?.();
-    if (refresh && _enabled) void applyProvider();
+    if (refresh && _enabled) void present();
     return true;
   }
 
@@ -326,11 +404,18 @@ export function createImageryOverlayLayer({
       if (_enabled) return;
       _enabled = true;
       _viewer = viewer || _viewer;
-      // Claim a surface that can actually show imagery BEFORE building the
-      // provider. Under the photoreal stack the globe is hidden, and an
-      // overlay added there draws nothing and requests no tiles at all.
-      _surfaceChange = await surface.retain();
-      await applyProvider();
+      // Under the photoreal stack the globe is hidden, and an imagery layer
+      // added there draws nothing and requests no tiles at all. A product
+      // that can be draped is painted onto the 3D tiles instead, and the
+      // user keeps the basemap they chose. Only a product with no
+      // single-image form still has to borrow a surface it can be seen on.
+      if (globeHidden() && drapeSource()) {
+        _surfaceChange = { switched: false, from: null, to: null };
+      } else {
+        _retained = true;
+        _surfaceChange = await surface.retain();
+      }
+      await present();
     },
 
     disable() {
@@ -339,9 +424,16 @@ export function createImageryOverlayLayer({
       _request++;
       stopLoop({ refresh: false });
       removeLayer();
+      clearDrape();
       _lastError = null;
       _surfaceChange = null;
-      void surface.release();
+      // Release exactly what was retained. A drape never took the surface,
+      // and releasing one it never held would decrement another overlay's
+      // hold — after which the last real holder would fail to give it back.
+      if (_retained) {
+        _retained = false;
+        void surface.release();
+      }
       _viewer?.scene?.requestRender?.();
     },
 
@@ -352,6 +444,19 @@ export function createImageryOverlayLayer({
      */
     attachMapStackController(controller) {
       surface.attach(controller);
+      // The stack can change under a layer that is already on. When it does,
+      // the renderer that suits the new surface takes over from the one that
+      // does not — otherwise leaving photoreal leaves a drape stranded on a
+      // surface that is gone, and arriving at it leaves an imagery layer
+      // drawing nothing at all.
+      if (_unlistenStack || !eventTarget?.addEventListener) return;
+      const onStackChange = (event) => {
+        if (event?.detail?.status && event.detail.status !== 'ready') return;
+        if (_enabled && !_loop) void present();
+      };
+      eventTarget.addEventListener('gev:map-stack-changed', onStackChange);
+      _unlistenStack = () =>
+        eventTarget.removeEventListener('gev:map-stack-changed', onStackChange);
     },
 
     /**
@@ -366,11 +471,15 @@ export function createImageryOverlayLayer({
       if (!_enabled) return false;
       // A loop holds its frames still; the live frame refreshes when it stops.
       if (_loop) return false;
-      return applyProvider();
+      return present();
     },
 
     destroy() {
       this.disable();
+      _unlistenStack?.();
+      _unlistenStack = null;
+      _drape?.destroy();
+      _drape = null;
       _viewer = null;
       _lastUpdate = null;
     },
@@ -483,7 +592,7 @@ export function createImageryOverlayLayer({
       _sensorKey = next.key;
       if (_displayDate && !isArchived(next)) _displayDate = null;
       if (!_enabled) return true;
-      await applyProvider();
+      await present();
       return true;
     },
 
@@ -513,7 +622,7 @@ export function createImageryOverlayLayer({
       if (next === _displayDate) return false;
       _displayDate = next;
       if (!_enabled) return false;
-      return applyProvider();
+      return present();
     },
 
     /** The day this overlay is pinned to, or null when following live. */

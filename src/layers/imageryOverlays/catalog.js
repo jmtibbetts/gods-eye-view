@@ -202,6 +202,49 @@ export function gibsTileUrl(product, time = GIBS_LATEST) {
 }
 
 /**
+ * GIBS in its other voice. The REST endpoint above serves a tile pyramid, and
+ * a pyramid can only be painted by Cesium's imagery layer, which paints on the
+ * globe — the one surface that is not there under Google 3D. The same archive
+ * answers WMS `GetMap` for an arbitrary box, which is a single image, and a
+ * single image can be draped onto the 3D surface itself. Same pixels, asked
+ * for in the shape the other renderer can use.
+ */
+export const GIBS_WMS =
+  'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi';
+
+/**
+ * The WMS source for a product, whichever service it comes from.
+ *
+ * Every catalog entry is either a GIBS layer or an outside WMS layer, so every
+ * one of them can be asked for as a single image. That is what makes draping a
+ * property of the catalog rather than of a favoured few products.
+ *
+ * @param {object} product A catalog entry.
+ * @param {string} [time] A `YYYY-MM-DD` day, or `default` for the latest frame.
+ * @param {number|Date} [now] Clock override for tests.
+ * @returns {{url: string, layers: string, parameters: Record<string,string>}|null}
+ *   Null for a product that names no layer at all, which cannot be asked for.
+ */
+export function drapeSourceFor(product, time = GIBS_LATEST, now = Date.now()) {
+  if (!product) return null;
+  if (product.gibsId)
+    return {
+      url: GIBS_WMS,
+      layers: product.gibsId,
+      // GIBS reads no TIME as its newest frame, which is what `default` means
+      // on the REST side. Sending the word itself is a date it cannot parse.
+      parameters: time && time !== GIBS_LATEST ? { TIME: time } : {},
+    };
+  if (product.wmsLayer)
+    return {
+      url: product.wmsUrl || EUMETVIEW_WMS,
+      layers: product.wmsLayer,
+      parameters: wmsParameters(product, now),
+    };
+  return null;
+}
+
+/**
  * Clamp a requested archive day into the window a product can actually serve.
  *
  * TIMELINE is deliberately generic: it hands every time-aware layer the same
