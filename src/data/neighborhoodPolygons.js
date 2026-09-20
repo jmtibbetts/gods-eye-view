@@ -10,6 +10,7 @@
  * touching this module — see `local_data/neighborhoods/SOURCE.md`.
  */
 
+import { importJsonPack } from './naturalEarthRegions.js';
 import { createRetryableLoader } from './retryableLoad.js';
 
 // bbox = [west, south, east, north]; only load a city file when the point falls in its box.
@@ -17,10 +18,18 @@ const CITY_FILES = [
   {
     id: 'san-francisco',
     bbox: [-122.55, 37.7, -122.35, 37.84],
+    // Asked for plainly first and with the attribute second — see
+    // `importJsonPack`. The attribute alone loads under node:test and never
+    // in the browser, which is how this pack came to be covered by passing
+    // tests while the resolver it backs had nothing to read.
     loader: () =>
-      import('./local_data/neighborhoods/san-francisco.json', {
-        with: { type: 'json' },
-      }),
+      importJsonPack(
+        () => import('./local_data/neighborhoods/san-francisco.json'),
+        () =>
+          import('./local_data/neighborhoods/san-francisco.json', {
+            with: { type: 'json' },
+          }),
+      ),
   },
 ];
 
@@ -107,10 +116,7 @@ function cityLoader(city) {
   let loader = _cityLoaders.get(city.id);
   if (!loader) {
     loader = createRetryableLoader(async () => {
-      // One path for both runtimes: Vite bundles the JSON as a module, and the
-      // import attribute is what Node needs to load the same file under node:test.
-      const mod = await city.loader();
-      const fc = mod.default || mod;
+      const fc = await city.loader();
       return Array.isArray(fc.features) ? fc.features : [];
     });
     _cityLoaders.set(city.id, loader);
