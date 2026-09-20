@@ -6,6 +6,7 @@ import {
   inspectKicker,
   inspectLines,
   instantText,
+  sourceText,
   pinValueFor,
   vesselStatusText,
 } from './inspectPanel.js';
@@ -276,6 +277,20 @@ test('a generic card reads its times, and never repeats its own title', () => {
     /T06:15/,
     'the feed spelling does not reach the card',
   );
+});
+
+test('the card credits its source once, not the layer and the source', () => {
+  // The header already says RECEIVER; "SDR Receivers · Web SDR directory"
+  // under it said receiver twice more.
+  assert.equal(
+    sourceText({ layerName: 'SDR Receivers', source: 'Web SDR directory' }),
+    'Web SDR directory',
+  );
+  assert.equal(sourceText({ layerName: 'Cameras', source: 'TxDOT' }), 'TxDOT');
+  // A record that names no source falls back to the layer.
+  assert.equal(sourceText({ layerName: 'Some Layer' }), 'Some Layer');
+  assert.equal(sourceText({}), '');
+  assert.equal(sourceText(null), '');
 });
 
 test('a closure offers its NOTAM only when the FAA page is known', () => {

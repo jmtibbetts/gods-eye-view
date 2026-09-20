@@ -1,5 +1,12 @@
 # Changelog
 
+- A selected thing is credited to its source once. The INSPECT card paired
+  the layer's own name with the source under a header that already names
+  the kind, so a web receiver read RECEIVER · SDR Receivers · Web SDR
+  directory — the same word three times — and a camera read CAMERAS ·
+  Cameras · TxDOT. The line is the source now, and falls back to the layer
+  only for a record that names none.
+
 - A row that is off says where its data comes from, not that it never
   worked. Every layer's meta line ended in its last-fetch age, and a layer
   that has never been switched on has never fetched — so most of the

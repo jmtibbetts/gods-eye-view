@@ -404,6 +404,17 @@ export function inspectActions(record, caps = {}) {
   return actions;
 }
 
+/**
+ * The card's one provenance line: who publishes this, not what the app
+ * calls the layer. The layer's name is the fallback for a record that
+ * names no source.
+ * @param {object|null} record
+ * @returns {string}
+ */
+export function sourceText(record) {
+  return String(record?.source || record?.layerName || '').trim();
+}
+
 /** The identifier the WATCHLIST would match this selection by, or ''. */
 export function pinValueFor(record) {
   if (!record) return '';
@@ -654,15 +665,11 @@ export class InspectPanel {
     card.dataset.layerId = record.layerId;
     const head = el('div', 'inspect-title', title || '—');
     card.append(head);
-    if (record.layerName || record.source) {
-      card.append(
-        el(
-          'div',
-          'inspect-source',
-          [record.layerName, record.source].filter(Boolean).join(' · '),
-        ),
-      );
-    }
+    // Where it came from, once. The header already says what kind of thing
+    // this is, so pairing it with the layer's own name said "receiver"
+    // three times: RECEIVER · SDR Receivers · Web SDR directory.
+    const provenance = sourceText(record);
+    if (provenance) card.append(el('div', 'inspect-source', provenance));
     if (lines.length) {
       const list = el('div', 'inspect-lines');
       for (const line of lines) list.append(el('div', 'inspect-line', line));
