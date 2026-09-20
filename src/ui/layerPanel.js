@@ -19,68 +19,69 @@ const FEED_STATE_LABELS = Object.freeze({
 });
 
 // Presentation order is independent of catalog registration and startup order.
+// Groups are the part of the world a row draws — sky, sea, ground — not the
+// kind of feed behind it, so a newcomer finds "the planes" and "the ships"
+// without knowing which service carries them. LISTEN is the exception on
+// purpose: those rows put sources on the globe AND have a section in the
+// Context rail where the listening happens, and the row says so.
 const PANEL_GROUPS = [
   {
-    label: 'Movement',
+    label: 'Sky & space',
     ids: [
-      'satellites',
       'flights',
       'military',
-      'ais-live-vessels',
-      'traffic',
-      'transit',
-      'bikeshare',
+      'satellites',
+      'rocket-launches',
+      'conjunctions',
+      'tfr',
+      'aviation-hazards',
+      'satnogs',
     ],
   },
   {
-    label: 'Cameras',
-    ids: ['cctv', 'alpr-cameras'],
+    label: 'Sea',
+    ids: ['ais-live-vessels', 'telegeography-submarine-cables'],
   },
   {
-    label: 'Infrastructure',
+    label: 'Ground',
     ids: [
+      'traffic',
+      'transit',
+      'bikeshare',
+      'cctv',
+      'alpr-cameras',
       'military-installations',
       'local-datacenters',
-      'telegeography-submarine-cables',
       'local-dams',
+      'directions',
     ],
   },
   {
     label: 'Events',
-    ids: [
-      'rocket-launches',
-      'conjunctions',
-      'earthquakes',
-      'volcanoes',
-      'local-firms',
-      'conflict-reports',
-    ],
+    ids: ['earthquakes', 'volcanoes', 'local-firms', 'conflict-reports'],
   },
   {
-    // Ordered from "what is happening now" to "what is forecast": live
-    // warnings and observations first, imagery in the middle, outlooks last.
-    label: 'Imagery & Weather',
+    // Ordered from "what is happening now" to "what is forecast".
+    label: 'Weather',
     ids: [
       'weather-alerts',
       'storm-reports',
       'lightning',
-      'aviation-hazards',
-      'tfr',
+      'tropical-cyclones',
       'river-flood',
       'air-quality',
-      'imagery-radar',
-      'imagery-goes',
-      'imagery-viirs',
-      'imagery-science',
-      'tropical-cyclones',
       'severe-outlook',
       'drought',
       'space-weather',
     ],
   },
   {
-    label: 'Utilities',
-    ids: ['directions', 'radio', 'scanner', 'sdr', 'atc', 'satnogs'],
+    label: 'Imagery',
+    ids: ['imagery-radar', 'imagery-goes', 'imagery-viirs', 'imagery-science'],
+  },
+  {
+    label: 'Listen',
+    ids: ['radio', 'scanner', 'sdr', 'atc'],
   },
 ];
 const PANEL_ORDER = PANEL_GROUPS.flatMap(({ label, ids }) =>
@@ -89,6 +90,37 @@ const PANEL_ORDER = PANEL_GROUPS.flatMap(({ label, ids }) =>
 const PANEL_POSITIONS = new Map(
   PANEL_ORDER.map(({ id }, index) => [id, index]),
 );
+/**
+ * Rows that have a section in the Context rail behind them. The row's
+ * PANEL › opens that section, so the two doors to one capability are
+ * visibly the same door.
+ */
+export const PANEL_FOR_LAYER = Object.freeze({
+  radio: 'radio-panel',
+  scanner: 'scanner-panel',
+  sdr: 'sdr-panel',
+  atc: 'atc-panel',
+  cctv: 'cctv-panel',
+  'imagery-radar': 'imagery-panel',
+  'imagery-goes': 'imagery-panel',
+  'imagery-viirs': 'imagery-panel',
+  'imagery-science': 'imagery-panel',
+  satellites: 'sensors-panel',
+  'rocket-launches': 'launch-panel',
+  'ais-live-vessels': 'vessel-watch-panel',
+});
+/** What the PANEL › button says it opens. */
+const PANEL_SECTION_NAMES = Object.freeze({
+  'radio-panel': 'RADIO',
+  'scanner-panel': 'SCANNERS',
+  'sdr-panel': 'RECEIVERS',
+  'atc-panel': 'AIRBAND',
+  'cctv-panel': 'CAMERAS',
+  'imagery-panel': 'IMAGERY',
+  'sensors-panel': 'SENSORS',
+  'launch-panel': 'LAUNCH',
+  'vessel-watch-panel': 'VESSEL WATCH',
+});
 const PANEL_LABELS = {
   'ais-live-vessels': 'Live Vessels',
   bikeshare: 'Bike Share',
@@ -158,6 +190,14 @@ export class LayerPanel {
     subscribeRowControls,
     onHiddenRefresh = () => {},
     onPresetToast = () => {},
+    onOpenPanel = (panelId, layerId) => {
+      // Decoupled from the shell on purpose: the rail owns the panels, the
+      // list owns the rows, and a DOM event is the seam between them.
+      if (typeof window === 'undefined') return;
+      window.dispatchEvent(
+        new CustomEvent('gev:open-panel', { detail: { panelId, layerId } }),
+      );
+    },
   }) {
     this.getAll = getLayers;
     this.isEnabled = isEnabled;
@@ -168,15 +208,90 @@ export class LayerPanel {
     this.subscribeRowControls = subscribeRowControls;
     this.onHiddenRefresh = onHiddenRefresh;
     this.onPresetToast = onPresetToast;
+    this.onOpenPanel = onOpenPanel;
+    this._filterText = '';
+    this._filterApplied = false;
+    this._filterInput = null;
     this._generation = 0;
     this._removers = [];
     this._destroyed = false;
   }
-  mount(container) {
+  /**
+   * @param {HTMLElement} container The toggle list host.
+   * @param {HTMLInputElement|null} [filterInput] A search box above it; the
+   *   list narrows to rows whose name, source or id contain the text.
+   */
+  mount(container, filterInput = null) {
     if (this._destroyed) return;
     this._releaseBindings();
     this._toggleContainer = container;
+    this._filterRemover?.();
+    this._filterRemover = null;
+    this._filterInput = filterInput || null;
+    if (this._filterInput) {
+      // Bound outside the row bindings: every render releases those, and
+      // the box must keep listening across renders.
+      const input = this._filterInput;
+      const onInput = () => {
+        this._filterText = String(input.value || '')
+          .trim()
+          .toLowerCase();
+        this._applyFilter();
+      };
+      const onKey = (event) => {
+        if (event.key === 'Escape' && input.value) {
+          input.value = '';
+          onInput();
+        }
+      };
+      input.addEventListener('input', onInput);
+      input.addEventListener('keydown', onKey);
+      this._filterRemover = () => {
+        input.removeEventListener('input', onInput);
+        input.removeEventListener('keydown', onKey);
+      };
+    }
     this._renderToggles();
+  }
+
+  /**
+   * Hide the rows the filter text does not match, and any heading left with
+   * nothing under it. Presets stay: they are one press, not a search.
+   */
+  _applyFilter() {
+    const host = this._toggleContainer;
+    if (!host) return;
+    const text = this._filterText || '';
+    // Nothing typed and nothing hidden: a fresh render is already unfiltered,
+    // and the panel is mounted against stand-in nodes in some tests.
+    if (!text && !this._filterApplied) return;
+    this._filterApplied = Boolean(text);
+    const hasClass = (node, name) =>
+      typeof node?.classList?.contains === 'function'
+        ? node.classList.contains(name)
+        : String(node?.className || '')
+            .split(/\s+/)
+            .includes(name);
+    let heading = null;
+    let headingHasRows = false;
+    const settle = () => {
+      if (heading) heading.hidden = !headingHasRows;
+    };
+    for (const node of Array.from(host.children || [])) {
+      if (hasClass(node, 'data-layer-group-heading')) {
+        settle();
+        heading = node;
+        headingHasRows = false;
+        continue;
+      }
+      if (!hasClass(node, 'data-toggle-row')) continue;
+      const hay =
+        `${node.dataset.layerId} ${node.querySelector('.data-name')?.textContent ?? ''} ${node.querySelector('.data-toggle-meta')?.textContent ?? ''}`.toLowerCase();
+      const show = !text || hay.includes(text);
+      node.hidden = !show;
+      if (show) headingHasRows = true;
+    }
+    settle();
   }
   _bind(element, type, listener) {
     element.addEventListener(type, listener);
@@ -187,6 +302,8 @@ export class LayerPanel {
     for (const remove of this._removers.splice(0)) remove();
   }
   destroy() {
+    this._filterRemover?.();
+    this._filterRemover = null;
     if (this._destroyed) return;
     this._destroyed = true;
     this._releaseBindings();
@@ -340,6 +457,24 @@ export class LayerPanel {
       row.appendChild(topRow);
       row.appendChild(bottomRow);
 
+      // A row with a section in the Context rail says so under its source
+      // line, where there is room, and opens it.
+      const panelId = PANEL_FOR_LAYER[layer.id];
+      if (panelId) {
+        const links = document.createElement('div');
+        links.className = 'data-toggle-links';
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'data-toggle-panel-btn';
+        const section = PANEL_SECTION_NAMES[panelId] || 'PANEL';
+        open.textContent = `${section} PANEL ›`;
+        open.title = `Open the ${section} section in the Context rail`;
+        open.setAttribute('aria-label', `Open the ${section} section`);
+        this._bind(open, 'click', () => this.onOpenPanel(panelId, layer.id));
+        links.appendChild(open);
+        row.appendChild(links);
+      }
+
       // Optional per-layer sub-controls (chips + color legend). The click
       // listener is delegated and attached once here, so it survives
       // _refreshTogglePanel — which only rewrites the container's contents.
@@ -388,6 +523,7 @@ export class LayerPanel {
 
       this._toggleContainer.appendChild(row);
     }
+    this._applyFilter();
   }
 
   /** Qualify a loaded count when it does not mean items currently on screen. */

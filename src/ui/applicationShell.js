@@ -557,6 +557,7 @@ export class StyleManager extends ShellFacade {
     this._initRadioPanel();
     this._initAudioPanels();
     this._initLaunchPanel();
+    this._initOpenPanelRequests();
     this._initCctvPanel();
     this._initGlobalContextPanel();
     this._initLocationBar();
@@ -1099,23 +1100,52 @@ export class StyleManager extends ShellFacade {
       // as an auto-collapse — and scrolls the panel into view, since the
       // rail is taller than the window. Nothing is persisted: following a
       // satellite is not the user saying where their panels go next time.
-      expandPanel: (panelId) => {
-        this.setPanelCollapsed('global-context-panel', false, {
-          explicit: true,
-          persist: false,
-        });
-        this.setPanelCollapsed(panelId, false, {
-          explicit: false,
-          persist: false,
-        });
-        document
-          .getElementById(panelId)
-          ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
-      },
+      expandPanel: (panelId) => this.openContextSection(panelId),
       onToast: (message) => {
         if (!this._disposed) this._showToast(message);
       },
     });
+  }
+
+  /**
+   * Open a section of the right rail and bring it into view — the seam
+   * between a layer row's PANEL › and the section it belongs to, and the
+   * way SENSORS opens when a satellite is tracked. A section inside the
+   * Context rail opens the rail first (explicitly, or the right-stack
+   * layout folds it straight back as an auto-collapse). Nothing is
+   * persisted: opening a section on the way to something is not the user
+   * saying where their panels go next time.
+   * @param {string} panelId
+   */
+  openContextSection(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return false;
+    if (panel.closest('#global-context-panel')) {
+      this.setPanelCollapsed('global-context-panel', false, {
+        explicit: true,
+        persist: false,
+      });
+    }
+    this.setPanelCollapsed(panelId, false, {
+      explicit: panel.closest('#global-context-panel') ? false : true,
+      persist: false,
+    });
+    panel.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    return true;
+  }
+
+  /** A layer row's PANEL › asks, by event, for its Context section to open. */
+  _initOpenPanelRequests() {
+    this._openPanelHandler?.();
+    const onOpen = (event) => {
+      if (this._disposed) return;
+      const panelId = event?.detail?.panelId;
+      if (typeof panelId === 'string' && panelId)
+        this.openContextSection(panelId);
+    };
+    window.addEventListener('gev:open-panel', onOpen);
+    this._openPanelHandler = () =>
+      window.removeEventListener('gev:open-panel', onOpen);
   }
 
   /** Wire the LAUNCH panel: countdowns, webcasts and what a radio near the range hears. */
@@ -1936,6 +1966,8 @@ export class StyleManager extends ShellFacade {
     this._imageryPanel?.destroy();
     this._sensorsPanel?.destroy();
     this._launchPanel?.destroy();
+    this._openPanelHandler?.();
+    this._openPanelHandler = null;
     this._audioDock?.destroy();
     this._cockpitCoordinator.stop();
     this._visualSettings.stop();

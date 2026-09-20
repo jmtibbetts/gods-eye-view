@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
-test('panel presentation places Transit between Street Traffic and Bike Share in Movement', () => {
+test('panel presentation groups rows by the part of the world they draw', () => {
   const source = readFileSync(
     new URL('./layerPanel.js', import.meta.url),
     'utf8',
@@ -16,18 +16,38 @@ test('panel presentation places Transit between Street Traffic and Bike Share in
     runInNewContext(`${declarations}\nJSON.stringify(PANEL_ORDER)`),
   );
   assert.deepEqual(
-    order.filter(({ label }) => label === 'Movement').map(({ id }) => id),
+    order.filter(({ label }) => label === 'Sky & space').map(({ id }) => id),
     [
-      'satellites',
       'flights',
       'military',
-      'ais-live-vessels',
+      'satellites',
+      'rocket-launches',
+      'conjunctions',
+      'tfr',
+      'aviation-hazards',
+      'satnogs',
+    ],
+  );
+  assert.deepEqual(
+    order.filter(({ label }) => label === 'Ground').map(({ id }) => id),
+    [
       'traffic',
       'transit',
       'bikeshare',
+      'cctv',
+      'alpr-cameras',
+      'military-installations',
+      'local-datacenters',
+      'local-dams',
+      'directions',
     ],
   );
+  assert.deepEqual(
+    order.filter(({ label }) => label === 'Listen').map(({ id }) => id),
+    ['radio', 'scanner', 'sdr', 'atc'],
+  );
   assert.equal(order.filter(({ id }) => id === 'transit').length, 1);
+  assert.equal(new Set(order.map(({ id }) => id)).size, order.length);
 });
 
 test('partial feed controls distinguish incomplete records from stale data and outages', async () => {

@@ -107,6 +107,55 @@
   border-radius: 999px;
 }
 
+/* Forty-three rows need a way in: the box narrows the list as you type. */
+.data-layer-filter {
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(65, 220, 231, 0.22);
+  border-radius: 6px;
+  color: #c5faff;
+  background: rgba(5, 24, 31, 0.7);
+  font: 10px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  outline: none;
+}
+.data-layer-filter::placeholder {
+  color: rgba(197, 250, 255, 0.38);
+}
+.data-layer-filter:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.12);
+}
+#data-panel.collapsed .data-layer-filter {
+  display: none;
+}
+
+/* A row with a section in the Context rail says so, and opens it. */
+.data-toggle-links {
+  margin: 3px 0 0;
+}
+.data-toggle-panel-btn {
+  padding: 2px 0;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  color: rgba(101, 247, 255, 0.72);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+.data-toggle-panel-btn:hover,
+.data-toggle-panel-btn:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  outline: none;
+}
+
 .data-layer-group-heading {
   margin: 8px 10px 2px;
   padding-top: 12px;
@@ -1396,4 +1445,49 @@
 #right-context-rail #global-context-panel:not(.collapsed) #sensors-panel,
 #right-context-rail #global-context-panel:not(.collapsed) #imagery-panel {
   flex: 0 0 auto;
+}
+
+/* The Context rail's sections sit under verb headings — LISTEN, WATCH,
+   IMAGERY, ALERTS — so the rail reads as what you can do, not as the
+   order the sections were built in. A group is a plain block inside the
+   rail's flex column: its sections keep their natural heights. */
+#right-context-rail .context-group {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+}
+#right-context-rail .context-group-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0 2px 4px;
+  border-bottom: 1px solid rgba(65, 220, 231, 0.22);
+  color: #65f7ff;
+  font: 600 9px/1 var(--font-mono);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+#right-context-rail .context-group-blurb {
+  color: var(--text-dim);
+  font-weight: 400;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+/* SENSORS and TIMELINE are controls of IMAGERY, and sit under it as such. */
+#right-context-rail .context-subsection {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(65, 220, 231, 0.18);
+  box-sizing: border-box;
+}
+#right-context-rail #sensors-panel.context-subsection,
+#right-context-rail #timeline-panel.context-subsection {
+  width: calc(100% - 10px);
+}
+#right-context-rail #global-context-panel.collapsed .context-group,
+#right-context-rail #global-context-panel.collapsed .context-group-heading {
+  display: none;
 }

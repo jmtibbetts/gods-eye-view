@@ -64,8 +64,8 @@ export class LayerPresentation {
       });
     return this._panel;
   }
-  mount(container) {
-    this.panel.mount(container);
+  mount(container, filterInput = null) {
+    this.panel.mount(container, filterInput);
   }
   refresh() {
     this._panel?._refreshTogglePanel();

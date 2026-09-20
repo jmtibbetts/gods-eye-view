@@ -1,5 +1,23 @@
 # Changelog
 
+- The rails are grouped by what they hold, and each row knows where its
+  controls are. DATA LAYERS has a filter box at the top ("planes", "radar",
+  "scanners" — it matches names, sources and the meta line, and Escape
+  clears it) and its forty-three rows sit in groups by the part of the world
+  they draw: Sky & space, Sea, Ground, Events, Weather, Imagery and Listen,
+  with Combinations first as before. A row whose controls live in the
+  Context rail carries a text link — SENSORS PANEL ›, LAUNCH PANEL ›,
+  RECEIVERS PANEL › — that opens the rail, expands that section and scrolls
+  it into view, so turning on Web SDR Receivers no longer leaves a map of
+  dots and no way to hear one. The Context sections are grouped under
+  verbs: LISTEN (Radio, Scanners, Receivers, Airband), WATCH (Launch),
+  IMAGERY (Imagery, with Sensors and Timeline indented beneath it as its
+  controls) and ALERTS (Monitor, Watchlist, Vessel Watch). Section ids,
+  saved collapse state and share links are unchanged; only the order and
+  the headings moved. Any part of the app can ask for a section with a
+  `gev:open-panel` window event, which is how the rows and the sensor
+  tracker reach it. The plan and the reasoning are in `docs/UX-REVIEW.md`.
+
 - One vocabulary across the rails, and a review of why. `docs/UX-REVIEW.md`
   looks at the shell from the user's chair — two front doors for one
   capability, sections named after sources rather than intents, a dozen

@@ -413,6 +413,15 @@ presentation work stop during disposal; layer restoration retains its existing
 compensation and latest-intent rules. Clear Selected Layers shares this owner,
 so an older restore cannot replay over a newer Clear action.
 
+The Context rail's sections are wrapped in verb groups in `context.html`
+(`.context-group[data-context-group]`: `listen` holds Radio, Scanners,
+Receivers and Airband; `watch` holds Launch; `imagery` holds Imagery with
+Sensors and Timeline as `.context-subsection` children; `alerts` holds
+Monitor, Watchlist and Vessel Watch). The wrappers are presentation only:
+section ids, `data-panel-id` values, collapse buttons, persisted disclosure
+state and share links are unchanged, and the group headings hide with the
+rest of the rail when Context is collapsed.
+
 
 ## Camera panel ownership
 
@@ -474,6 +483,22 @@ are owned by a renderer-free panel component. The layer manager supplies current
 snapshots, lifecycle actions and row descriptors. Remount and teardown remove
 listeners and row subscriptions; obsolete completions do not repaint old rows.
 The clear control presents busy state while its existing action owns the transaction.
+
+Rows are grouped by the part of the world they draw (`PANEL_GROUPS` in
+`src/ui/layerPanel.js`: Sky & space, Sea, Ground, Events, Weather, Imagery,
+Listen), with Combinations first. A layer id absent from every group falls to
+the end in catalog order, so a new layer renders before it is placed. The
+filter box above the list (`#data-layer-filter`) is bound by `mount()` through
+its own remover, separate from the row bindings that every re-render releases;
+it hides rows whose id, name and meta text miss the query and the group
+headings left empty, and Escape clears it. `PANEL_FOR_LAYER` maps a layer id
+to the Context section (or camera console) that owns its controls; rows with a
+mapping carry a `SECTION PANEL ›` text link under the meta line that calls the
+panel's `onOpenPanel` option, whose default dispatches a `gev:open-panel`
+window event (`detail.panelId`, `detail.layerId`). The application shell
+listens for that event and its `openContextSection(panelId)` opens the Context
+rail explicitly when the section lives inside it, expands the section and
+scrolls it into view without persisting either disclosure.
 
 
 ## Map Source control ownership

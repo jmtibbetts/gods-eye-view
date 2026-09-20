@@ -51,7 +51,10 @@ export function createApplicationData({
         delete window.__gevQaUnregisterLayer;
     });
   }
-  presentation.mount(document.getElementById('data-toggles'));
+  presentation.mount(
+    document.getElementById('data-toggles'),
+    document.getElementById('data-layer-filter'),
+  );
   styleManager.attachDataManager(dataManager);
 
   return { dataManager, catalog, presentation };

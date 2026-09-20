@@ -85,6 +85,8 @@
             </div>
           </div>
         </section>
+        <div class="context-group" data-context-group="listen">
+          <h3 class="context-group-heading"><span>LISTEN</span><span class="context-group-blurb">sound from the place</span></h3>
         <section id="radio-panel" class="panel-collapsible collapsed" data-panel-id="radio-panel" aria-label="Internet radio companion">
           <div class="radio-panel-inner">
             <div class="panel-header">
@@ -284,6 +286,75 @@
             <p class="audio-privacy">Frequencies come from the FAA's current 28-day data (US) and OurAirports (world). Audio plays from an airband web SDR in range (in a window on the map) or from LiveATC's own page (in its own tab — LiveATC does not allow embedding) — never relayed by this app.</p>
           </div>
         </section>
+        </div>
+        <div class="context-group" data-context-group="watch">
+          <h3 class="context-group-heading"><span>WATCH</span><span class="context-group-blurb">live pictures</span></h3>
+        <section id="launch-panel" class="panel-collapsible collapsed" data-panel-id="launch-panel" aria-label="Upcoming and live rocket launches">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">LAUNCH</span>
+              <span id="launch-layer-state" class="audio-layer-state">NONE</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="launch-panel" title="Expand Launch" aria-label="Expand Launch section">+</button>
+            </div>
+            <div id="launch-body" class="launch-body" aria-label="Upcoming and live rocket launches"></div>
+            <p id="launch-note" class="audio-privacy"></p>
+            <p class="audio-privacy">WATCH opens the operator&rsquo;s own webcast; the countdown net and flight loops you hear on it are their circuits, mixed into the stream, not a public band. RADIO names what a radio near the range can actually receive &mdash; the range&rsquo;s trunked system where OpenMHz carries it, the tower and approach frequencies of the airfields under the closure, and nearby web receivers &mdash; and says which of them cannot hear a launch at all.</p>
+          </div>
+        </section>
+        </div>
+        <div class="context-group" data-context-group="imagery">
+          <h3 class="context-group-heading"><span>IMAGERY</span><span class="context-group-blurb">look closer</span></h3>
+        <section id="imagery-panel" class="panel-collapsible collapsed" data-panel-id="imagery-panel" aria-label="Satellite imagery sensors">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">IMAGERY</span>
+              <span id="imagery-layer-state" class="audio-layer-state">OFF</span>
+              <span class="panel-divider"></span>
+              <button id="imagery-clear-btn" class="imagery-clear-btn" type="button" aria-label="Turn off every imagery overlay" disabled>CLEAR</button>
+              <button class="panel-collapse-btn" data-collapse-target="imagery-panel" title="Expand Imagery" aria-label="Expand Imagery section">+</button>
+            </div>
+            <div id="imagery-list" class="imagery-list" aria-label="Imagery sensors"></div>
+            <p id="imagery-note" class="audio-privacy"></p>
+            <p class="audio-privacy">Imagery is painted on the 2D globe surface, which the photorealistic 3D basemap replaces — so turning on any sensor switches the basemap to 2D, and CLEAR switches it back. Imagery is published on each instrument's own schedule — the lag shown per sensor is real, and none of these is a live view of this second.</p>
+          </div>
+        </section>
+        <section id="sensors-panel" class="panel-collapsible collapsed context-subsection" data-panel-id="sensors-panel" aria-label="Sensors aboard the tracked satellite">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">SENSORS</span>
+              <span id="sensors-layer-state" class="audio-layer-state">READY</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="sensors-panel" title="Expand Sensors" aria-label="Expand Sensors section">+</button>
+            </div>
+            <div id="sensors-body" class="sensors-body" aria-label="Sensors aboard the tracked satellite"></div>
+            <p id="sensors-note" class="audio-privacy"></p>
+            <p class="audio-privacy">No public satellite takes commands from anyone but its operator. What this panel switches is which of a satellite's published bands the globe draws; the footprint under the satellite is where its instrument is looking now, and the picture is the newest one it has published — minutes behind for a geostationary imager, a day for a polar one.</p>
+          </div>
+        </section>
+        <section id="timeline-panel" class="panel-collapsible collapsed context-subsection" data-panel-id="timeline-panel" aria-label="Imagery timeline">
+          <div class="audio-panel-inner">
+            <div class="panel-header">
+              <span class="panel-title">TIMELINE</span>
+              <span id="timeline-layer-state" class="audio-layer-state">LIVE</span>
+              <span class="panel-divider"></span>
+              <button class="panel-collapse-btn" data-collapse-target="timeline-panel" title="Expand Timeline" aria-label="Expand Timeline section">+</button>
+            </div>
+            <div id="timeline-label" class="timeline-label">LIVE</div>
+            <input id="timeline-slider" class="timeline-slider" type="range" min="0" max="13" step="1" value="13" aria-label="Scrub imagery back through the archive" />
+            <div class="audio-transport" role="group" aria-label="Timeline controls">
+              <button id="timeline-back-btn" type="button" aria-label="Back one day">&lt;</button>
+              <button id="timeline-play-btn" type="button" aria-label="Play the archive forward">PLAY</button>
+              <button id="timeline-forward-btn" type="button" aria-label="Forward one day">&gt;</button>
+              <button id="timeline-live-btn" type="button" aria-label="Return to the live frame" disabled>LIVE</button>
+            </div>
+            <p id="timeline-note" class="audio-privacy"></p>
+            <p class="audio-privacy">Only feeds with an archive move: daily satellite imagery is republished per UTC day, so the live frame is yesterday. Live feeds — aircraft, vessels, radar — always show now and are not rewound.</p>
+          </div>
+        </section>
+        </div>
+        <div class="context-group" data-context-group="alerts">
+          <h3 class="context-group-heading"><span>ALERTS</span><span class="context-group-blurb">tell me when</span></h3>
         <section id="monitor-panel" class="panel-collapsible collapsed" data-panel-id="monitor-panel" aria-label="Region monitor">
           <div class="audio-panel-inner">
             <div class="panel-header">
@@ -338,66 +409,7 @@
             <p class="audio-privacy">Sanctions matching is by MMSI only, never by name, so a listed ship whose entry carries no MMSI will not appear — absence here is not evidence a vessel is unlisted. A vessel is only called dark after repeated sightings then sustained silence; AIS coverage is patchy and a gap is not proof a transponder was switched off.</p>
           </div>
         </section>
-        <section id="launch-panel" class="panel-collapsible collapsed" data-panel-id="launch-panel" aria-label="Upcoming and live rocket launches">
-          <div class="audio-panel-inner">
-            <div class="panel-header">
-              <span class="panel-title">LAUNCH</span>
-              <span id="launch-layer-state" class="audio-layer-state">NONE</span>
-              <span class="panel-divider"></span>
-              <button class="panel-collapse-btn" data-collapse-target="launch-panel" title="Expand Launch" aria-label="Expand Launch section">+</button>
-            </div>
-            <div id="launch-body" class="launch-body" aria-label="Upcoming and live rocket launches"></div>
-            <p id="launch-note" class="audio-privacy"></p>
-            <p class="audio-privacy">WATCH opens the operator&rsquo;s own webcast; the countdown net and flight loops you hear on it are their circuits, mixed into the stream, not a public band. RADIO names what a radio near the range can actually receive &mdash; the range&rsquo;s trunked system where OpenMHz carries it, the tower and approach frequencies of the airfields under the closure, and nearby web receivers &mdash; and says which of them cannot hear a launch at all.</p>
-          </div>
-        </section>
-        <section id="sensors-panel" class="panel-collapsible collapsed" data-panel-id="sensors-panel" aria-label="Sensors aboard the tracked satellite">
-          <div class="audio-panel-inner">
-            <div class="panel-header">
-              <span class="panel-title">SENSORS</span>
-              <span id="sensors-layer-state" class="audio-layer-state">READY</span>
-              <span class="panel-divider"></span>
-              <button class="panel-collapse-btn" data-collapse-target="sensors-panel" title="Expand Sensors" aria-label="Expand Sensors section">+</button>
-            </div>
-            <div id="sensors-body" class="sensors-body" aria-label="Sensors aboard the tracked satellite"></div>
-            <p id="sensors-note" class="audio-privacy"></p>
-            <p class="audio-privacy">No public satellite takes commands from anyone but its operator. What this panel switches is which of a satellite's published bands the globe draws; the footprint under the satellite is where its instrument is looking now, and the picture is the newest one it has published — minutes behind for a geostationary imager, a day for a polar one.</p>
-          </div>
-        </section>
-        <section id="imagery-panel" class="panel-collapsible collapsed" data-panel-id="imagery-panel" aria-label="Satellite imagery sensors">
-          <div class="audio-panel-inner">
-            <div class="panel-header">
-              <span class="panel-title">IMAGERY</span>
-              <span id="imagery-layer-state" class="audio-layer-state">OFF</span>
-              <span class="panel-divider"></span>
-              <button id="imagery-clear-btn" class="imagery-clear-btn" type="button" aria-label="Turn off every imagery overlay" disabled>CLEAR</button>
-              <button class="panel-collapse-btn" data-collapse-target="imagery-panel" title="Expand Imagery" aria-label="Expand Imagery section">+</button>
-            </div>
-            <div id="imagery-list" class="imagery-list" aria-label="Imagery sensors"></div>
-            <p id="imagery-note" class="audio-privacy"></p>
-            <p class="audio-privacy">Imagery is painted on the 2D globe surface, which the photorealistic 3D basemap replaces — so turning on any sensor switches the basemap to 2D, and CLEAR switches it back. Imagery is published on each instrument's own schedule — the lag shown per sensor is real, and none of these is a live view of this second.</p>
-          </div>
-        </section>
-        <section id="timeline-panel" class="panel-collapsible collapsed" data-panel-id="timeline-panel" aria-label="Imagery timeline">
-          <div class="audio-panel-inner">
-            <div class="panel-header">
-              <span class="panel-title">TIMELINE</span>
-              <span id="timeline-layer-state" class="audio-layer-state">LIVE</span>
-              <span class="panel-divider"></span>
-              <button class="panel-collapse-btn" data-collapse-target="timeline-panel" title="Expand Timeline" aria-label="Expand Timeline section">+</button>
-            </div>
-            <div id="timeline-label" class="timeline-label">LIVE</div>
-            <input id="timeline-slider" class="timeline-slider" type="range" min="0" max="13" step="1" value="13" aria-label="Scrub imagery back through the archive" />
-            <div class="audio-transport" role="group" aria-label="Timeline controls">
-              <button id="timeline-back-btn" type="button" aria-label="Back one day">&lt;</button>
-              <button id="timeline-play-btn" type="button" aria-label="Play the archive forward">PLAY</button>
-              <button id="timeline-forward-btn" type="button" aria-label="Forward one day">&gt;</button>
-              <button id="timeline-live-btn" type="button" aria-label="Return to the live frame" disabled>LIVE</button>
-            </div>
-            <p id="timeline-note" class="audio-privacy"></p>
-            <p class="audio-privacy">Only feeds with an archive move: daily satellite imagery is republished per UTC day, so the live frame is yesterday. Live feeds — aircraft, vessels, radar — always show now and are not rewound.</p>
-          </div>
-        </section>
+        </div>
       </div>
     </div>
   </aside>
