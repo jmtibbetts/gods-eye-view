@@ -1,5 +1,17 @@
 # Changelog
 
+- A row that is off says where its data comes from, not that it never
+  worked. Every layer's meta line ended in its last-fetch age, and a layer
+  that has never been switched on has never fetched — so most of the
+  forty-three rows read "adsb.lol · never", "CelesTrak · never", "FAA ·
+  never", which down a list says the app is broken rather than that nobody
+  has asked those sources for anything. An off row names its source and
+  stops; an off row that HAS fetched keeps its age, because how stale the
+  last snapshot is stays worth knowing; and "never" still appears where it
+  means something, on a layer that is on and has come back with nothing.
+  Active Fires also stopped saying LIVE twice — the layer's own label
+  reports LIVE or STALE, so the source is just NASA FIRMS.
+
 - A card states a time as a time. Most of the forty-three layers describe a
   selection as flat key/value pairs, which INSPECT renders as they come —
   so a flood advisory read "EXPIRES 2026-09-20T06:15:00-04:00", which is

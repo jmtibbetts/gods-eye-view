@@ -109,3 +109,34 @@ test('partial feed controls distinguish incomplete records from stale data and o
   panel._syncToggleButton(button, layer);
   assert.equal(button.textContent, 'OFF');
 });
+
+test('a row that is off says where its data comes from, not that it never worked', async () => {
+  const { LayerPanel } = await import('./layerPanel.js');
+  const panel = LayerPanel.prototype;
+  const off = {
+    id: 'military',
+    name: 'Military Flights',
+    source: 'adsb.lol',
+    enabled: false,
+    stats: {},
+  };
+  // "adsb.lol · never" reads as a source that has never worked. Down a list
+  // of forty-three rows, most of them off, it reads as a broken app.
+  assert.equal(panel._buildMetaText(off), 'adsb.lol');
+
+  // On and genuinely never fetched is worth saying.
+  assert.equal(
+    panel._buildMetaText({ ...off, enabled: true }),
+    'adsb.lol · never',
+  );
+
+  // Off but previously fetched keeps its age: how stale the last snapshot
+  // is stays worth knowing.
+  assert.match(
+    panel._buildMetaText({
+      ...off,
+      stats: { lastUpdate: Date.now() - 120_000 },
+    }),
+    /^adsb\.lol · 2m ago$/,
+  );
+});

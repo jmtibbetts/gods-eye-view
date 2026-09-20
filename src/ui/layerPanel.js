@@ -753,7 +753,16 @@ export class LayerPanel {
     ) {
       return `${source} · ${stats.statusMessage.trim()}`;
     }
-    const ago = stats.lastUpdate ? this._timeAgo(stats.lastUpdate) : 'never';
+    // A layer that is OFF has not been asked for anything, so "never" reads
+    // as a source that has never worked rather than one nobody has turned
+    // on — a column of it down a list of forty-three rows says the app is
+    // broken. An off layer that HAS fetched keeps its age: how stale the
+    // last snapshot is stays worth knowing.
+    const ago = stats.lastUpdate
+      ? this._timeAgo(stats.lastUpdate)
+      : lifecycleState === 'enabled'
+        ? 'never'
+        : '';
     if (stats.loading) {
       const loadingLabel =
         typeof stats.loadingLabel === 'string' && stats.loadingLabel.trim()
@@ -789,7 +798,7 @@ export class LayerPanel {
     if (typeof stats.loadingLabel === 'string' && stats.loadingLabel.trim()) {
       return `${source} · ${stats.loadingLabel.trim()}`;
     }
-    return `${source} · ${ago}`;
+    return ago ? `${source} · ${ago}` : source;
   }
 
   _syncToggleButton(button, layer) {
