@@ -635,7 +635,7 @@ export class SdrPanel {
     this.viewer = viewer;
     /** Optional ATC layer: turns the Airband preset into the nearest tower frequency. */
     this.atc = atc;
-    /** The in-map receiver dock (LiveATC fallback when no airband SDR is in range). */
+    /** The in-map dock (LiveATC fallback when no airband SDR is in range). */
     this.dock = dock;
     this.label = 'SDR';
     this.destroyed = false;
@@ -1093,7 +1093,7 @@ export class AtcPanel {
     this.layer = layer;
     this.actions = actions;
     this.viewer = viewer;
-    /** The in-map receiver dock, closed by STOP. */
+    /** The in-map dock, closed by STOP. */
     this.dock = dock;
     this.label = 'ATC';
     this.destroyed = false;

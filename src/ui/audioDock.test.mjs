@@ -151,3 +151,50 @@ test('the dock opens, retargets in place, records state and closes to about:blan
   assert.equal(frameReferrerPolicy(undefined), 'no-referrer');
   dock.destroy();
 });
+
+test('the dock names what it is doing, not the software inside it', () => {
+  const made = [];
+  const element = () => {
+    const node = {
+      textContent: '',
+      hidden: false,
+      title: '',
+      attrs: {},
+      classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+      style: {},
+      dataset: {},
+      setAttribute(k, v) {
+        node.attrs[k] = String(v);
+      },
+      getAttribute: (k) => node.attrs[k] ?? null,
+      addEventListener() {},
+      removeEventListener() {},
+      getBoundingClientRect: () => ({
+        width: 680,
+        height: 440,
+        top: 0,
+        left: 0,
+      }),
+      querySelector: () => null,
+    };
+    made.push(node);
+    return node;
+  };
+  const root = element();
+  const kind = element();
+  const zoomBtn = element();
+  const dock = new AudioDock({
+    elements: { root, kind, zoomBtn, title: element(), subtitle: element() },
+  });
+
+  dock.open('https://example.org/stream', { kind: 'video', title: 'ISS LIVE' });
+  assert.equal(kind.textContent, 'NOW SHOWING');
+  assert.equal(root.getAttribute('aria-label'), 'Now showing');
+  assert.doesNotMatch(zoomBtn.title, /receiver/i);
+
+  dock.open('https://example.org/sdr', { kind: 'sdr', title: 'KiwiSDR' });
+  assert.equal(kind.textContent, 'NOW PLAYING');
+  assert.equal(root.getAttribute('aria-label'), 'Now playing');
+  assert.doesNotMatch(zoomBtn.title, /receiver/i);
+  dock.destroy();
+});

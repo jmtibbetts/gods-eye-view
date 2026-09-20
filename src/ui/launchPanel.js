@@ -17,7 +17,7 @@ import {
  * LAUNCH — the next launches as live countdowns, each with the honest way
  * to watch it and to hear it.
  *
- * WATCH opens the operator's webcast: framed in the receiver dock when the
+ * WATCH opens the operator's webcast: framed in the dock when the
  * publisher allows it (YouTube), otherwise on the publisher's own page.
  * GO TO PAD puts the camera on the pad with a clock over it, so the
  * countdown, the pad and the stream are on screen together. LISTEN lists
@@ -76,7 +76,7 @@ export class LaunchPanel {
    * @param {object} options.elements `{ state, body, note }`.
    * @param {(url: string, init?: object) => Promise<Response>} [options.fetchImpl]
    * @param {object|null} [options.viewer] The Cesium viewer, for GO TO PAD and the pad clock.
-   * @param {(url: string, meta: object) => void} options.openInDock The receiver dock hand-off.
+   * @param {(url: string, meta: object) => void} options.openInDock The dock hand-off.
    * @param {(url: string) => void} [options.openTab] Open a page in its own tab.
    * @param {() => object|null} [options.scanner] The scanner layer when registered.
    * @param {() => object|null} [options.atc] The ATC layer when registered.
@@ -451,7 +451,7 @@ export class LaunchPanel {
           `launch-btn launch-btn-watch${live ? ' live' : ''}`,
           () => this._watch(record, webcast),
           webcast.embedUrl
-            ? `${webcast.title} — opens in the receiver dock`
+            ? `${webcast.title} — opens in the dock`
             : `${webcast.title} — ${webcast.publisher || 'the publisher'} does not allow framing, so it opens in its own tab`,
         ),
       );

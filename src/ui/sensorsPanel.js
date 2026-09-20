@@ -762,7 +762,7 @@ export class SensorsPanel {
         this._el(
           'span',
           'imagery-sensor-reveals',
-          'NASA’s live stream in the receiver dock — exterior views when they are streaming them',
+          'NASA’s live stream in the dock — exterior views when they are streaming them',
         ),
       );
       btn.addEventListener('click', () => this._openIssStream(), {

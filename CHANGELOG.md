@@ -1,5 +1,13 @@
 # Changelog
 
+- The dock finishes saying what it is. Its chip learned NOW PLAYING and NOW
+  SHOWING in the first vocabulary pass, but every control around it still
+  called whatever was inside "the receiver" — so a SpaceX webcast offered
+  "Close the receiver window" and the ISS stream's zoom hint promised more
+  waterfall. The controls name the window now, the landmark a screen reader
+  announces tracks the chip rather than sitting on "Now playing" through a
+  video, and the zoom hint mentions the waterfall only when there is one.
+
 - The camera console no longer opens itself at boot, in front of everything
   else. Cameras is on by default and the layer nominates its first
   catalogued camera the moment the catalog lands, so a frame is ready to

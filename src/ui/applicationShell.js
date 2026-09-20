@@ -813,7 +813,7 @@ export class StyleManager extends ShellFacade {
     });
   }
 
-  /** Wire the Scanners, SDR and ATC panels and the in-map receiver dock. */
+  /** Wire the Scanners, SDR and ATC panels and the in-map dock. */
   _initAudioPanels() {
     const { scannerLayer, sdrLayer, atcLayer, satellitesLayer } = this.services;
     this._audioDock?.destroy();

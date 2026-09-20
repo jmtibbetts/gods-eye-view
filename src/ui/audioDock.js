@@ -1,9 +1,15 @@
 /**
- * In-map receiver dock: a draggable, resizable frame that hosts a web SDR
- * (waterfall and all) or a LiveATC airport page without leaving the globe.
+ * The in-map dock: a draggable, resizable frame that holds whatever the app
+ * is currently playing or showing, without leaving the globe — a web SDR
+ * with its waterfall, a LiveATC airport page, a scanner system, the ISS
+ * stream, an operator's launch webcast.
+ *
+ * It is the app's ONE such surface, so its chip says which of the two it is
+ * doing (NOW PLAYING for sound, NOW SHOWING for pictures) and its controls
+ * name the window rather than any one kind of source.
  *
  * The dock is a plain iframe host. It does not touch the framed page: the
- * receiver's own controls, user limits and audio stay the operator's. Some
+ * source's own controls, user limits and audio stay its operator's. Some
  * sites refuse to be framed; the dock cannot see that from outside, so it
  * always offers POP OUT, which opens the same URL in its own tab.
  */
@@ -412,7 +418,11 @@ export class AudioDock {
     const s = this._state;
     // One dock for sound and pictures: the chip says which it is doing, and
     // the subtitle (set by whoever opened it) says where it comes from.
-    setText(e.kind, s.kind === 'video' ? 'NOW SHOWING' : 'NOW PLAYING');
+    const showing = s.kind === 'video';
+    setText(e.kind, showing ? 'NOW SHOWING' : 'NOW PLAYING');
+    // The landmark reads as the chip does, so a screen reader announces the
+    // region as what it is doing rather than as the software inside it.
+    e.root?.setAttribute('aria-label', showing ? 'Now showing' : 'Now playing');
     setText(e.title, s.title || (s.url ? new URL(s.url).host : ''));
     setText(e.subtitle, s.subtitle);
     if (e.note) {
@@ -444,8 +454,9 @@ export class AudioDock {
     }
     if (e.zoomBtn) {
       setText(e.zoomBtn, `${Math.round(s.zoom * 100)}%`);
-      e.zoomBtn.title =
-        'Page zoom: smaller shows more of the receiver (more waterfall, less panel)';
+      e.zoomBtn.title = showing
+        ? 'Page zoom: smaller fits more of the page in the window'
+        : 'Page zoom: smaller shows more of the page (more waterfall, less panel)';
       e.zoomBtn.setAttribute('aria-pressed', s.zoom === 1 ? 'false' : 'true');
     }
     if (e.frame && s.title) e.frame.title = s.title;

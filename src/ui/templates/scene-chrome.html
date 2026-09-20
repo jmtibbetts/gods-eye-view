@@ -55,21 +55,23 @@
     <span id="cctv-sync-progress">0/0</span>
   </div>
 
-  <!-- In-map receiver dock: web SDR waterfall / LiveATC page without leaving the globe -->
+  <!-- The in-map dock: whatever is playing or showing — a web SDR waterfall, an
+       airport page, a scanner, the ISS stream, a launch webcast — without
+       leaving the globe. One surface, so its chip says which it is doing. -->
   <section id="audio-dock" class="audio-dock" role="region" aria-label="Now playing" hidden>
     <div id="audio-dock-bar" class="audio-dock-bar">
       <span id="audio-dock-kind" class="audio-dock-kind">NOW PLAYING</span>
       <strong id="audio-dock-title" class="audio-dock-title"></strong>
       <span id="audio-dock-subtitle" class="audio-dock-subtitle"></span>
       <span class="panel-divider"></span>
-      <button id="audio-dock-zoom-btn" class="audio-dock-zoom" type="button" title="Page zoom: smaller shows more of the receiver" aria-label="Cycle the receiver page zoom" aria-pressed="false">100%</button>
-      <button id="audio-dock-reload-btn" type="button" title="Reload the receiver" aria-label="Reload the receiver"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button>
+      <button id="audio-dock-zoom-btn" class="audio-dock-zoom" type="button" title="Page zoom: smaller shows more of the page" aria-label="Cycle the page zoom" aria-pressed="false">100%</button>
+      <button id="audio-dock-reload-btn" type="button" title="Reload" aria-label="Reload what is in the window"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button>
       <button id="audio-dock-size-btn" type="button" title="Larger" aria-label="Cycle the window size: normal, large, fit the screen" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">open_in_full</span></button>
-      <button id="audio-dock-popout-btn" type="button" title="Open in its own tab" aria-label="Open the receiver in its own tab"><span class="material-symbols-outlined" aria-hidden="true">open_in_new</span></button>
-      <button id="audio-dock-close-btn" type="button" title="Close" aria-label="Close the receiver window"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+      <button id="audio-dock-popout-btn" type="button" title="Open in its own tab" aria-label="Open this in its own tab"><span class="material-symbols-outlined" aria-hidden="true">open_in_new</span></button>
+      <button id="audio-dock-close-btn" type="button" title="Close" aria-label="Close the window"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
     </div>
     <div class="audio-dock-body">
-      <iframe id="audio-dock-frame" class="audio-dock-frame" title="Receiver" src="about:blank" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="no-referrer" loading="eager"></iframe>
+      <iframe id="audio-dock-frame" class="audio-dock-frame" title="Now playing" src="about:blank" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="no-referrer" loading="eager"></iframe>
       <div id="audio-dock-note" class="audio-dock-note" role="status" aria-live="polite" hidden></div>
       <div id="audio-dock-external" class="audio-dock-external" hidden>
         <strong id="audio-dock-external-title"></strong>

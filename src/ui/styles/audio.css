@@ -494,7 +494,7 @@
   font: 8px/1.35 var(--font-mono);
 }
 
-/* ── In-map receiver dock ── */
+/* ── The in-map dock: one surface for sound and pictures ── */
 .audio-dock {
   position: fixed;
   z-index: 60;
