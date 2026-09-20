@@ -36,6 +36,7 @@ import { createApplicationRiverFlood } from './layers/riverFlood.js';
 import { createApplicationSatnogs } from './layers/satnogs.js';
 import { createApplicationSevereOutlook } from './layers/severeOutlook.js';
 import { createApplicationAirQuality } from './layers/airQuality.js';
+import { createApplicationPlaceNames } from './layers/placeNames.js';
 import { createApplicationVolcanoes } from './layers/volcanoes.js';
 import { createInfrastructureLayers } from '../data/infrastructure.js';
 import { localGeoJsonServices } from './localGeojsonServices.js';
@@ -173,6 +174,7 @@ export function createApplicationCatalog({
         createApplicationSevereOutlook({ source: sources.severeOutlook }),
         createApplicationAirQuality({ source: sources.airQuality }),
         createApplicationSpaceWeather({ source: sources.spaceWeather }),
+        createApplicationPlaceNames(),
         createApplicationVolcanoes({ surface, source: sources.volcanoes }),
         createApplicationAlpr({ surface, source: sources.alpr }),
         satellites,

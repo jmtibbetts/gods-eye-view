@@ -44,7 +44,7 @@ _“pretty cool”_ — [Brendan Eich](https://x.com/BrendanEich/status/20945920
 
 ## 🆕 What This Fork Adds
 
-This is [**jmtibbetts/gods-eye-view**](https://github.com/jmtibbetts/gods-eye-view), a fork of [bilawalsidhu/gods-eye-view](https://github.com/bilawalsidhu/gods-eye-view). Everything above and below is the upstream project; this section is what has been built on top of it — nineteen new data layers, forty-one switchable imagery products, nine new tools and panels, and a pass over how all of it is presented and drawn. All keyless. Upstream's left rail held eighteen rows in five groups; this one holds forty in seven.
+This is [**jmtibbetts/gods-eye-view**](https://github.com/jmtibbetts/gods-eye-view), a fork of [bilawalsidhu/gods-eye-view](https://github.com/bilawalsidhu/gods-eye-view). Everything above and below is the upstream project; this section is what has been built on top of it — twenty new data layers, forty-one switchable imagery products, nine new tools and panels, and a pass over how all of it is presented and drawn. All keyless. Upstream's left rail held eighteen rows in five groups; this one holds forty-one in seven.
 
 **Listen to the world**
 
@@ -94,8 +94,14 @@ This is [**jmtibbetts/gods-eye-view**](https://github.com/jmtibbetts/gods-eye-vi
 | 🚢 **VESSEL WATCH** | Which ships in view are on the OFAC sanctions list — matched by MMSI, never by name — and which tracked ships have stopped transmitting |
 | 🕰️ **TIMELINE** | Scrub daily satellite imagery back through a fortnight of archive, or press PLAY and watch it run forward |
 | 🧩 **Layer combinations** | One press stacks the layers that only work together, like radar under live flights |
-| 🧭 **Two rails, one vocabulary** | The left rail is what is on the globe — forty layers in seven groups (Sky & space, Sea, Ground, Events, Weather, Imagery, Listen) with a filter box — and the right rail is what you can do with it: INSPECT, LISTEN, WATCH, IMAGERY, ALERTS. A row whose controls live in a section says so with PANEL ›, and one verb means one thing everywhere: LISTEN plays sound, WATCH plays video, SHOW draws on the globe, GO TO moves the camera, PIN adds to the watchlist. The reasoning is in [docs/UX-REVIEW.md](docs/UX-REVIEW.md) |
+| 🧭 **Two rails, one vocabulary** | The left rail is what is on the globe — forty-one layers in seven groups (Sky & space, Sea, Ground, Events, Weather, Imagery, Listen) with a filter box — and the right rail is what you can do with it: INSPECT, LISTEN, WATCH, IMAGERY, ALERTS. A row whose controls live in a section says so with PANEL ›, and one verb means one thing everywhere: LISTEN plays sound, WATCH plays video, SHOW draws on the globe, GO TO moves the camera, PIN adds to the watchlist. The reasoning is in [docs/UX-REVIEW.md](docs/UX-REVIEW.md) |
 | 📸 **Snapshot** | One click saves the current view as a captioned PNG stamped with coordinates and UTC time |
+
+**Name the world**
+
+| Added | What it does |
+| ----- | ------------ |
+| 🏷️ **Place Names** | Continents, countries, oceans and seas, mountain ranges and deserts, and 7,295 cities and towns — named on whichever basemap is showing, Google 3D included, which ships with no labels at all. Keyless and offline. Names appear at the scale they are useful at: "Asia" on a hemisphere, a town of nine thousand on a county. Each shape's name sits at its pole of inaccessibility rather than its centroid, because the centroid of Norway is in Sweden — and the country under the middle of the view is named even when its own anchor has left the screen, tested against the real outline rather than a bounding box |
 
 **Make the map hold up**
 

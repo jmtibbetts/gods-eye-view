@@ -1,5 +1,44 @@
 # Changelog
 
+- The globe says what you are looking at. Google 3D, Esri Satellite and Bing
+  Aerial all ship without a single label — only Bing Labels and OSM carry
+  their own — so on the basemaps this app defaults to, nothing on the planet
+  was named. You could fly to a coastline with no way to tell which country
+  it was.
+
+  A new Place Names layer names continents, countries, oceans and seas,
+  mountain ranges and deserts, and 7,295 cities and towns, on whichever
+  basemap is showing. It is keyless and offline: continents, countries, seas
+  and ranges were already bundled here as Natural Earth polygons for the
+  voice annotations, and only the cities needed a new pack. Names appear at
+  the scale they are useful at and leave at the scale they are noise — "Asia"
+  belongs on a hemisphere, a town of nine thousand belongs on a county.
+
+  Two things were harder than they look. A polygon has no label point, and
+  the obvious one is wrong: the centroid of Norway is in Sweden, and Chile's
+  is in Argentina. Each shape's name is placed at its pole of inaccessibility
+  instead — the point furthest from any edge — which is inside the shape by
+  construction and has the most room for the word. And a country anchored at
+  one point loses its name the moment you fly close enough for that point to
+  leave the screen, which is exactly backwards, so the country under the
+  middle of the view is named whether or not its own anchor is still on it.
+  That is tested against the real outline rather than a bounding box, because
+  a box says "France" while you are over Belgium.
+
+  The names are drawn by the world overlay rather than as Cesium labels, so
+  they declutter against every other label on screen, never draw through the
+  planet, and work identically on Google 3D where there is no globe to test
+  depth against.
+
+- A bundled data pack that loads under test but never in the browser. Every
+  Natural Earth pack was imported with the `type: 'json'` attribute, which is
+  what Node requires. Vite refuses it: it rewrites a module's JSON import to
+  `…?import` and serves the result as JavaScript, so the type the browser
+  then checks does not match what arrived and the import fails outright. The
+  region and marine packs behind "outline the Alps" had therefore never
+  loaded outside the test suite. Packs are asked for plainly first, which is
+  the path the app runs on, and with the attribute as the fallback Node needs.
+
 - Conjunction markers stopped showing through the planet. A close approach is
   drawn at its own altitude with the depth test off, so that a marker a few
   hundred kilometres up is not swallowed by the surface it is over. Nothing

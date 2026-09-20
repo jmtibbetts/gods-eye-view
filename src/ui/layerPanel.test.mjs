@@ -31,6 +31,7 @@ test('panel presentation groups rows by the part of the world they draw', () => 
   assert.deepEqual(
     order.filter(({ label }) => label === 'Ground').map(({ id }) => id),
     [
+      'place-names',
       'traffic',
       'transit',
       'bikeshare',

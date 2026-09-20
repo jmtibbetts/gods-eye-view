@@ -130,6 +130,7 @@ The [Bhote Koshi event pack](public/events/bhote-koshi-2026/README.md), under `p
 | **TeleGeography Submarine Cable Map** (712 cables + 1,917 landing points)   | `telegeography_submarine_cables/` | **CC BY-NC-SA 3.0**                                                                                       | ❌ **NonCommercial — remove for commercial use** | "© TeleGeography — submarinecablemap.com"                                   |
 | **Natural Earth physical regions** (1,046 land + 292 marine named polygons) | `natural_earth/`                  | **Public domain**                                                                                         | ✅ (no restrictions)                             | "Made with Natural Earth" (courtesy credit — not legally required)          |
 | **Natural Earth countries** (177 country polygons, FIPS 10-4 keyed)         | `natural_earth_countries/`        | **Public domain**                                                                                         | ✅ (no restrictions)                             | "Made with Natural Earth" (courtesy credit — not legally required)          |
+| **Natural Earth populated places** (7,295 city/town points, 203 capitals)   | `natural_earth_places/`           | **Public domain**                                                                                         | ✅ (no restrictions)                             | "Made with Natural Earth" (courtesy credit — not legally required)          |
 | **ATC airports and frequencies** (13,656 airports, 737 Center sites)        | `atc_airports/`                   | **US Government public data** (FAA NASR) + **public domain** (OurAirports); folder `source.json` | ✅ (no restrictions)                             | "FAA NASR · OurAirports"                                                    |
 | **OpenMHz systems seed** (geocoded trunked-radio systems)                   | `openmhz_systems/`                | Names, locations and activity averages only; coordinates via Nominatim (ODbL); folder `source.json` | ✅ (attribution on the OSM-derived coordinates) | "OpenMHz · © OpenStreetMap contributors"                                    |
 | **OFAC sanctioned vessels** (803 MMSI-keyed entries of 1,540)               | `sanctioned_vessels/`             | **US Government public data** (Treasury OFAC SDN list); folder `source.json`                             | ✅ (no restrictions)                             | "U.S. Treasury — Office of Foreign Assets Control"                          |
@@ -205,6 +206,22 @@ Natural Earth is **public domain** (no permission needed, no attribution legally
 https://www.naturalearthdata.com/about/terms-of-use/). We credit anyway: "Made with Natural
 Earth". Registration in the in-app `dataCredits.js` attribution list ships with the resolver
 wiring (see below).
+
+### Natural Earth populated places (`natural_earth_places/`)
+
+Curated from the **Natural Earth 10m cultural vectors** (https://www.naturalearthdata.com/ —
+fetched from the canonical `nvkelso/natural-earth-vector` GitHub repo, commit
+`ca96624a56bd078437bca8184e78163e5039ad19`, the same commit as the country pack):
+`ne_10m_populated_places_simple` → `places.json`, 7,295 places including 203 national
+capitals. It backs the city tier of the place-names layer (`src/layers/placeNames/`); the
+other tiers read the polygon packs above.
+
+Curation (provenance in the file's `meta` header, and reproducible with
+`node scripts/curate-natural-earth-places.mjs`): scientific and meteorological stations,
+historic places and near-duplicate capital entries dropped (47 rows), coordinates rounded to
+3 decimals, whitespace collapsed in names, sorted by Natural Earth's own `scalerank` then
+population. Rank rather than population decides which places are labelled first, because
+population alone puts a large suburb above a national capital.
 
 ### DataSF Analysis Neighborhoods (`neighborhoods/`)
 

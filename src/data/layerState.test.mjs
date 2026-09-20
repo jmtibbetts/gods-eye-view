@@ -158,8 +158,8 @@ function encode(state) {
 
 test('production registry is exact, canonical, and rejects incomplete contracts', async () => {
   assert.equal(validateLayerStateRegistry(), true);
-  assert.equal(REGISTERED_LAYER_IDS.length, 43);
-  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 43);
+  assert.equal(REGISTERED_LAYER_IDS.length, 44);
+  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 44);
   assert.ok(REGISTERED_LAYER_IDS.includes('transit'));
   assert.deepEqual(REGISTERED_LAYER_IDS, [...REGISTERED_LAYER_IDS].sort());
   assert.throws(
@@ -768,7 +768,11 @@ test('share payload wins over local, passive restore writes nothing, and explici
   const manager = productionManager();
   const share = shareSink();
   const coordinator = new LayerStateCoordinator(manager, share, { storage });
+  // Explicitly empty, spelled out rather than taken from the default: the
+  // default is no longer empty (place names ship on), and this test is about
+  // a share payload that says "nothing enabled".
   const explicitEmpty = createDefaultLayerState();
+  explicitEmpty.enabledLayerIds = [];
   await coordinator.start({ shareLayerState: explicitEmpty });
 
   assert.equal(coordinator.source, 'share');
@@ -837,7 +841,16 @@ test('historical share payload suppresses unrelated local layer preferences', as
   const coordinator = new LayerStateCoordinator(manager, shareSink(), { storage });
   await coordinator.start({ allowLocalState: false });
   assert.equal(coordinator.source, 'legacy-share');
-  assert.deepEqual(coordinator.getDurableState().enabledLayerIds, []);
+  // Suppressing the local preferences lands the DURABLE state on the defaults,
+  // which is no longer empty: place names ship enabled. Nothing is APPLIED
+  // though — this path deliberately turns on no layer at all, so the durable
+  // default and what is actually drawn diverge here, and a recipient of a
+  // historical link gets the labels only after the state is next written and
+  // reloaded. Pinned rather than changed: making this path apply its defaults
+  // is a restore-semantics change, not a place-names change.
+  assert.deepEqual(coordinator.getDurableState().enabledLayerIds, [
+    'place-names',
+  ]);
   assert.equal(manager.getEnabledLayerIds().size, 0);
   assert.deepEqual(storage.writes, []);
   coordinator.destroy();

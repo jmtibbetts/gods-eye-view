@@ -573,6 +573,11 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     disposition: 'enabled-only',
   }),
   Object.freeze({
+    id: 'place-names',
+    token: 'pn',
+    disposition: 'enabled-only',
+  }),
+  Object.freeze({
     id: 'radio',
     token: 'r',
     disposition: 'enabled+options',
@@ -748,7 +753,13 @@ validateLayerStateRegistry();
 export function createDefaultLayerState() {
   return {
     version: LAYER_STATE_VERSION,
-    enabledLayerIds: [],
+    // Place names are the one layer that ships ON. Every other layer answers
+    // a question you arrived with; this one answers "what am I looking at",
+    // which you have before you have any other. Both a share link and a
+    // stored session state their enabled set in FULL, so a default that is
+    // not empty cannot change what an existing link or a saved session
+    // MEANS — it only decides what someone with no saved state starts with.
+    enabledLayerIds: ['place-names'],
     options: Object.fromEntries(
       OPTION_OWNER_IDS.map((ownerId) => [ownerId, defaultsForOwner(ownerId)]),
     ),

@@ -45,6 +45,7 @@ const PANEL_GROUPS = [
   {
     label: 'Ground',
     ids: [
+      'place-names',
       'traffic',
       'transit',
       'bikeshare',

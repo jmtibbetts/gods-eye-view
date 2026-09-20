@@ -444,13 +444,14 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     layers: Object.freeze([
       'local-datacenters',
       'local-dams',
+      'place-names',
       'telegeography-submarine-cables',
       'bhote-koshi-2026',
       'bhote-koshi-locator',
     ]),
     title: 'BUNDLED REFERENCE DATA',
     feeds:
-      'Datacenters and dams (OSM), Natural Earth regions and countries, TeleGeography submarine cables, SF neighborhoods',
+      'Datacenters and dams (OSM), Natural Earth regions, countries and populated places, TeleGeography submarine cables, SF neighborhoods',
     url: 'https://github.com/bilawalsidhu/gods-eye-view/blob/main/DATA_SOURCES.md',
     note: 'TeleGeography is CC BY-NC-SA — non-commercial',
   }),
