@@ -184,7 +184,7 @@ test('the panel presets come from the catalog, and stay a short list', () => {
   const presets = marinePresets();
   assert.deepEqual(Object.keys(presets), [...MARINE_PRESET_IDS]);
   assert.ok(
-    MARINE_PRESET_IDS.length <= 3,
+    MARINE_PRESET_IDS.length <= 4,
     'the beginner preset row must not be buried in marine entries',
   );
   for (const [id, preset] of Object.entries(presets)) {
@@ -204,4 +204,17 @@ test('the NAVTEX preset is flagged as data and the voice ones are not', () => {
   assert.equal(presets['navtex-518'].data, true);
   assert.equal(presets['vhf-ch16'].data, undefined);
   assert.equal(presets['hf-2182'].data, undefined);
+});
+
+test('weatherfax is a placeholder frequency that LISTEN resolves for itself', () => {
+  const wefax = marineBand('wefax');
+  assert.equal(wefax.kind, 'data');
+  assert.equal(wefax.ladder, null, 'never offered as a ship to listen to');
+  assert.equal(wefax.wefax, true);
+  assert.equal(marinePresets().wefax.wefax, true, 'the flag reaches the panel');
+  assert.match(
+    wefax.hint,
+    /1\.9 kHz low/,
+    'says the dial is deliberately off the published number',
+  );
 });

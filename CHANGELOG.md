@@ -1,5 +1,37 @@
 # Changelog
 
+- Weather charts by shortwave, tuned the way radiofax is actually tuned. A
+  dozen government stations send surface analyses, wind and wave charts and
+  ice edges by HF facsimile around the clock — the oldest live data in this
+  app and still the most reliable thing at sea. WEATHERFAX picks the station
+  covering the water you are looking at and its frequency for this hour.
+
+  Two things make this easy to get wrong, and both were researched rather
+  than remembered. The dial is not the published frequency: the picture sits
+  on subcarriers above the carrier, so tuning the published number in USB
+  gets noise and the convention is 1.9 kHz below it. And a station is not on
+  all its frequencies all day — Boston's 4235 kHz runs overnight and its
+  12750 kHz runs afternoons — so asking for the wrong one gets a silence
+  that looks exactly like a dead band. Windows that cross midnight UTC are
+  handled, because Honolulu's 16135 kHz runs 1719 to 0356 and treating that
+  as a normal range makes it available only in the hours it is off.
+
+  What it does not do is say which chart is arriving. Each station rotates
+  through its own long, revisable schedule, and encoding that would be a
+  promise this could not keep. Drawing the picture needs a decoder the app
+  does not have, and the notice says so.
+
+- A ship nobody can hear is handed to somebody who can. Channel 16 is
+  line-of-sight and only 141 of 1,317 public receivers cover it, so for most
+  ships the app cannot hear the traffic people actually mean by marine
+  radio. Volunteers with coastal antennas stream exactly that. When no
+  receiver can hear a selected ship, and when MARINE VHF finds nothing in
+  range, the Broadcastify listing for that coast opens instead — the same
+  admission the airband already makes when it hands a tower to LiveATC. The
+  region comes from the nearest airport in the bundled ATC directory, so a
+  ship off Massachusetts gets the Massachusetts listing without a network
+  call.
+
 - The marine bands are a catalog now, and the panel buttons come out of it.
   There were two marine frequencies in the app: one preset on Channel 16 and,
   since the ship LISTEN action, a short fallback ladder. They were written

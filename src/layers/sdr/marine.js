@@ -149,6 +149,20 @@ export const MARINE_BANDS = Object.freeze([
     hint: 'The MF digital selective calling channel every GMDSS station guards. Bursts, not conversation, and data rather than voice — a decoder would be needed to read who called whom.',
   }),
   Object.freeze({
+    // A placeholder frequency only: LISTEN resolves this to the nearest
+    // radiofax station's current one (see weatherfax.js), the way the
+    // airband preset resolves to the nearest tower.
+    id: 'wefax',
+    label: 'Weatherfax',
+    freqHz: 8_682_000,
+    mode: 'usb',
+    kind: 'data',
+    maxKm: Infinity,
+    ladder: null,
+    wefax: true,
+    hint: 'Surface analyses, wind and wave charts and ice edges, sent by government stations around the clock. LISTEN picks the station covering the water you are looking at and its frequency for this hour. Data, not voice: the dial sits 1.9 kHz low, which is how radiofax tunes, and drawing the chart needs a decoder this app does not have.',
+  }),
+  Object.freeze({
     id: 'dsc-8414',
     label: 'DSC 8414.5',
     freqHz: 8_414_500,
@@ -226,6 +240,7 @@ export const MARINE_PRESET_IDS = Object.freeze([
   'vhf-ch16',
   'hf-2182',
   'navtex-518',
+  'wefax',
 ]);
 
 /**
@@ -256,6 +271,7 @@ export function marinePresets() {
         : [Math.max(0, band.freqHz - span), band.freqHz + span],
       hint: band.hint,
       ...(band.kind === 'data' ? { data: true } : {}),
+      ...(band.wefax ? { wefax: true } : {}),
     };
   }
   return out;

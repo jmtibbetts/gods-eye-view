@@ -548,6 +548,8 @@
   "src/layers/sdr/records.js",
   "src/layers/sdr/sdr.test.mjs",
   "src/layers/sdr/source.js",
+  "src/layers/sdr/weatherfax.js",
+  "src/layers/sdr/weatherfax.test.mjs",
   "src/layers/severeOutlook/index.js",
   "src/layers/severeOutlook/policy.js",
   "src/layers/severeOutlook/records.js",

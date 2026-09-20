@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { marineFeedListingFor } from './audioPanels.js';
 
 /**
  * INSPECT — the selected thing and what the app can do for it, in one place.
@@ -757,6 +758,34 @@ export class InspectPanel {
     }
   }
 
+  /**
+   * Where somebody else is already listening to marine VHF near a ship.
+   *
+   * The region comes from the nearest airport in the bundled ATC directory,
+   * which is the same offline trick the Receivers panel uses — a ship off
+   * Massachusetts resolves to a Massachusetts airport, and the listing is
+   * that state's.
+   *
+   * @param {number} lat
+   * @param {number} lon
+   * @returns {Promise<{url: string, label: string}|null>}
+   */
+  async _marineFeedListing(lat, lon) {
+    let region = null;
+    try {
+      const atc = this._atc();
+      if (atc?.ensureAtcDirectory) {
+        await atc.ensureAtcDirectory();
+        const [airport] = atc.findAtcAirports?.({ lat, lon, limit: 1 }) ?? [];
+        if (airport)
+          region = { code: airport.region, country: airport.country };
+      }
+    } catch {
+      /* the generic directory is the fallback, not a failure */
+    }
+    return marineFeedListingFor(region);
+  }
+
   async _ensureLayer(layerId) {
     if (this._isLayerEnabled(layerId)) return true;
     await this._enableLayer(layerId);
@@ -792,6 +821,16 @@ export class InspectPanel {
       const { lat, lon } = record.properties || {};
       const result = await this._sdr()?.listenMarineNear?.({ lat, lon });
       if (!result?.receiver) {
+        // Nothing in the directory can hear it. Volunteers with coastal
+        // antennas stream marine VHF, so point at that rather than stopping.
+        const listing = await this._marineFeedListing(lat, lon);
+        if (listing && this._openTab) {
+          this._openTab(listing.url);
+          this.onToast(
+            `${result?.reason || 'No receiver can hear this ship.'} ${listing.label} opened instead — volunteers stream marine VHF from the coast.`,
+          );
+          return;
+        }
         this.onToast(result?.reason || 'No receiver can hear this ship.');
         return;
       }

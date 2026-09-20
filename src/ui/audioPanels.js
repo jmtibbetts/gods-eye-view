@@ -20,6 +20,7 @@ import { cameraPoseSignature } from '../data/iconOrientation.js';
  */
 
 import { marinePresets } from '../layers/sdr/marine.js';
+import { chooseWefax, wefaxNoticeText } from '../layers/sdr/weatherfax.js';
 
 const LIST_REFRESH_MS = 1500;
 
@@ -148,6 +149,31 @@ const US_STATE_NAMES = Object.freeze({
   WY: 'Wyoming',
   PR: 'Puerto Rico',
 });
+
+/**
+ * Where somebody else's receiver is already listening to marine VHF.
+ *
+ * Channel 16 is line-of-sight, and only a fraction of the public SDR
+ * directory covers it — so for most ships the app cannot hear the traffic
+ * people actually mean by marine radio. Volunteers with coastal antennas
+ * stream exactly that to Broadcastify. This is the same admission the
+ * airband makes when it hands a tower to LiveATC: we cannot play it, here
+ * is who can.
+ *
+ * @param {{country?: string, code?: string}|null} region
+ * @returns {{url: string, label: string}}
+ */
+export function marineFeedListingFor(region) {
+  if (region?.country === 'US' && US_STATE_FIPS[region.code])
+    return {
+      url: `https://www.broadcastify.com/listen/stid/${US_STATE_FIPS[region.code]}`,
+      label: `${US_STATE_NAMES[region.code]} feeds on Broadcastify`,
+    };
+  return {
+    url: 'https://www.broadcastify.com/listen/',
+    label: 'Broadcastify feed directory',
+  };
+}
 
 /** Broadcastify listing for the place under the view: the state's page in the US, the front page elsewhere. */
 export function broadcastifyListingFor(region) {
@@ -788,6 +814,19 @@ export class SdrPanel {
         /* fall through to the preset frequency */
       }
     }
+    if (preset?.wefax && anchor) {
+      // The nearest station's frequency for this hour, dialled 1.9 kHz low
+      // because that is how radiofax is received. Same shape as the airband
+      // branch above: the preset is a starting point, not the answer.
+      const choice = chooseWefax({ lat: anchor.lat, lon: anchor.lon });
+      if (choice)
+        return {
+          freqHz: choice.dialHz,
+          mode: 'usb',
+          label: `${choice.station.call} ${choice.khz} kHz`,
+          wefaxNotice: wefaxNoticeText(choice),
+        };
+    }
     if (tune?.freqHz) return { freqHz: tune.freqHz, mode: tune.mode || 'am' };
     if (preset) return { freqHz: preset.freqHz, mode: preset.mode };
     return null;
@@ -859,6 +898,26 @@ export class SdrPanel {
             };
             return;
           }
+          if (this._preset === 'vhf-ch16') {
+            // Channel 16 is the band the directory is worst at, and the one
+            // volunteers stream most. Same admission the airband makes: we
+            // cannot play it, here is who can.
+            const listing = marineFeedListingFor(this._region);
+            if (this.dock?.open) {
+              this.dock.open(listing.url, {
+                kind: 'page',
+                layerId: 'sdr',
+                external: true,
+                title: 'Marine feeds',
+                subtitle: listing.label,
+              });
+              this._notice = {
+                text: `${why} Marine VHF is streamed by volunteers with coastal antennas — ${listing.label} opened in its own tab (Broadcastify refuses to load inside other sites). Look for the marine and coast guard feeds there.`,
+                error: false,
+              };
+              return;
+            }
+          }
           this._notice = {
             text: `${why} Move the map closer to a receiver, or pick a receiver from the list.`,
             error: true,
@@ -866,10 +925,16 @@ export class SdrPanel {
           return;
         }
       }
+      const listening = result
+        ? `Listening ${tune.label || `${(tune.freqHz / 1e6).toFixed(3)} MHz ${String(tune.mode).toUpperCase()}`} on ${result.receiver.name}${Number.isFinite(result.receiver.distanceKm) ? ` (${kmText(result.receiver.distanceKm)} away)` : ''}`
+        : 'No public receiver in the directory covers that frequency. Try another band, or pick a receiver from the list.';
       this._notice = {
-        text: result
-          ? `Listening ${tune.label || `${(tune.freqHz / 1e6).toFixed(3)} MHz ${String(tune.mode).toUpperCase()}`} on ${result.receiver.name}${Number.isFinite(result.receiver.distanceKm) ? ` (${kmText(result.receiver.distanceKm)} away)` : ''}`
-          : 'No public receiver in the directory covers that frequency. Try another band, or pick a receiver from the list.',
+        // Radiofax needs its own sentence: a dial 1.9 kHz off the published
+        // number reads as a bug until you are told it is the convention.
+        text:
+          result && tune.wefaxNotice
+            ? `${listening}. ${tune.wefaxNotice}`
+            : listening,
         error: !result,
       };
     } finally {
