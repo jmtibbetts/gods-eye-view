@@ -436,6 +436,14 @@ field dot is hidden while selected, and `isContextRecordActive` treats a
 hidden entity as gone) and copy the context id onto the field dot so
 visible-entity scans still resolve it.
 
+A folded section inside a verb group keeps only its header: the group's own
+heading is the separator, so `border-top` and most of the padding are
+dropped while `.collapsed` (an open section keeps the full spacing). The
+verb headings are sticky inside the rail's scroller and scoped to their
+group, so at most one is held at the top. The CONTACTS / SPACE MISSIONS
+buttons carry a `MODE` label and a one-line note in place of the standby
+block, and `contextPresentation` still hides that note once a mode is on.
+
 The Context rail's sections are wrapped in verb groups in `context.html`
 (`.context-group[data-context-group]`: `inspect` holds Selected; `listen` holds Radio, Scanners,
 Receivers and Airband; `watch` holds Launch; `imagery` holds Imagery with
@@ -509,7 +517,11 @@ The clear control presents busy state while its existing action owns the transac
 
 Rows are grouped by the part of the world they draw (`PANEL_GROUPS` in
 `src/ui/layerPanel.js`: Sky & space, Sea, Ground, Events, Weather, Imagery,
-Listen), with Combinations first. A layer id absent from every group falls to
+Listen), with Combinations first. Each group renders as its own
+`.data-layer-group` element holding its heading and its rows, so the heading
+can be `position: sticky` and hold the top of the list while that group is
+scrolled through, and let go when the next one arrives — a flat list of
+headings and rows piles every heading it has passed at the top instead. A layer id absent from every group falls to
 the end in catalog order, so a new layer renders before it is placed. The
 filter box above the list (`#data-layer-filter`) is bound by `mount()` through
 its own remover, separate from the row bindings that every re-render releases;

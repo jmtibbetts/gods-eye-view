@@ -272,26 +272,23 @@ export class LayerPanel {
         : String(node?.className || '')
             .split(/\s+/)
             .includes(name);
-    let heading = null;
-    let headingHasRows = false;
-    const settle = () => {
-      if (heading) heading.hidden = !headingHasRows;
-    };
-    for (const node of Array.from(host.children || [])) {
-      if (hasClass(node, 'data-layer-group-heading')) {
-        settle();
-        heading = node;
-        headingHasRows = false;
-        continue;
+    for (const groupEl of Array.from(host.children || [])) {
+      if (!hasClass(groupEl, 'data-layer-group')) continue;
+      let matched = 0;
+      let rows = 0;
+      for (const node of Array.from(groupEl.children || [])) {
+        if (!hasClass(node, 'data-toggle-row')) continue;
+        rows++;
+        const hay =
+          `${node.dataset.layerId} ${node.querySelector('.data-name')?.textContent ?? ''} ${node.querySelector('.data-toggle-meta')?.textContent ?? ''}`.toLowerCase();
+        const show = !text || hay.includes(text);
+        node.hidden = !show;
+        if (show) matched++;
       }
-      if (!hasClass(node, 'data-toggle-row')) continue;
-      const hay =
-        `${node.dataset.layerId} ${node.querySelector('.data-name')?.textContent ?? ''} ${node.querySelector('.data-toggle-meta')?.textContent ?? ''}`.toLowerCase();
-      const show = !text || hay.includes(text);
-      node.hidden = !show;
-      if (show) headingHasRows = true;
+      // Combinations hold presets rather than rows: a search for a layer
+      // leaves them alone, since one press is not a search result.
+      groupEl.hidden = rows > 0 && matched === 0;
     }
-    settle();
   }
   _bind(element, type, listener) {
     element.addEventListener(type, listener);
@@ -326,10 +323,13 @@ export class LayerPanel {
       (preset) => preset.ids.filter(probes.isRegistered).length >= 2,
     );
     if (!available.length) return;
+    const groupEl = document.createElement('div');
+    groupEl.className = 'data-layer-group';
+    this._toggleContainer.appendChild(groupEl);
     const heading = document.createElement('h3');
     heading.className = 'data-layer-group-heading';
     heading.textContent = 'Combinations';
-    this._toggleContainer.appendChild(heading);
+    groupEl.appendChild(heading);
     const row = document.createElement('div');
     row.className = 'data-preset-row';
     for (const preset of available) {
@@ -361,7 +361,7 @@ export class LayerPanel {
       });
       row.appendChild(button);
     }
-    this._toggleContainer.appendChild(row);
+    groupEl.appendChild(row);
   }
 
   _renderToggles() {
@@ -380,15 +380,23 @@ export class LayerPanel {
     this._renderPresets();
 
     let previousGroup = '';
+    // Each group is its own element so its heading can hold the top of the
+    // list while that group is being scrolled through, and let go when the
+    // next one arrives. A flat list of headings and rows would pile every
+    // heading it had passed at the top instead.
+    let groupEl = null;
     for (const layer of layers) {
       if (!layer.showInTogglePanel) continue;
       const group =
         PANEL_ORDER[PANEL_POSITIONS.get(layer.id)]?.label ?? 'Other layers';
       if (group && group !== previousGroup) {
+        groupEl = document.createElement('div');
+        groupEl.className = 'data-layer-group';
+        this._toggleContainer.appendChild(groupEl);
         const heading = document.createElement('h3');
         heading.className = 'data-layer-group-heading';
         heading.textContent = group;
-        this._toggleContainer.appendChild(heading);
+        groupEl.appendChild(heading);
       }
       previousGroup = group;
       const row = document.createElement('div');
@@ -521,7 +529,7 @@ export class LayerPanel {
         this._syncRowControls(controls, layer, list);
       }
 
-      this._toggleContainer.appendChild(row);
+      (groupEl || this._toggleContainer).appendChild(row);
     }
     this._applyFilter();
   }

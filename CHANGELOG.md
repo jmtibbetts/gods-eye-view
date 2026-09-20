@@ -1,5 +1,20 @@
 # Changelog
 
+- Both rails hold their place while you scroll, and a folded section is a
+  line rather than a card. The Context rail is 726 px tall on a 1257 px
+  screen and its twelve folded sections came to 1,186 px, so half its verbs
+  sat below a fold nothing announced; a folded section now keeps its title,
+  its status and its button and drops the separator the verb headings had
+  made redundant, which brings the rail to 871 px and puts INSPECT, LISTEN,
+  WATCH, IMAGERY and ALERTS all on screen at once. An open section is
+  untouched — that is where reading happens. The group heading of whatever
+  you are scrolling through holds the top of its list, on the right and on
+  the left, where forty-three rows pass through a list a dozen rows tall;
+  each layer group is its own element so only one heading is ever stuck.
+  And the two Context modes get a MODE label of their own with what each
+  does on the buttons, in place of the dashed box below them that spent
+  72 px restating it.
+
 - INSPECT: the selected thing and every action the app can take for it,
   in one place at the top of the Context rail. Click a plane and the card
   shows its controller — "ATC Austin Approach 125.325" — with LISTEN

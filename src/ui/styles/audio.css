@@ -1129,6 +1129,33 @@ body.recording-mode .audio-dock {
   margin-bottom: 0;
 }
 
+/* A FOLDED section is one line, not a card. Twelve sections at the open
+   spacing came to 800 px of a rail that is 726 px tall on a 1257 px screen,
+   so half the rail's verbs were below a fold nothing announced. The verb
+   headings do the grouping now, so a folded section drops its separator and
+   most of its padding and keeps only its title, its status and its button.
+   An OPEN section keeps the full spacing — that is where reading happens. */
+#global-context-panel .context-group [data-panel-id].collapsed {
+  margin-top: 1px;
+  padding-top: 3px;
+  border-top: 0;
+}
+
+#global-context-panel
+  .context-group
+  [data-panel-id].collapsed
+  .audio-panel-inner,
+#global-context-panel
+  .context-group
+  [data-panel-id].collapsed
+  .radio-panel-inner {
+  padding-bottom: 3px;
+}
+
+#global-context-panel .context-group [data-panel-id].collapsed .panel-header {
+  margin-bottom: 0;
+}
+
 /* INSPECT — the selected thing and its matched actions. The first section
    in the rail has no separator above it; the group heading is its rule. */
 #inspect-panel {
