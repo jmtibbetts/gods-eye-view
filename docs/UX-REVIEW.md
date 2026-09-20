@@ -191,11 +191,23 @@ Airband on if it is off and plays the controller the card names; FOLLOW is
 the same switch the Airband section has; PIN puts the callsign, MMSI or
 satellite name on the WATCHLIST and reads PINNED once it is there; a ship
 carries its VESSEL WATCH verdict as far as the OFAC table allows; a closure
-links its NOTAM. Two things stayed where they were on purpose. The CAMERAS
-console is its own surface — a selected camera's frame and controls are
-the console, and a second card would duplicate it — and SPACE MISSIONS
+links its NOTAM; a camera says where it is and whether it sends video or
+stills, and WATCH opens the console that holds its frame. SPACE MISSIONS
 keeps its roster, since a mission is a mode of the rail rather than a
-thing on the globe. One latent bug surfaced on the way: the radio layers
-registered their selection on the field dot they hide when something is
-selected, so the shared selection slot dropped it the moment anything
-read it; they now register the visible marker.
+thing on the globe.
+
+Then the rail itself, once there was something worth reaching in it. A
+folded section is a line rather than a card — twelve of them had come to
+1,186 px in a 726 px rail — and the group heading of whatever is being
+scrolled through holds the top of its list, on both sides. The modes get a
+MODE label instead of a dashed box restating the buttons above it.
+
+Three latent bugs surfaced on the way, each the same shape: a thing the app
+knew, kept somewhere nothing else could read. The radio layers registered
+their selection on the field dot they hide while something is selected, so
+the shared selection slot dropped it the moment anything read it. The
+Cameras layer never published its active camera at all. And the Cameras
+console treated the layer's boot-time nomination of a default camera as a
+selection and expanded for it, which — in a rail that shows one panel and
+hides the rest — is why a first run opened on the calibration console with
+every verb in the app behind it.
