@@ -1,4 +1,5 @@
 import { createUsgsEarthquakeSource } from '../layers/earthquakes/source.js';
+import { createWfigsPerimeterSource } from '../layers/perimeters/source.js';
 import { createBundledCableSource } from '../layers/submarineCables/bundledSource.js';
 import { createOpenMhzSource } from '../layers/scanner/source.js';
 import { createBundledSdrSource } from '../layers/sdr/source.js';
@@ -23,6 +24,7 @@ import { createSwpcSource } from '../layers/spaceWeather/source.js';
 export function createReferenceSources() {
   return {
     earthquakes: createUsgsEarthquakeSource(),
+    'fire-perimeters': createWfigsPerimeterSource(),
     cables: createBundledCableSource(),
     scanner: createOpenMhzSource(),
     sdr: createBundledSdrSource(),

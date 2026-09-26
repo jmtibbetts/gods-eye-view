@@ -285,6 +285,7 @@ const READOUT_CONTEXT_LAYERS = new Set([
   'conjunctions',
   'lightning',
   'conflict-reports',
+  'local-adsb',
 ]);
 
 /**

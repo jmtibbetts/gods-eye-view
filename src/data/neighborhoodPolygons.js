@@ -10,7 +10,7 @@
  * touching this module — see `local_data/neighborhoods/SOURCE.md`.
  */
 
-import { importJsonPack } from './naturalEarthRegions.js';
+import { loadBundledJson } from './bundledJson.js';
 import { createRetryableLoader } from './retryableLoad.js';
 
 // bbox = [west, south, east, north]; only load a city file when the point falls in its box.
@@ -18,18 +18,14 @@ const CITY_FILES = [
   {
     id: 'san-francisco',
     bbox: [-122.55, 37.7, -122.35, 37.84],
-    // Asked for plainly first and with the attribute second — see
-    // `importJsonPack`. The attribute alone loads under node:test and never
-    // in the browser, which is how this pack came to be covered by passing
-    // tests while the resolver it backs had nothing to read.
-    loader: () =>
-      importJsonPack(
-        () => import('./local_data/neighborhoods/san-francisco.json'),
-        () =>
-          import('./local_data/neighborhoods/san-francisco.json', {
-            with: { type: 'json' },
-          }),
-      ),
+    url: new URL(
+      './local_data/neighborhoods/san-francisco.json',
+      import.meta.url,
+    ),
+    importJson: () =>
+      import('./local_data/neighborhoods/san-francisco.json', {
+        with: { type: 'json' },
+      }),
   },
 ];
 
@@ -116,7 +112,7 @@ function cityLoader(city) {
   let loader = _cityLoaders.get(city.id);
   if (!loader) {
     loader = createRetryableLoader(async () => {
-      const fc = await city.loader();
+      const fc = await loadBundledJson(city.url, city.importJson);
       return Array.isArray(fc.features) ? fc.features : [];
     });
     _cityLoaders.set(city.id, loader);

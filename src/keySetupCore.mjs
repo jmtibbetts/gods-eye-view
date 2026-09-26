@@ -217,7 +217,7 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
   }),
   Object.freeze({
     id: 'noaa-nhc',
-    layers: Object.freeze(['tropical-cyclones']),
+    layers: Object.freeze(['tropical-cyclones', 'weather-cyclones']),
     title: 'NOAA NATIONAL HURRICANE CENTER',
     feeds:
       'Tropical Cyclones — active storms, cones, and the disturbances being watched',
@@ -297,11 +297,42 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
   }),
   Object.freeze({
     id: 'nasa-gibs',
-    layers: Object.freeze(['imagery-viirs', 'imagery-science']),
+    layers: Object.freeze([
+      'imagery-viirs',
+      'imagery-science',
+      'recent-imagery',
+    ]),
     title: 'NASA GIBS',
     feeds:
       'IMAGERY — the orbital and science sensors: VIIRS, MODIS, Sentinel-1, Black Marble and more',
     url: 'https://www.earthdata.nasa.gov/engage/open-data-services-software-policies',
+  }),
+  Object.freeze({
+    id: 'noaa-weather-models',
+    layers: Object.freeze(['wind']),
+    title: 'NOAA GFS · ECMWF IFS',
+    feeds: 'Wind — 10 m forecast wind from either open model',
+    url: 'https://www.ecmwf.int/en/forecasts/datasets/open-data',
+  }),
+  Object.freeze({
+    id: 'noaa-nowcoast',
+    layers: Object.freeze([
+      'weather-radar',
+      'weather-satellite',
+      'weather-lightning',
+    ]),
+    title: 'NOAA NOWCOAST',
+    feeds:
+      'Observed Weather — rain radar, satellite clouds and lightning density',
+    url: 'https://nowcoast.noaa.gov',
+  }),
+  Object.freeze({
+    id: 'nifc-wfigs',
+    layers: Object.freeze(['fire-perimeters']),
+    title: 'NIFC WFIGS · INCIWEB',
+    feeds: 'Fire Perimeters — current interagency wildfire perimeters',
+    url: 'https://data-nifc.opendata.arcgis.com',
+    note: 'US coverage',
   }),
   Object.freeze({
     id: 'eumetview',

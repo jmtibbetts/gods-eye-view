@@ -11,11 +11,12 @@
  *
  * PURE data module — no Cesium imports, node-testable. The packs are lazy-
  * loaded on first lookup and cached in module scope (bbox/area computed once
- * at load). In the browser Vite bundles the JSON via dynamic import; under
- * node the same files are read from disk. A failed load is retried on the
- * next lookup rather than cached (see `createRetryableLoader`).
+ * at load) through `loadBundledJson`, which works in the browser and under
+ * node:test. A failed load is retried on the next lookup rather than cached
+ * (see `createRetryableLoader`).
  */
 
+import { loadBundledJson } from './bundledJson.js';
 import { createRetryableLoader } from './retryableLoad.js';
 
 const EARTH_RADIUS_KM = 6371;
@@ -121,7 +122,9 @@ function suffixVariants(norm) {
 let _entries = null;
 
 /**
- * Import a bundled JSON pack in a way BOTH runtimes accept.
+ * Import a bundled JSON pack in a way BOTH runtimes accept. The packs in this
+ * file go through `loadBundledJson`; this remains for callers that pass their
+ * own literal specifiers (the Place Names layer).
  *
  * Node requires the `type: 'json'` import attribute to load a JSON module.
  * Vite refuses it: it rewrites a module's JSON import to `…?import` and serves
@@ -149,23 +152,22 @@ export async function importJsonPack(plain, attributed) {
   }
 }
 
-async function loadPackFile(base) {
-  return base === 'regions'
-    ? importJsonPack(
-        () => import('./local_data/natural_earth/regions.json'),
-        () =>
-          import('./local_data/natural_earth/regions.json', {
-            with: { type: 'json' },
-          }),
-      )
-    : importJsonPack(
-        () => import('./local_data/natural_earth/marine.json'),
-        () =>
-          import('./local_data/natural_earth/marine.json', {
-            with: { type: 'json' },
-          }),
-      );
-}
+const PACKS = {
+  regions: {
+    url: new URL('./local_data/natural_earth/regions.json', import.meta.url),
+    importJson: () =>
+      import('./local_data/natural_earth/regions.json', {
+        with: { type: 'json' },
+      }),
+  },
+  marine: {
+    url: new URL('./local_data/natural_earth/marine.json', import.meta.url),
+    importJson: () =>
+      import('./local_data/natural_earth/marine.json', {
+        with: { type: 'json' },
+      }),
+  },
+};
 
 function buildEntries(pack, kind) {
   const out = [];
@@ -207,8 +209,8 @@ function buildEntries(pack, kind) {
  */
 const loadIndex = createRetryableLoader(async () => {
   const [regions, marine] = await Promise.all([
-    loadPackFile('regions'),
-    loadPackFile('marine'),
+    loadBundledJson(PACKS.regions.url, PACKS.regions.importJson),
+    loadBundledJson(PACKS.marine.url, PACKS.marine.importJson),
   ]);
   _entries = [
     ...buildEntries(regions, 'natural'),

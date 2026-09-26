@@ -174,7 +174,14 @@ function stringOption(key, token, defaultValue) {
   });
 }
 
-function enumOption(key, token, defaultValue, values, codes) {
+function enumOption(
+  key,
+  token,
+  defaultValue,
+  values,
+  codes,
+  { absentValue = defaultValue } = {},
+) {
   // `codes` maps VALUE -> code. Passing a positional array instead encodes
   // every value as undefined, which produces a link the decoder then rejects
   // whole — a silently empty share link rather than a loud failure. Asserting
@@ -198,6 +205,7 @@ function enumOption(key, token, defaultValue, values, codes) {
     key,
     token,
     defaultValue,
+    absentValue,
     normalize: (value) => normalizeEnum(values, value),
     encode: (value) => codes[value],
     decode: (value) => reverse[value] || null,
@@ -255,7 +263,131 @@ function integerOption(key, token, defaultValue) {
   });
 }
 
+/**
+ * A share-link-only option: the whole-state codec carries it, but the stored
+ * local blob always holds its default.
+ */
+function shareOnlyOption(spec) {
+  return Object.freeze({ ...spec, shareOnly: true });
+}
+
+/**
+ * A signed integer in `[min, max]`, rejected (never clamped) outside it: a
+ * clamped box edge would be a different box, not a shorter spelling.
+ */
+function boundedIntegerOption(key, token, defaultValue, { min, max }) {
+  const parse = (value) => {
+    const number =
+      typeof value === 'number'
+        ? value
+        : /^-?\d{1,9}$/.test(String(value).trim())
+          ? Number(String(value).trim())
+          : NaN;
+    return Number.isInteger(number) && number >= min && number <= max
+      ? number
+      : null;
+  };
+  return Object.freeze({
+    key,
+    token,
+    defaultValue,
+    normalize: parse,
+    encode: (value) => String(value),
+    decode: parse,
+  });
+}
+
+/**
+ * Recent Imagery day: runtime key `S30:2026-09-18`, URL form `S20260918`.
+ * The calendar is checked both ways, and "today" is never consulted, so a
+ * link decodes the same whenever it is opened.
+ */
+const IMAGERY_LETTERS = Object.freeze({ S30: 'S', L30: 'L', VIIRS: 'V' });
+const IMAGERY_PRODUCTS = Object.freeze({ S: 'S30', L: 'L30', V: 'VIIRS' });
+
+function imageryKey(product, year, month, day) {
+  const time = Date.UTC(Number(year), Number(month) - 1, Number(day));
+  const iso = Number.isFinite(time)
+    ? new Date(time).toISOString().slice(0, 10)
+    : '';
+  return product && iso === `${year}-${month}-${day}`
+    ? `${product}:${iso}`
+    : null;
+}
+
+function imageryPinOption(key, token) {
+  return Object.freeze({
+    key,
+    token,
+    defaultValue: null,
+    normalize: (value) => {
+      const match = /^(S30|L30|VIIRS):(\d{4})-(\d{2})-(\d{2})$/.exec(
+        typeof value === 'string' ? value.trim() : '',
+      );
+      return match ? imageryKey(match[1], match[2], match[3], match[4]) : null;
+    },
+    encode: (value) => {
+      const [product, day] = value.split(':');
+      return `${IMAGERY_LETTERS[product]}${day.replaceAll('-', '')}`;
+    },
+    decode: (value) => {
+      const match = /^([SLV])(\d{4})(\d{2})(\d{2})$/.exec(
+        typeof value === 'string' ? value : '',
+      );
+      return match
+        ? imageryKey(IMAGERY_PRODUCTS[match[1]], match[2], match[3], match[4])
+        : null;
+    },
+  });
+}
+
 const OPTION_GROUPS = Object.freeze({
+  'weather-lightning': Object.freeze([
+    enumOption('opacity', 'o', 'strong', ['light', 'strong'], {
+      light: 'l',
+      strong: 's',
+    }),
+  ]),
+  'weather-radar': Object.freeze([
+    enumOption('opacity', 'o', 'strong', ['light', 'strong'], {
+      light: 'l',
+      strong: 's',
+    }),
+  ]),
+  'weather-satellite': Object.freeze([
+    enumOption('infrared', 'i', 'filtered', ['filtered', 'full'], {
+      filtered: 'f',
+      full: 'a',
+    }),
+    enumOption('opacity', 'o', 'strong', ['light', 'strong'], {
+      light: 'l',
+      strong: 's',
+    }),
+    enumOption(
+      'product',
+      'p',
+      'clouds-regional',
+      ['clouds', 'clouds-regional'],
+      { clouds: 'g', 'clouds-regional': 'r' },
+    ),
+  ]),
+  wind: Object.freeze([
+    enumOption('model', 'm', 'gfs', ['gfs', 'ifs'], { gfs: 'g', ifs: 'i' }),
+    enumOption(
+      'overlay',
+      'o',
+      'none',
+      ['none', 'speed', 'temperature', 'pressure'],
+      { none: 'n', speed: 's', temperature: 't', pressure: 'p' },
+      { absentValue: 'speed' },
+    ),
+    enumOption('units', 'u', 'km/h', ['km/h', 'm/s', 'mph'], {
+      'km/h': 'k',
+      'm/s': 'm',
+      mph: 'i',
+    }),
+    booleanOption('paused', 'p', false),
+  ]),
   flights: Object.freeze([
     // Owner directive 2026-08-22: the fleet's 3D models are DEFAULT-ON in
     // PROXIMITY mode. Proximity is itself the altitude/count gate — models only
@@ -405,6 +537,23 @@ const OPTION_GROUPS = Object.freeze({
   'imagery-viirs': Object.freeze([imageryOption('imagery-viirs')]),
   'imagery-goes': Object.freeze([imageryOption('imagery-goes')]),
   'imagery-science': Object.freeze([imageryOption('imagery-science')]),
+  'recent-imagery': Object.freeze([
+    // Box edges in degrees × 100000; latitudes stop at the Web-Mercator limit.
+    boundedIntegerOption('west', 'w', null, { min: -18000000, max: 18000000 }),
+    boundedIntegerOption('south', 's', null, { min: -8505110, max: 8505110 }),
+    boundedIntegerOption('east', 'e', null, { min: -18000000, max: 18000000 }),
+    boundedIntegerOption('north', 'n', null, { min: -8505110, max: 8505110 }),
+    imageryPinOption('a', 'a'),
+    imageryPinOption('b', 'b'),
+    // 0 one image, 1 image against the basemap, 2 two images A / B.
+    boundedIntegerOption('mode', 'm', 0, { min: 0, max: 2 }),
+    // The swipe position is one comparison's framing, not a preference: a
+    // stored split resurfaced in the next session's first comparison.
+    shareOnlyOption(
+      boundedIntegerOption('split', 'p', 50, { min: 0, max: 100 }),
+    ),
+    booleanOption('viirs', 'v', false),
+  ]),
   radio: Object.freeze([
     Object.freeze({
       key: 'filter',
@@ -473,7 +622,7 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     token: 'p',
     disposition: 'enabled-only',
   }),
-  Object.freeze({ id: 'atc', token: 'y', disposition: 'enabled-only' }),
+  Object.freeze({ id: 'atc', token: 'at', disposition: 'enabled-only' }),
   Object.freeze({
     id: 'aviation-hazards',
     token: 'av',
@@ -520,6 +669,11 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   }),
   Object.freeze({ id: 'earthquakes', token: 'e', disposition: 'enabled-only' }),
   Object.freeze({
+    id: 'fire-perimeters',
+    token: '2',
+    disposition: 'enabled-only',
+  }),
+  Object.freeze({
     id: 'flights',
     token: 'f',
     disposition: 'enabled+options',
@@ -527,7 +681,7 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   }),
   Object.freeze({
     id: 'imagery-goes',
-    token: '2',
+    token: 'ig',
     disposition: 'enabled+options',
     optionOwner: 'imagery-goes',
   }),
@@ -544,7 +698,7 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   }),
   Object.freeze({
     id: 'imagery-viirs',
-    token: '1',
+    token: 'iv',
     disposition: 'enabled+options',
     optionOwner: 'imagery-viirs',
   }),
@@ -584,6 +738,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     optionOwner: 'radio',
   }),
   Object.freeze({
+    id: 'recent-imagery',
+    token: '1',
+    disposition: 'enabled+options',
+    optionOwner: 'recent-imagery',
+  }),
+  Object.freeze({
     id: 'river-flood',
     token: '0',
     disposition: 'enabled+options',
@@ -606,8 +766,8 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     disposition: 'enabled+options',
     optionOwner: 'satnogs',
   }),
-  Object.freeze({ id: 'scanner', token: 'k', disposition: 'enabled-only' }),
-  Object.freeze({ id: 'sdr', token: 'o', disposition: 'enabled-only' }),
+  Object.freeze({ id: 'scanner', token: 'sc', disposition: 'enabled-only' }),
+  Object.freeze({ id: 'sdr', token: 'sd', disposition: 'enabled-only' }),
   Object.freeze({
     id: 'severe-outlook',
     token: '8',
@@ -639,7 +799,7 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   Object.freeze({ id: 'transit', token: 'j', disposition: 'enabled-only' }),
   Object.freeze({
     id: 'tropical-cyclones',
-    token: 'v',
+    token: 'tc',
     disposition: 'enabled-only',
   }),
   Object.freeze({ id: 'volcanoes', token: '6', disposition: 'enabled-only' }),
@@ -647,6 +807,35 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     id: 'weather-alerts',
     token: '4',
     disposition: 'enabled-only',
+  }),
+  Object.freeze({
+    id: 'weather-cyclones',
+    token: 'y',
+    disposition: 'enabled-only',
+  }),
+  Object.freeze({
+    id: 'weather-lightning',
+    token: 'l',
+    disposition: 'enabled+options',
+    optionOwner: 'weather-lightning',
+  }),
+  Object.freeze({
+    id: 'weather-radar',
+    token: 'v',
+    disposition: 'enabled+options',
+    optionOwner: 'weather-radar',
+  }),
+  Object.freeze({
+    id: 'weather-satellite',
+    token: 'o',
+    disposition: 'enabled+options',
+    optionOwner: 'weather-satellite',
+  }),
+  Object.freeze({
+    id: 'wind',
+    token: 'k',
+    disposition: 'enabled+options',
+    optionOwner: 'wind',
   }),
 ]);
 
@@ -906,13 +1095,28 @@ export function decodeLayerStateParams(params) {
   return normalizeLayerState({ enabledLayerIds, options: rawOptions });
 }
 
-/** Stable local-storage representation (full IDs for debuggability). */
+/** Options with share-link-only values reset to their defaults. */
+function withoutShareOnlyOptions(options) {
+  const out = {};
+  for (const ownerId of OPTION_OWNER_IDS) {
+    out[ownerId] = { ...(options?.[ownerId] || {}) };
+    for (const spec of optionSpecs(ownerId)) {
+      if (spec.shareOnly) out[ownerId][spec.key] = spec.defaultValue;
+    }
+  }
+  return out;
+}
+
+/**
+ * Stable local-storage representation (full IDs for debuggability), with
+ * share-link-only options at their defaults.
+ */
 export function serializeStoredLayerState(state) {
   const normalized = normalizeLayerState(state);
   return JSON.stringify({
     v: LAYER_STATE_VERSION,
     l: normalized.enabledLayerIds,
-    o: normalized.options,
+    o: withoutShareOnlyOptions(normalized.options),
   });
 }
 
@@ -924,7 +1128,7 @@ export function parseStoredLayerState(raw) {
       return null;
     return normalizeLayerState({
       enabledLayerIds: parsed.l,
-      options: parsed.o,
+      options: withoutShareOnlyOptions(parsed.o),
     });
   } catch {
     return null;
