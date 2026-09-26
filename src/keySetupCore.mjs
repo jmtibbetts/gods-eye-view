@@ -220,7 +220,7 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     layers: Object.freeze(['tropical-cyclones', 'weather-cyclones']),
     title: 'NOAA NATIONAL HURRICANE CENTER',
     feeds:
-      'Tropical Cyclones — active storms, cones, and the disturbances being watched',
+      'Tropical Storms & Outlook — active storms, cones, and the disturbances being watched',
     url: 'https://www.nhc.noaa.gov',
   }),
   Object.freeze({
@@ -276,7 +276,7 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     layers: Object.freeze(['lightning']),
     title: 'NOAA GOES LIGHTNING MAPPER',
     feeds:
-      'Lightning — individual flashes from GOES-East and GOES-West, via NOAA Open Data on AWS',
+      'Lightning Flashes — individual flashes from GOES-East and GOES-West, via NOAA Open Data on AWS',
     url: 'https://www.noaa.gov/nodd',
     note: 'Western Hemisphere only',
   }),
@@ -292,7 +292,7 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     id: 'rainviewer',
     layers: Object.freeze(['imagery-radar']),
     title: 'RAINVIEWER',
-    feeds: 'Weather Radar — NEXRAD and global precipitation mosaics',
+    feeds: 'Global Radar — NEXRAD and global precipitation mosaics',
     url: 'https://www.rainviewer.com/api.html',
   }),
   Object.freeze({
@@ -304,7 +304,7 @@ export const KEY_SETUP_KEYLESS_SOURCES = Object.freeze([
     ]),
     title: 'NASA GIBS',
     feeds:
-      'IMAGERY — the orbital and science sensors: VIIRS, MODIS, Sentinel-1, Black Marble and more',
+      'IMAGERY — the orbital and science sensors: VIIRS, MODIS, Sentinel-1, Black Marble and more; Recent Imagery — HLS and VIIRS days for a box',
     url: 'https://www.earthdata.nasa.gov/engage/open-data-services-software-policies',
   }),
   Object.freeze({

@@ -152,7 +152,7 @@ export function createLightningLayer({
 
   const layer = {
     id: LIGHTNING_LAYER_ID,
-    name: 'Lightning',
+    name: 'Lightning Flashes',
     icon: '⚡',
     source: 'NOAA GOES Geostationary Lightning Mapper',
     updateInterval: LIGHTNING_UPDATE_MS,

@@ -37,9 +37,9 @@ export const RAINVIEWER_INDEX_URL =
 export const IMAGERY_OVERLAYS = Object.freeze([
   Object.freeze({
     id: 'imagery-viirs',
-    token: '1',
+    token: 'iv',
     slotId: 'imagery-viirs',
-    name: 'Satellite Imagery',
+    name: 'Daily Satellite Imagery',
     icon: '🛰️',
     source: 'NASA GIBS',
     attribution: 'Imagery: NASA EOSDIS GIBS (VIIRS / MODIS)',
@@ -48,9 +48,9 @@ export const IMAGERY_OVERLAYS = Object.freeze([
   }),
   Object.freeze({
     id: 'imagery-goes',
-    token: '2',
+    token: 'ig',
     slotId: 'imagery-goes',
-    name: 'Weather Satellites',
+    name: 'Geostationary Imagery',
     icon: '🌀',
     source: 'NASA GIBS / NOAA / JMA',
     attribution: 'Imagery: NOAA GOES ABI and JMA Himawari AHI via NASA GIBS',
@@ -73,7 +73,7 @@ export const IMAGERY_OVERLAYS = Object.freeze([
   Object.freeze({
     id: 'imagery-radar',
     token: '3',
-    name: 'Weather Radar',
+    name: 'Global Radar',
     icon: '🌧️',
     source: 'RainViewer',
     attribution: 'Precipitation radar: RainViewer (NEXRAD + global mosaics)',

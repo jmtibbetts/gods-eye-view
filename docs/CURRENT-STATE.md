@@ -2858,7 +2858,7 @@ its criteria cannot be silently ignored.
 | Weather Alerts 🌩️ | NWS `api.weather.gov/alerts/active` | `src/layers/weatherAlerts/` via `src/app/layers/weatherAlerts.js` | — | 3 min |
 | Storm Reports 🌪️ | NOAA SPC preliminary reports | `src/layers/stormReports/` via `src/app/layers/stormReports.js` | — | 5 min |
 | Volcano Alerts 🌋 | USGS HANS volcano API | `src/layers/volcanoes/` via `src/app/layers/volcanoes.js` | — | 10 min |
-| Tropical Cyclones 🌀 | NHC CurrentStorms.json + NOAA tropical map service | `src/layers/tropical/` via `src/app/layers/tropical.js` | `/api/nhc/storms` (bulletin only; NHC sends no CORS) | 10 min |
+| Tropical Storms & Outlook 🌀 | NHC CurrentStorms.json + NOAA tropical map service | `src/layers/tropical/` via `src/app/layers/tropical.js` | `/api/nhc/storms` (bulletin only; NHC sends no CORS) | 10 min |
 | Severe Outlook ⛈️ | NOAA SPC convective outlooks (map service) | `src/layers/severeOutlook/` via `src/app/layers/severeOutlook.js` | — | 15 min |
 | Air Quality 😷 | EPA AirNow (ArcGIS map service) | `src/layers/airQuality/` via `src/app/layers/airQuality.js` | — | 15 min |
 | Space Weather 🌌 | NOAA SWPC (OVATION, Kp, scales, alerts) | `src/layers/spaceWeather/` via `src/app/layers/spaceWeather.js` | — (direct, CORS-open) | 5 min |
@@ -2867,7 +2867,7 @@ its criteria cannot be silently ignored.
 | SatNOGS 📡 | network.satnogs.org stations | `src/layers/satnogs/` via `src/app/layers/satnogs.js` | `/api/satnogs/stations` (no CORS upstream; trims 3.75 MB → 1.2 MB; disk-cached) | 10 min |
 | Aviation Hazards ⚠️ | aviationweather.gov international + US domestic SIGMETs | `src/layers/aviationHazards/` via `src/app/layers/aviationHazards.js` | `/api/aviation/sigmets` (merges two schemas; no CORS upstream) | 5 min |
 | Flight Restrictions ⛔ | tfr.faa.gov list + GeoServer WFS shapes + NOTAM detail pages (space ops) | `src/layers/tfr/` via `src/app/layers/tfr.js` | `/api/aviation/tfrs` (merges three upstreams; no CORS upstream; disk-cached) | 10 min |
-| Lightning ⚡ | GOES-19 East + GOES-18 West GLM L2 (NOAA Open Data on S3) | `src/layers/lightning/` via `src/app/layers/lightning.js` | `/api/lightning/flashes` (parses netCDF-4 server side via h5wasm) | 30 s |
+| Lightning Flashes ⚡ | GOES-19 East + GOES-18 West GLM L2 (NOAA Open Data on S3) | `src/layers/lightning/` via `src/app/layers/lightning.js` | `/api/lightning/flashes` (parses netCDF-4 server side via h5wasm) | 30 s |
 | Conflict Reporting 📰 | GDELT 2.0 events (15-min export), aggregated per country | `src/layers/conflictReports/` via `src/app/layers/conflictReports.js` | `/api/conflict/reports` | 10 min |
 
 The sixteen fork layers from Scanners down share one contract beyond the
