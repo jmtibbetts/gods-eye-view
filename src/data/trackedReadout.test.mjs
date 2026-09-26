@@ -276,7 +276,7 @@ async function staticContextLayersFromSource() {
     const selects = index.includes('createLayerSelection(') || index.includes('selectEntityContext(');
     if (!selects || !index.includes('gevLabelModel')) continue;
     const policy = await readFile(new URL(`${dir}/policy.js`, layersDir), 'utf8');
-    const id = policy.match(/export const \w+_LAYER_ID = '([^']+)'/)?.[1];
+    const id = policy.match(/export const (?:\w+_)?LAYER_ID = '([^']+)'/)?.[1];
     assert.ok(id, `${dir}/policy.js names its layer id`);
     found.push({ dir, id, index });
   }

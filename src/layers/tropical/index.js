@@ -120,7 +120,7 @@ export function createTropicalLayer({
 
   const selection = createLayerSelection({
     layerId: TROPICAL_LAYER_ID,
-    layerName: 'Tropical Cyclones',
+    layerName: 'Tropical Storms & Outlook',
     source: 'NOAA National Hurricane Center',
     entityPrefix: TROPICAL_ENTITY_PREFIX,
     context,
@@ -321,7 +321,7 @@ export function createTropicalLayer({
 
   const layer = {
     id: TROPICAL_LAYER_ID,
-    name: 'Tropical Cyclones',
+    name: 'Tropical Storms & Outlook',
     icon: '🌀',
     source: 'NOAA National Hurricane Center',
     updateInterval: TROPICAL_UPDATE_MS,

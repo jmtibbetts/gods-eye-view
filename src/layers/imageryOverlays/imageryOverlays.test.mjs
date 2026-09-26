@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { LAYER_STATE_REGISTRY } from '../../data/layerState.js';
 import {
   ALL_IMAGERY_PRODUCTS,
   clampToAvailable,
@@ -378,12 +379,13 @@ test('overlay descriptors cover four distinct slots and tokens', () => {
     'imagery-science',
     'imagery-viirs',
   ]);
-  assert.deepEqual(IMAGERY_OVERLAYS.map((d) => d.token).sort(), [
-    '1',
-    '2',
-    '3',
-    '7',
-  ]);
+  // The share-link registry owns the tokens; the descriptors must agree
+  // with it, or they document a code a link never carries.
+  for (const descriptor of IMAGERY_OVERLAYS) {
+    const entry = LAYER_STATE_REGISTRY.find((e) => e.id === descriptor.id);
+    assert.equal(descriptor.token, entry?.token, descriptor.id);
+  }
+  assert.equal(new Set(IMAGERY_OVERLAYS.map((d) => d.token)).size, 4);
   // The slot names must not claim a single instrument they no longer carry.
   assert.doesNotMatch(
     IMAGERY_OVERLAYS.find((d) => d.id === 'imagery-viirs').name,
@@ -490,6 +492,10 @@ test('a load failure is reported, not thrown', async () => {
   layer.init(viewer);
   await layer.enable(viewer);
   assert.equal(viewer.layers.length, 0);
+  assert.match(layer.getStats().error, /503/);
+  // The manager disables a layer whose load failed; the row still has to say
+  // why, so the reason outlives the disable and only a fresh enable clears it.
+  layer.disable();
   assert.match(layer.getStats().error, /503/);
 });
 

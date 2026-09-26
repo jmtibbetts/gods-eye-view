@@ -15,13 +15,22 @@ const stable = (value) =>
         )
       : value;
 
-test('the complete Realtime tool payload retains its pre-extraction contract and wording', () => {
+test('the complete Realtime tool payload pins the additive analyst, satellite, Local ADS-B and Cyber release', () => {
   const digest = createHash('sha256')
-    .update(JSON.stringify(stable(GEV_REALTIME_TOOLS)))
+    .update(
+      JSON.stringify(
+        stable(
+          GEV_REALTIME_TOOLS.filter((tool) => tool.name !== 'set_cyber_sonar'),
+        ),
+      ),
+    )
     .digest('hex');
   assert.equal(
     digest,
-    '1ac5c7a7fe7eea55a807296ecf89785fc0f37df575c6ba2db7478869eab363ad',
+    // Re-derived for the additive `local-adsb` set_layer_visibility value and
+    // the Cyber HUD layout, and the scanner, sdr and atc layer values; the
+    // separate sonar tool is excluded above.
+    'e7edf2dd85ea2f0369f8f6ff5a129b51192840a545241fd6e21feda52471b2e7',
   );
 });
 
@@ -75,4 +84,44 @@ test('metadata cannot add tools, fields, types or enum values', () => {
     { fly_to_location: { description: { nested: 'invalid' } } },
   ])
     assert.throws(() => createActionTools(descriptions), TypeError);
+});
+
+test('all legacy action arguments are byte-identical after removing the deliberate additions', () => {
+  const legacy = structuredClone(GEV_ACTION_SCHEMAS).filter(
+    (tool) => !['next_satellite_pass', 'set_cyber_sonar'].includes(tool.name),
+  );
+  const layers = legacy.find((tool) => tool.name === 'analyst_query').parameters
+    .properties.layers.items;
+  layers.enum = layers.enum.filter(
+    (key) =>
+      ![
+        'satellites',
+        'local-datacenters',
+        'local-dams',
+        'fire-perimeters',
+      ].includes(key),
+  );
+  // Local ADS-B is an additive set_layer_visibility enum value.
+  const visibility = legacy.find((tool) => tool.name === 'set_layer_visibility')
+    .parameters.properties.layerId;
+  visibility.enum = visibility.enum.filter(
+    (key) => !['local-adsb', 'fire-perimeters'].includes(key),
+  );
+  // This fork's scanner, sdr and atc layers are additive enum values too.
+  for (const tool of legacy) {
+    for (const value of Object.values(tool.parameters.properties)) {
+      if (value.enum)
+        value.enum = value.enum.filter(
+          (key) => !['fire-perimeters', 'scanner', 'sdr', 'atc'].includes(key),
+        );
+    }
+  }
+  // Independently derived by executing trusted c9f9896 actionSchemas in the restricted container.
+  const hud = legacy.find((tool) => tool.name === 'set_hud').parameters
+    .properties.layout;
+  hud.enum = hud.enum.filter((layout) => layout !== 'cyber');
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(legacy)).digest('hex'),
+    '820fff21658f6907e1010b2b79c5431a77f4e34afd2277d62d8de46c368b6f8c',
+  );
 });

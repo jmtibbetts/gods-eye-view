@@ -1,5 +1,6 @@
 import { bindRadioControls } from './radioBindings.js';
 import { renderRadioState } from './radioPresentation.js';
+import { scrollRailTo } from './railScroll.js';
 
 /** Own Radio DOM, tuner interaction and subscription; receive playback and application actions. */
 export class RadioControls {
@@ -59,7 +60,10 @@ export class RadioControls {
    */
   async _revealRadioControlsAfterExplicitEnable(trigger) {
     const contextPanel = document.getElementById('global-context-panel');
-    const scroller = contextPanel?.querySelector('.global-context-panel-inner');
+    const scroller =
+      (document.documentElement?.dataset.uiTheme === 'cyber' &&
+        contextPanel?.querySelector('.cyber-panel-body')) ||
+      contextPanel?.querySelector('.global-context-panel-inner');
     const directory = this._radioPanel?.querySelector('.radio-directory-row');
     const transport = this._radioPanel?.querySelector('.radio-transport');
     if (
@@ -98,10 +102,7 @@ export class RadioControls {
     const reducedMotion = window.matchMedia?.(
       '(prefers-reduced-motion: reduce)',
     )?.matches;
-    scroller.scrollTo({
-      top: next,
-      behavior: reducedMotion ? 'auto' : 'smooth',
-    });
+    scrollRailTo(scroller, next, { smooth: !reducedMotion });
     return true;
   }
 
@@ -113,7 +114,10 @@ export class RadioControls {
    */
   async _revealRadioPanelInsideContext({ focusTarget = null } = {}) {
     const contextPanel = document.getElementById('global-context-panel');
-    const scroller = contextPanel?.querySelector('.global-context-panel-inner');
+    const scroller =
+      (document.documentElement?.dataset.uiTheme === 'cyber' &&
+        contextPanel?.querySelector('.cyber-panel-body')) ||
+      contextPanel?.querySelector('.global-context-panel-inner');
     if (
       !contextPanel ||
       contextPanel.classList.contains('collapsed') ||
@@ -145,19 +149,18 @@ export class RadioControls {
       const reducedMotion = window.matchMedia?.(
         '(prefers-reduced-motion: reduce)',
       )?.matches;
-      scroller.scrollTo({
-        top: next,
-        behavior: reducedMotion ? 'auto' : 'smooth',
-      });
+      scrollRailTo(scroller, next, { smooth: !reducedMotion });
     }
     focusTarget?.focus?.({ preventScroll: true });
     return moved;
   }
 
-  /** Keep the Context header Radio shortcut truthful for its current route. */
+  /** Keep the launcher truthful for the active theme and Context route. */
   _syncContextRadioLauncherState() {
     if (this.destroyed || !this._contextRadioToggleBtn) return;
-    const contextPanel = document.getElementById('global-context-panel');
+    const contextPanel = globalThis.document?.getElementById(
+      'global-context-panel',
+    );
     const contextExpanded = Boolean(
       contextPanel && !contextPanel.classList.contains('collapsed'),
     );
@@ -177,6 +180,8 @@ export class RadioControls {
       this._contextRadioToggleBtn.title = label;
       return;
     }
+    // This launcher toggles the compact player even when the detailed panel
+    // is open elsewhere. Its ARIA state must describe that same disclosure.
     const compactOpen = Boolean(
       this._contextRadioDock?.classList.contains('disclosure-open'),
     );

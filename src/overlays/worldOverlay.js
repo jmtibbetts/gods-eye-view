@@ -1,5 +1,10 @@
 import * as Cesium from 'cesium';
 import {
+  createCyberSonarSampler,
+  isCyberContactSonarActive as isCyberSonarActive,
+  CYBER_SONAR_RENDER_INTERVAL_MS,
+} from '../cyberSonar.js';
+import {
   getKeyholeFadeTuning,
   getKeyholeGeometry,
   keyholeLabelAlphaFromGeometry,
@@ -102,6 +107,7 @@ export const WORLD_OVERLAY_OCCLUDER_SELECTORS = Object.freeze([
   '#cctv-sync-chip',
   '#left-panel-stack',
   '#right-context-rail',
+  '.weather-summary',
   '#pp-toggles',
   '#command-dock',
   '#gev-voice-control',
@@ -172,6 +178,7 @@ let _resizeObserver = null;
 let _mutationObserver = null;
 let _observedOccluderElements = new WeakSet();
 let _occluderRefreshTimer = null;
+let _sonarRenderTimer = null;
 let _cockpitModeHandler = null;
 let _windowResizeHandler = null;
 let _cockpitActive = false;
@@ -2513,7 +2520,7 @@ function paintCustomLane(lane) {
   }
 }
 
-function paintEntryItem(item, keyhole) {
+function paintEntryItem(item, keyhole, sonar) {
   const { record, placement } = item;
   const entry = record.entry;
   let keyholeAlpha = 1;
@@ -2538,7 +2545,8 @@ function paintEntryItem(item, keyhole) {
     item.temporalAlpha *
     record.distanceAlpha *
     record.altitudeAlpha *
-    keyholeAlpha;
+    keyholeAlpha *
+    (sonar ? sonar.label(sonar.at(placement.anchorX, placement.anchorY)) : 1);
   if (finalAlpha <= 0.001) return;
   if (record.paintScale === 1) {
     paintOverlayEntry(
@@ -2578,6 +2586,9 @@ function paintEntryItem(item, keyhole) {
 
 function paintFrame(keyhole) {
   const started = nowMs();
+  const sonar = isCyberSonarActive()
+    ? createCyberSonarSampler(_canvasWidth, _canvasHeight, started)
+    : null;
   clearCanvas(true, false);
   _detectionSurfacePrepared = false;
   if (
@@ -2598,7 +2609,7 @@ function paintFrame(keyhole) {
     // retains its former z5 position below every ordinary host entry at z6.
     paintCustomLane(lane);
     while (itemIndex < _paintCount && _paintQueue[itemIndex].lane === lane) {
-      paintEntryItem(_paintQueue[itemIndex], keyhole);
+      paintEntryItem(_paintQueue[itemIndex], keyhole, sonar);
       itemIndex++;
     }
   }
@@ -2651,6 +2662,10 @@ function resetFrameDiagnostics() {
 }
 
 function drawWorldOverlay() {
+  if (_sonarRenderTimer !== null) {
+    clearTimeout(_sonarRenderTimer);
+    _sonarRenderTimer = null;
+  }
   if (_destroyed || !_viewer || !_canvas || !_ctx) return;
   const timestamp = nowMs();
   if (!overlayHasPaintWork(timestamp)) {
@@ -2692,6 +2707,15 @@ function drawWorldOverlay() {
   _diagnostics.projectionMs = nowMs() - projectionStarted;
   solveDomains(timestamp);
   paintFrame(keyhole);
+  // Labels-only layers need a bounded sweep refresh even with detection off.
+  // Empty/hidden hosts and teardown never retain scanner render demand.
+  if (_paintRectCount > 0 && isCyberSonarActive()) {
+    _sonarRenderTimer = setTimeout(() => {
+      _sonarRenderTimer = null;
+      if (!_destroyed && isCyberSonarActive())
+        _viewer?.scene?.requestRender?.();
+    }, CYBER_SONAR_RENDER_INTERVAL_MS);
+  }
   const animationsRemaining =
     activeFadeCount(timestamp) + activeLeaderAnimationCount(timestamp);
   if (animationsRemaining > 0) _viewer.scene.requestRender?.();
@@ -2749,6 +2773,8 @@ export function initWorldOverlay(viewer) {
 
 /** Remove all listeners, observers, entries, diagnostics, and overlay DOM. */
 export function destroyWorldOverlay() {
+  if (_sonarRenderTimer !== null) clearTimeout(_sonarRenderTimer);
+  _sonarRenderTimer = null;
   // Tearing down a host that was never initialized must not arm the
   // post-destroy guard: sources are allowed to publish before the first
   // `initWorldOverlay`, and that buffering has to survive a stray destroy.

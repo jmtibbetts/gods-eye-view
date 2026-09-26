@@ -2,7 +2,7 @@
 
 # 🌐 God's Eye View
 
-[![CI](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml)
+[![CI](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml) [![Reached #1 on GitHub Trending](https://img.shields.io/badge/%231_GitHub_Trending-thank_you!-F0A63C?style=flat-square&logo=github)](https://x.com/bilawalsidhu/status/2093798887815348521)
 
 ### A spy-satellite simulator in your browser — then you realize the sources are public and the data is real.
 
@@ -20,8 +20,6 @@ _No place left behind._
 
 ▶️ **From the project behind the viral God's Eye View series** _(formerly WorldView)_ — [5M+ on YouTube](https://youtube.com/playlist?list=PL6qSg2I-7_koPbDnSMo0QeeHX_RknA2uv&si=nBGYMoHWQw41v93Q) · [25M+ across socials](https://www.google.com/search?q=god%27s+eye+view)
 
-[![Reached #1 on GitHub Trending](https://img.shields.io/badge/%231_GitHub_Trending-thank_you!-F0A63C?style=flat-square&logo=github)](https://x.com/bilawalsidhu/status/2093798887815348521)
-
 🏆 **Reached #1 on GitHub Trending, daily and weekly · August 2026**
 
 **[#8 Product of the Day](https://www.producthunt.com/products/god-s-eye-view?launch=god-s-eye-view)** · Hunted by Chris Messina, creator of the hashtag
@@ -36,7 +34,7 @@ _“pretty cool”_ — [Brendan Eich](https://x.com/BrendanEich/status/20945920
 
 <div align="center">
 
-**[Quick Start](#-quick-start) · [First Five Minutes](#-the-first-five-minutes) · [Talk to It](#-talk-to-it) · [What's Live](#-whats-on-the-globe) · [Under the Hood](#-under-the-hood) · [Keys & Costs](#-api-keys)**
+**[Quick Start](#-quick-start) · [First Five Minutes](#-the-first-five-minutes) · [Talk to It](#-talk-to-it) · [What's Live](#-whats-on-the-globe) · [Under the Hood](#-under-the-hood) · [Keys & Costs](#-api-keys) · [Contributing](CONTRIBUTING.md)**
 
 </div>
 
@@ -65,8 +63,8 @@ This is [**jmtibbetts/gods-eye-view**](https://github.com/jmtibbetts/gods-eye-vi
 | 🛰️ **IMAGERY — 41 sensors** | Paint the globe with any of 41 products from NASA, NOAA, EUMETSAT and Copernicus, grouped by what they reveal — draped onto Google 3D rather than replacing it. True colour from four platforms at four overpass times; false colour for fire and for snow-against-cloud; the day/night band; Sentinel-1 radar that sees through cloud. The complete geostationary ring — GOES-East and West, Himawari, Meteosat, and multimission composites of the whole belt. Measured science on a colour ramp: sea-surface temperature, aerosol, snow, sea ice, flood extent. Each one states its own publication lag, and `npm run check:imagery` re-probes them all so a retired product fails loudly instead of serving a silent black tile |
 | 🛰️ **SENSORS** | Track NOAA-20, Terra, a Sentinel, GOES or Himawari and the panel names the instrument it carries — swath, resolution, bands — and offers every product the globe can draw from it as a button, while the satellites layer paints the ground the sensor is sweeping under it as it moves. A geostationary imager also plays its last dozen published frames as a loop, and the panel says when the satellite is next over the ground you were looking at — and when it next images it, in daylight or not. Every picture is labelled with how far behind live it is published, because nothing outside an operator's control room commands a spacecraft |
 | 💥 **Conjunctions** | The week's closest approaches from CelesTrak SOCRATES — the highest probabilities, the tightest misses and everything involving a crewed station — each drawn at the point over the Earth it will happen, with the miss distance, relative speed and SOCRATES's maximum probability stated as the screening figure it is, never as an operator's risk |
-| 🌀 **Tropical Cyclones** | Active storms from the National Hurricane Center with forecast cone, track and past track — plus the disturbances NHC is watching, each with its two-day and seven-day formation odds, so the layer says something useful in the two-thirds of the year with no named storm |
-| 🌀 **Weather Radar** | NEXRAD and global RainViewer precipitation mosaics, stackable under the flights diverting around them |
+| 🌀 **Tropical Storms & Outlook** | Active storms from the National Hurricane Center with forecast cone, track and past track — plus the disturbances NHC is watching, each with its two-day and seven-day formation odds, so the layer says something useful in the two-thirds of the year with no named storm |
+| 🌀 **Global Radar** | NEXRAD and global RainViewer precipitation mosaics, stackable under the flights diverting around them |
 | ⛈️ **Severe Outlook** | SPC convective outlooks — categorical risk for days one to three plus tornado, wind and hail probabilities — drawn in SPC's own colours with the higher risk never buried under the band that encloses it |
 | 😷 **Air Quality** | EPA AirNow AQI contours in AirNow's own six category colours, worst category named in the panel |
 | 🌌 **Space Weather** | NOAA SWPC's OVATION aurora oval draped on the globe, with the planetary K index, the G/R/S storm scales and the alerts they issue on the layer row — labelled as the forecast it is, not tonight's sky |
@@ -74,7 +72,7 @@ This is [**jmtibbetts/gods-eye-view**](https://github.com/jmtibbetts/gods-eye-vi
 | 🏜️ **Drought** | US Drought Monitor conditions D0–D4 and CPC's monthly and seasonal outlooks, in the services' own colours, each readout carrying the date it describes because a week-old drought map read as "today" is the mistake this product invites |
 | ⚠️ **Aviation Hazards** | Every SIGMET in force — volcanic ash by volcano name, thunderstorms, turbulence, icing, tropical cyclone, mountain wave — with flight levels and validity, international and US domestic feeds merged, expired advisories dropped |
 | ⛔ **Flight Restrictions** | Every FAA temporary flight restriction in force as the polygon it closes — space operations, hazards, security, VIP, events — with the NOTAM's own start, end and altitude block for the launch closures, and the day named on the list for the rest, each labelled as which it is |
-| ⚡ **Lightning** | Individual flashes from the GOES Geostationary Lightning Mappers, a new file every twenty seconds, keyless from NOAA's open-data buckets. Western Hemisphere only, and the panel names which satellites reported so an unobserved Europe is not read as a quiet one |
+| ⚡ **Lightning Flashes** | Individual flashes from the GOES Geostationary Lightning Mappers, a new file every twenty seconds, keyless from NOAA's open-data buckets. Western Hemisphere only, and the panel names which satellites reported so an unobserved Europe is not read as a quiet one |
 
 **Watch the world**
 
@@ -166,6 +164,14 @@ Start with the included data sources, then add your own. Each layer is a separat
 - **📸 Snapshot:** One click saves the current view — globe, overlay labels and all — as a captioned PNG stamped with coordinates and UTC time.
 - **🔗 Share Links:** Camera, style, layers, and even one tracked target serialize into a URL — a live target is a handoff, not a bookmark.
 - **🏠 Reset Globe:** One control — or one sentence — back to the full Earth.
+- **🌦️ Weather:** Animate GFS or ECMWF forecast wind, replay observed radar, satellite clouds and lightning on one timeline, and follow NHC/CPHC cyclone tracks. No key needed.
+- **📷 Mapped ALPR cameras:** License-plate-reader camera locations tagged in OpenStreetMap, one city at a time. Locations and tags only; no key needed.
+- **🔭 Satellite passes:** Ask by voice when any loaded satellite next rises over you: rise, peak and set times, and whether you can see it.
+- **🔎 Analyst answers:** Count, filter and rank satellites, datacenters and dams by voice, alongside flights, ships, fires and quakes; answers say when a feed is stale or on a fallback.
+- **🧭 Tilt and North Up:** Switch between straight-down and a 35° oblique, or put north at the top, while a tracked target stays centered.
+- **🔍 Keyless search:** Type coordinates or a bundled city or landmark to fly there with no network request; other names use Google when configured, then Photon and Nominatim.
+- **📦 Shareable scenes:** Import, preview and share Director scenes as files or bundles, with camera anchors, authored moves and data packs.
+- **🌊 Nepal flood scene:** Replay the Bhote Koshi flood: flood path, witness sources and before-and-after imagery (bundled data is non-commercial; see [DATA_SOURCES.md](DATA_SOURCES.md)).
 
 ![The INSPECT card showing a tracked business jet at FL490 with its Center frequency and LISTEN, FOLLOW and PIN buttons](docs/media/28-inspect-aircraft.png)
 
@@ -215,7 +221,7 @@ are available without keys.
 
 For photorealistic 3D, add a **Cesium ion token** for eligible personal,
 non-commercial use, or a **Google Maps key** for the direct, metered route and
-in-app place search. Provider terms and quotas apply. Add keys through the
+Google place search. Provider terms and quotas apply. Add keys through the
 app's **POWER UP** panel; [Keys & Costs](#-api-keys) explains the options.
 
 ### Path 1 — One click, no terminal
@@ -278,8 +284,8 @@ reopens the same panel.
 - **What to get first:** the free [Cesium ion](https://cesium.com/ion) token
   (eligible personal, non-commercial use; current terms and quotas apply) for
   photorealistic 3D and world terrain; a Google Maps key only for the
-  billing-enabled, metered route + place search; OpenAI when you want to talk
-  to the world. Full map, costs included, in [Keys & Costs](#-api-keys).
+  billing-enabled, metered route + Google place search; OpenAI when you want to
+  talk to the world. Full map, costs included, in [Keys & Costs](#-api-keys).
 
 <details>
 <summary>Older Pinokio versions and credential storage</summary>
@@ -313,7 +319,7 @@ Choose a first-run mission, or try these in order. The GIFs show Google Photorea
 
 ![Moving from a full airport overhead down to close taxiway inspection with 3D flight models](docs/media/start-here/airport-ground-traffic-google-3d.gif)
 
-4. **Look through a public camera.** Turn on **CCTV** over Austin, London, California, or Finland. The feeds aren't webcam embeds — they project _into_ the 3D city. Cycle coverage to **VIEWSHED** and every camera draws its estimated coverage volume — where it reaches, and where it goes blind.
+4. **Look through a public camera.** Turn on **Cameras** over Austin, London, California, Finland, or Delaware (live video). The feeds aren't webcam embeds — they project _into_ the 3D city. Cycle coverage to **VIEWSHED** and every camera draws its estimated coverage volume — where it reaches, and where it goes blind.
 
 ![Diving into an Austin intersection with a live public camera projected into the 3D scene](docs/media/03-austin-cctv.gif)
 
@@ -328,7 +334,7 @@ Choose a first-run mission, or try these in order. The GIFs show Google Photorea
 7. **Talk to it** _(needs an OpenAI key)_: _"Take me to LAX and select the nearest airborne aircraft."_
 8. **Come home.** Hit **Reset Globe** — or just say _"zoom out to a globe view."_
 
-**Keyboard:** `1`–`7` visual styles · `H` HUD · `D` detection · `C` cockpit · `Esc` out.
+**Keyboard:** `1`–`7` visual styles · `H` HUD · `D` detection · `C` cockpit · `` ` `` frame rate · `Esc` out. Trackpad pinch zooms the globe.
 
 ---
 
@@ -360,7 +366,7 @@ Click **GEV MIC**, grant the microphone, and just talk. This is more than a voic
 - **🎬 Cinematic framing.** _"Show me the planes overhead"_ pulls the camera back, angles it, and frames the live traffic like a director.
 - **🔒 Honest and secure.** The agent only confirms actions that succeeded. Your `OPENAI_API_KEY` never touches the browser; the client only gets a short-lived session token.
 
-Twenty-eight tools, four jobs — the commands below come straight from the product's voice test suite and tool playbook:
+Twenty-nine tools, four jobs — the commands below come straight from the product's voice test suite and tool playbook:
 
 **🎥 Direct it** — drone-operator camera verbs:
 
@@ -378,7 +384,7 @@ Twenty-eight tools, four jobs — the commands below come straight from the prod
 
 **🔎 Interrogate it** — analyst queries against the live layers:
 
-> 🗣️ _"How many flights are over Texas right now?"_ · _"Which ships are headed to Oakland?"_ · _"What is the biggest fire near Los Angeles?"_ · _"Is anything flying above forty thousand feet?"_ · _"When does the ISS pass over next?"_
+> 🗣️ _"How many flights are over Texas right now?"_ · _"Which ships are headed to Oakland?"_ · _"What is the biggest fire near Los Angeles?"_ · _"Is anything flying above forty thousand feet?"_ · _"When does the ISS pass over next?"_ · _"How many datacenters are in view?"_
 
 **🎛️ Operate it** — the whole console, hands-free:
 
@@ -396,7 +402,7 @@ _Ask for radio near anywhere and the globe starts broadcasting — every station
 
 ## 🛰️ What's on the Globe
 
-Thirty-one layers and map sources. **Twenty-nine have a keyless path.** Some offer additional capabilities with a provider key. (🟢 no key · 🟡 free key · 🔴 metered.)
+Thirty-five layers and map sources. **Thirty-three have a keyless path.** Some offer additional capabilities with a provider key. (🟢 no key · 🟡 free key · 🔴 metered.)
 
 | Layer                       | What you get                                                                                                                                                                                                                                                                                                                                                                        | Source                                  | Auth                                                                                                |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -410,7 +416,7 @@ Thirty-one layers and map sources. **Twenty-nine have a keyless path.** Some off
 | 🌩️ **Weather Alerts**       | Live NWS watches and warnings as severity-coloured polygons — tornado, severe thunderstorm, flash flood and the rest — each clickable for its headline, instruction text and expiry. Zone-only advisories ship no geometry in the feed, so they are counted rather than drawn and the panel says which is which                                                                    | US National Weather Service             | 🟢                                                                                                  |
 | 🌪️ **Storm Reports**        | Preliminary tornado, damaging-wind and hail reports filed by NWS offices, over a rolling two-day window and colour-coded by kind — hail sized in inches, wind in knots, with the spotter's own comments. Marked preliminary on every card, because SPC revises and removes them during review                                                              | NOAA Storm Prediction Center            | 🟢                                                                                                  |
 | 🛰️ **IMAGERY (41 sensors)** | Four switchable slots, stackable. ORBITAL: true colour from NOAA-20, Suomi-NPP, Terra and Aqua; false colour for fire and burn scars and for ice against cloud; the VIIRS day/night band; Sentinel-1 terrain-corrected radar at zoom 12; the Black Marble composite; and with a Copernicus key, eight Sentinel-2 products at 10 m. GEOSTATIONARY — the complete ring: GOES-East and GOES-West GeoColor and clean IR, Himawari visible and IR, Meteosat Third Generation GeoColor and true colour, the Indian Ocean service, SEVIRI volcanic ash, plus dust, fire-temperature and air-mass composites and two multimission frames covering the whole belt at once. MEASURED SCIENCE: sea-surface temperature and anomaly, aerosol optical depth, snow cover, land-surface temperature, sea ice, and Sentinel-1 flood extent. Each product carries its verified publication lag and archive depth — Terra reaches back to February 2000 — and `npm run check:imagery` re-probes every one, following the sun for daylight-only bands so night is never reported as a fault | NASA GIBS + EUMETSAT + RainViewer (+ Copernicus) | 🟢 (🟡 optional for Sentinel-2) |
-| 🌀 **Tropical Cyclones** | NHC active storms — category, sustained wind in knots and mph, pressure, motion, advisory number — with forecast cone, forecast track and past track from NOAA's tropical map service. Draws the Tropical Weather Outlook too, since NHC reports no cyclones for most of the year: each watched area carries its two-day and seven-day formation odds. Every storm card states what the cone means, because it is the most misread object in public weather graphics | NOAA National Hurricane Center | 🟢 |
+| 🌀 **Tropical Storms & Outlook** | NHC active storms — category, sustained wind in knots and mph, pressure, motion, advisory number — with forecast cone, forecast track and past track from NOAA's tropical map service. Draws the Tropical Weather Outlook too, since NHC reports no cyclones for most of the year: each watched area carries its two-day and seven-day formation odds. Every storm card states what the cone means, because it is the most misread object in public weather graphics | NOAA National Hurricane Center | 🟢 |
 | ⛈️ **Severe Outlook** | SPC convective outlooks: categorical risk for days one to three, and the day-one tornado, wind and hail probabilities, as risk-area polygons in SPC's own colours. Nested bands are drawn with their holes punched out so a higher category is never painted over by the lower one that encloses it. Where SPC drew nothing the panel repeats SPC's own words — "Less Than 2% All Areas" is an assessment, not missing data | NOAA Storm Prediction Center | 🟢 |
 | 😷 **Air Quality** | EPA AirNow AQI contours, in the six category colours AirNow publishes and asks not to be changed, with the worst category present named in the panel | EPA AirNow | 🟢 |
 | 🌌 **Space Weather** | The OVATION aurora oval as ground-classified cells (so it sits on Google 3D too), Kp, the G/R/S scales and the last day's alerts | NOAA SWPC | 🟢 |
@@ -419,10 +425,11 @@ Thirty-one layers and map sources. **Twenty-nine have a keyless path.** Some off
 | 📡 **SatNOGS** | Volunteer satellite ground stations — connected now, heard in 24 hours, heard in 30 days, or every station on file — with bands, observation counts and success rate. State comes from the underlying fields, because SatNOGS reports "Offline" for stations that are connected but not accepting scheduling | SatNOGS Network (CC BY-SA 4.0) | 🟢 |
 | ⚠️ **Aviation Hazards** | SIGMETs in force, by class: volcanic ash (named by volcano), thunderstorms, tropical cyclone, turbulence, icing, mountain wave. International and US domestic feeds merged into one record; expired advisories dropped and counted; multi-area advisories drawn as every area rather than their first | NOAA Aviation Weather Center | 🟢 |
 | ⛔ **Flight Restrictions** | FAA TFRs in force as polygons, by kind: space operations, hazards, security, VIP, events. The list, the shapes and — for space operations — the NOTAM detail page merged server side into one record per NOTAM; multi-area NOTAMs drawn as every area; times marked exact or day-level, never passed off as the other | FAA Graphic TFRs | 🟢 |
-| ⚡ **Lightning** | Every optical flash the GOES-19 East and GOES-18 West lightning mappers detected in the last minute, from NOAA's open-data buckets with no key and a new file every twenty seconds. Coverage is the Western Hemisphere, and the panel names the satellites that reported rather than only counting flashes | NOAA GOES Geostationary Lightning Mapper | 🟢 |
+| ⚡ **Lightning Flashes** | Every optical flash the GOES-19 East and GOES-18 West lightning mappers detected in the last minute, from NOAA's open-data buckets with no key and a new file every twenty seconds. Coverage is the Western Hemisphere, and the panel names the satellites that reported rather than only counting flashes | NOAA GOES Geostationary Lightning Mapper | 🟢 |
 | 📰 **Conflict Reporting** | GDELT violent-event counts from the last fifteen-minute update, shaded by country and never drawn as points: a third of GDELT's events sit on a state or country centroid, which as markers would put a conflict in the empty middle of Nevada. Each readout says the data is machine-coded from news, not verified, and what share of that country's events carried no real location | GDELT Project | 🟢 |
 | 🚗 **Traffic**              | Simulated vehicles on OSM roads. With TomTom, live flow speeds drive the simulation and congestion colors below ~8 km; individual vehicle positions are not live observations                                                                                                                                                                                                       | TomTom + OSM                            | 🟢 simulation · 🟡 live flow speeds                                                                 |
-| 📹 **CCTV Mesh**            | ~3,600 public cameras projected _into_ the 3D space — Austin · Texas (TxDOT) · California (Caltrans) · London (TfL) · Ontario (511) · Finland (Fintraffic) · British Columbia (DriveBC) · Estonia (Tallinn, Tarktee) · New South Wales (Live Traffic NSW) · Calgary. Positions are published; poses are estimated priors **you calibrate by dragging a gizmo on the camera itself** | City APIs                               | 🟢                                                                                                  |
+| 📹 **CCTV Mesh**            | ~3,600 public cameras projected _into_ the 3D space — Austin · Texas (TxDOT) · California (Caltrans) · London (TfL) · Ontario (511) · Finland (Fintraffic) · British Columbia (DriveBC) · Estonia (Tallinn, Tarktee) · Delaware (DelDOT live video) · New South Wales (Live Traffic NSW) · Calgary. Positions are published; poses are estimated priors **you calibrate by dragging a gizmo on the camera itself** | City APIs                               | 🟢                                                                                                  |
+| 📷 **Mapped ALPR Cameras**  | License-plate-reader camera locations tagged by OpenStreetMap contributors, loaded one city-sized view at a time, with **SHOW NEAREST**. Locations and tags only: no plate data, no video                                                                                                                                                                                           | OpenStreetMap (incl. DeFlock mapping)   | 🟢                                                                                                  |
 | 📻 **Radio**                | Geolocated world radio with an **analog tuner** — drag the needle across up to 750 stations and the globe flies to each broadcaster                                                                                                                                                                                                                                                 | Radio Browser / broadcasters            | 🟢                                                                                                  |
 | 🚨 **Scanners**             | Police, fire and EMS radio, live: 460+ trunked public-safety systems across the US, Canada and Australia. Click a system and transmissions queue up and play back to back like a desk scanner, with talkgroup names, unit tags and an emergency flag. Click again to pause, Esc to stop. Where OpenMHz carries no system for the area, the panel says so plainly and links that state's Broadcastify feeds instead of leaving you staring at an empty map                                                                                        | OpenMHz                                 | 🟢                                                                                                  |
 | 📡 **SDR Receivers**        | 1,300+ public web SDRs — KiwiSDR, WebSDR, OpenWebRX and friends — with bands and antennas. Pick a band (Airband, Marine, Ham, Shortwave…) and press LISTEN: the nearest receiver that covers it opens in a window on the map, waterfall and all. Or click a receiver for its card and open it tuned to an exact frequency. The receiver window zooms and will fit itself to the screen, so the waterfall is not buried under its own controls. `npm run check:sdr-places` geocodes the place each receiver's name claims and marks the ones pinned somewhere else, so the card says "position unverified" and the LAUNCH panel does not offer a receiver near a pad that is really six hundred kilometres away | receiverbook.de + curated lists         | 🟢                                                                                                  |
@@ -434,6 +441,13 @@ Thirty-one layers and map sources. **Twenty-nine have a keyless path.** Some off
 | 🚀 **Space Missions**       | Rolling 30-day launches with payload, stage, and recovery detail — and the LAUNCH panel's live countdowns, webcasts and range radio for the next dozen                                                                                                                                                                                                                              | Launch Library 2                        | 🟢 (🟡 optional token raises the allowance)                                                         |
 | 💥 **Conjunctions** | SOCRATES close approaches for the week ahead, cut to the top probabilities, the closest misses and every crewed pair; docked pairs dropped, station pieces folded; each placed at the time of closest approach from both objects' elements, fetched one object at a time and cached; chips for HIGH and CREWED | CelesTrak SOCRATES | 🟢 |
 | 🎖️ **Mapped Installations** | Viewport-bounded military-site context from community mapping — incomplete by nature, and labeled that way                                                                                                                                                                                                                                                                          | OpenStreetMap                           | 🟢                                                                                                  |
+| 🌬️ **Wind**                 | Animated 10 m forecast wind with an optional speed, temperature or pressure color field and a reading at map center                                                                                                                                                                                                                                                                 | NOAA GFS / ECMWF IFS                    | 🟢                                                                                                  |
+| 🌦️ **Observed Weather**     | Rain radar (contiguous US), Satellite clouds (GOES regional or global infrared, Clouds only or Full image) and Lightning density (Americas and Pacific) on one history timeline                                                                                                                                                                                                     | NOAA nowCOAST                           | 🟢                                                                                                  |
+| 🌀 **Cyclones**             | Advisory positions, forecast tracks and uncertainty cones for the Atlantic and eastern/central North Pacific                                                                                                                                                                                                                                                                        | NOAA NHC / CPHC                         | 🟢                                                                                                  |
+
+**Weather, keyless.** **Wind** animates 10 m forecast flow from NOAA GFS or ECMWF IFS, with an optional color field and a reading at map center. **Rain radar**, **Satellite clouds** and **Lightning density** are observations on one history timeline in the **WEATHER** panel (step back, **Play**, **Latest**); **Cyclone advisories** draw NHC and CPHC positions, forecast tracks and cones. On Google 3D Tiles the observed layers float above the city as translucent shells, sharpened around your view.
+
+In the app, **Data Layers** groups them as Movement, Cameras, Infrastructure, Events, Weather and Utilities.
 
 **The basemap ladder — what each tier buys you:**
 
@@ -441,7 +455,7 @@ Thirty-one layers and map sources. **Twenty-nine have a keyless path.** Some off
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🟢 Nothing                 | Esri World Imagery satellite basemap + keyless terrain, in 2D. OSM takes over automatically if Esri is unreachable; if terrain is unavailable the globe continues without it |
 | 🟡 A free Cesium ion token | **Google Photorealistic 3D cities** and world terrain — eligible personal, non-commercial use; current ion terms and quotas apply                                            |
-| 🔴 A Google Maps key       | The same 3D direct from Google, plus in-app place search — the billing-enabled, metered route                                                                                |
+| 🔴 A Google Maps key       | The same 3D direct from Google, plus Google place search — the billing-enabled, metered route                                                                                |
 
 ![A reconstructed Falcon 9 ascent climbing and curving into its projected orbit](docs/media/08-falcon9-replay.gif)
 
@@ -520,7 +534,8 @@ src/
 ├── hud.js                  # Intelligence HUD + AI scene summary
 ├── keySetup.js             # POWER UP panel — in-app provider keys (dev server only)
 ├── mapStackController.js   # Basemap switching — Google 3D / Esri / OSM / ion stacks
-├── voice/                  # OpenAI Realtime session + 28 voice tools
+├── voice/                  # OpenAI Realtime session + 29 voice tools
+├── layers/                 # Layer components — weather, wind, cyclones, transit, ALPR, …
 ├── data/                   # One module per layer + orchestration + context store
 │   ├── iconOrientation.js  # Screen-projected headings + horizon cull
 │   └── local_data/         # Bundled datasets (per-folder provenance)
@@ -539,6 +554,11 @@ Use **POWER UP → Provider Settings** to add keys. The tables below explain wha
 each provider enables; none is required to start. See the
 [setup instructions](#then-power-it-up--in-the-app-not-in-a-file) for storage
 and configuration details.
+
+No key needed for Wind, Rain radar, Satellite clouds, Lightning density,
+Cyclone advisories, Mapped ALPR Cameras, Transit, Directions, Delaware live
+video, and coordinate or bundled-place search. A layer row waiting on a key
+names it.
 
 ### Choose the capabilities you want
 
@@ -571,8 +591,10 @@ Add these if you need higher polling allowances.
 where each configured provider was found without printing credential values.
 On macOS its Keychain-aware result previews `./scripts/dev-fresh.sh`; plain
 `npm run dev` reads only explicit environment and Vite dotenv values. The
-OpenSky summary reports only OAuth client-pair presence, not the resolved
-runtime mode or credential validity; Basic and credentials-file modes remain
+OpenSky summary reports keyless anonymous access for explicit `anon` or an
+OAuth mode without a client pair, retains presence-only wording for a complete
+OAuth pair, and identifies selected Basic or auto mode without guessing which
+credentials runtime will accept. Basic and credentials-file modes remain
 advanced `dev-fresh.sh` configuration.
 
 <details>
@@ -596,15 +618,35 @@ OpenSky can run fully anonymous (`OPENSKY_AUTH_MODE=anon`), or import OAuth cred
 
 </details>
 
+<details>
+<summary>Live video cameras (HLS)</summary>
+
+CCTV sources with `"feedType": "hls"` and a registered HTTP(S) `.m3u8`
+URL play through a lazily loaded hls.js decoder shared by the monitor plane
+and panel. DelDOT uses its official HTTPS HLS catalog links. Disable that
+pack with `CCTV_DELDOT_ENABLED=0`.
+
+The server allows two concurrent sessions. Each retains at most 12 segments
+and 24 MiB in memory; individual downloads are capped at 4 MiB with a ten
+second deadline. There are no segment files or ffmpeg processes. Redirects,
+off-origin references, encrypted playlists and non-MPEG-TS segments are refused.
+Each decoder has its own client lease (at most eight per session), including
+native HLS. Closing it releases only that lease; abandoned leases expire after
+15 seconds without access. The last release stops upstream work. Failed live video
+uses the existing still/Street View/synthetic fallback, which is not live video.
+RTMP-only sources are not supported by this integration.
+
+</details>
+
 ### 💸 What it actually costs
 
 Honest numbers, roughly, as of mid-2026 — always check the provider pricing pages:
 
 |                          | Cost reality                                                                                                                                                                                                                                                                                                                                                                |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **🟢 Most layers**       | **$0, no signup.** OpenSky anon, USGS, CelesTrak, adsb.lol, city CCTV, Radio Browser, OpenMHz scanners, web SDR directory, FAA NASR / OurAirports ATC frequencies, GBFS, Launch Library 2, bundled datasets.                                                                                                                                                                                                                                             |
+| **🟢 Most layers**       | **$0, no signup.** OpenSky anon, USGS, CelesTrak, adsb.lol, city CCTV, Radio Browser, OpenMHz scanners, web SDR directory, FAA NASR / OurAirports ATC frequencies, GBFS, Launch Library 2, transit feeds, OSRM routing, NOAA and ECMWF weather, OpenStreetMap ALPR mapping, bundled datasets.                                                                                                                                                            |
 | **🟡 The free-key tier** | **$0 with a signup.** AISStream, FIRMS, TomTom, OpenSky, plus Cesium ion for eligible personal/non-commercial use. Provider quotas and eligibility still apply.                                                                                                                                                                                                             |
-| **🗺️ Google 3D tiles**   | **Free through an eligible Cesium ion Community account within its quota; metered through a direct Google key.** Use the direct route for GEV place search or commercial deployment, verify current provider terms, and set budget alerts where billing is enabled.                                                                                                         |
+| **🗺️ Google 3D tiles**   | **Free through an eligible Cesium ion Community account within its quota; metered through a direct Google key.** Use the direct route for Google place search or commercial deployment, verify current provider terms, and set budget alerts where billing is enabled.                                                                                                      |
 | **🔴 OpenAI voice**      | **The one that costs real money — so the app meters it for you.** Realtime audio runs a few cents per active minute; an evening of heavy use is single-digit dollars. A live session-spend readout sits next to the mic, with an STD/MINI model toggle, a $2 warning, and a **$5 hard cap that ends the session**. The voice context window is kept deliberately short too. |
 
 Google's direct 3D route is surprisingly generous: the first 1,000 Photorealistic

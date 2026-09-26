@@ -403,6 +403,7 @@ export function createImageryOverlayLayer({
     async enable(viewer) {
       if (_enabled) return;
       _enabled = true;
+      _lastError = null;
       _viewer = viewer || _viewer;
       // Under the photoreal stack the globe is hidden, and an imagery layer
       // added there draws nothing and requests no tiles at all. A product
@@ -425,7 +426,8 @@ export function createImageryOverlayLayer({
       stopLoop({ refresh: false });
       removeLayer();
       clearDrape();
-      _lastError = null;
+      // The error survives the disable: a failed load is disabled by the
+      // manager, and the row must still say why. enable() clears it.
       _surfaceChange = null;
       // Release exactly what was retained. A drape never took the surface,
       // and releasing one it never held would decrement another overlay's
