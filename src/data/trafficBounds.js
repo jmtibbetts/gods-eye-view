@@ -16,6 +16,26 @@
 /** @const {number} Mean Earth radius in km (spherical approximation). */
 const EARTH_RADIUS_KM = 6371;
 
+/**
+ * @const {number} Floor applied to cos(latitude) when widening the longitude
+ * cap. Longitude degrees converge at the poles, so an uncapped 1/cos blows the
+ * span up without bound (2.9 degrees at 89 deg). The floor holds the ground
+ * width honest out to ~87 deg and degrades gracefully past it, matching the
+ * convention already used for anchor framing in `locations.js`.
+ */
+const MIN_COS_LAT = 0.05;
+
+/**
+ * Cosine of a latitude, floored so the longitude cap stays finite at the poles.
+ *
+ * @param {number} lat - Latitude in degrees.
+ * @returns {number} cos(lat), never below {@link MIN_COS_LAT}.
+ */
+export function cosLatFloor(lat) {
+  const cos = Math.cos(toRad(lat));
+  return Number.isFinite(cos) ? Math.max(MIN_COS_LAT, cos) : 1;
+}
+
 const toRad = (deg) => (deg * Math.PI) / 180;
 const toDeg = (rad) => (rad * 180) / Math.PI;
 
@@ -124,21 +144,35 @@ export function deriveFetchCenter({
 }
 
 /**
- * Clamp a bounding box's spans to `maxSpanDeg` and recenter it on `center`.
+ * Clamp a bounding box's spans to `maxSpanDeg` of GROUND distance and recenter
+ * it on `center`.
  *
- * Preserves the pre-C4 span semantics (each axis capped at 0.05° ≈ 5.5 km)
- * but centers the box on the derived look-at point instead of the view
- * rectangle's midpoint. Idempotent when `center` is the box's own midpoint.
+ * `maxSpanDeg` is a latitude span: 0.05° is 5.57 km anywhere on Earth. A
+ * longitude degree is not, and capping both axes at the same number of degrees
+ * made the fetch box a tall, narrow rectangle everywhere but the equator —
+ * 5.57 x 4.22 km in New York, 5.57 x 3.46 km in London, 5.57 x 2.79 km in Oslo.
+ * The viewport is wider than it is tall, so the missing coverage landed on the
+ * axis that needed it most and roads to the left and right of what the user was
+ * looking at never got fetched. Dividing the longitude cap by cos(latitude)
+ * squares the box on the ground, which is the query area the 0.05° cap was
+ * chosen to buy in the first place.
+ *
+ * Idempotent when `center` is the box's own midpoint: the second pass derives
+ * the same cap from the same center latitude and the span is already under it.
  *
  * @param {{south:number, west:number, north:number, east:number}} bounds
  *   Source bounds (span donor).
  * @param {{lat:number, lon:number}} center - Fetch center (degrees).
- * @param {number} [maxSpanDeg=0.05] - Max span per axis in degrees.
+ * @param {number} [maxSpanDeg=0.05] - Max ground span per axis, in degrees of
+ *   latitude (~5.57 km at the default).
  * @returns {{south:number, west:number, north:number, east:number}} Clamped bounds.
  */
 export function clampBoundsAroundCenter(bounds, center, maxSpanDeg = 0.05) {
   const latSpan = Math.min(bounds.north - bounds.south, maxSpanDeg);
-  const lonSpan = Math.min(bounds.east - bounds.west, maxSpanDeg);
+  const lonSpan = Math.min(
+    bounds.east - bounds.west,
+    maxSpanDeg / cosLatFloor(center.lat),
+  );
   return {
     south: center.lat - latSpan / 2,
     north: center.lat + latSpan / 2,
