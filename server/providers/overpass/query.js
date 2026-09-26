@@ -140,12 +140,24 @@ function sanitizeOverpassBody(rawBody) {
     if (bounded) for (const name of outSets) boundedSets.add(name);
   }
 
-  const clamped = data.replace(
-    /\[timeout:\s*(\d+)\s*\]/gi,
-    (_, n) =>
-      `[timeout:${Math.min(Number(n) || OVERPASS_MAX_QL_TIMEOUT, OVERPASS_MAX_QL_TIMEOUT)}]`,
-  );
-  return { ok: true, body: `data=${encodeURIComponent(clamped)}` };
+  // Remember the longest window the query asked Overpass for: the proxy spends
+  // it as the budget for the whole mirror fan-out, so a query that wanted 12
+  // seconds of work is not held for 88 by four mirrors in turn.
+  let qlTimeoutSec = null;
+  const clamped = data.replace(/\[timeout:\s*(\d+)\s*\]/gi, (_, n) => {
+    const seconds = Math.min(
+      Number(n) || OVERPASS_MAX_QL_TIMEOUT,
+      OVERPASS_MAX_QL_TIMEOUT,
+    );
+    qlTimeoutSec =
+      qlTimeoutSec === null ? seconds : Math.max(qlTimeoutSec, seconds);
+    return `[timeout:${seconds}]`;
+  });
+  return {
+    ok: true,
+    body: `data=${encodeURIComponent(clamped)}`,
+    qlTimeoutSec,
+  };
 }
 
 export { isOverpassBoundaryQuery, sanitizeOverpassBody };

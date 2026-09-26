@@ -56,6 +56,20 @@ const OVERPASS_DISK_DIR = path.join(process.cwd(), '.gev-cache', 'overpass');
 /** Per-upstream fetch timeout (ms). */
 const OVERPASS_TIMEOUT_MS = 22000;
 
+/**
+ * @const {number} Smallest window worth handing a fresh mirror (ms). Below
+ * this a mirror is being set up to fail: the request costs the upstream real
+ * work and the caller still gets nothing, so the fan-out stops instead.
+ */
+const OVERPASS_MIN_ATTEMPT_MS = 6_000;
+
+/**
+ * @const {number} Network and transfer allowance on top of the server-side
+ * work the query asked for (ms). Connect, TLS, upstream queue and body
+ * transfer all sit outside the `[timeout:]` Overpass itself honours.
+ */
+const OVERPASS_TRANSFER_ALLOWANCE_MS = 15_000;
+
 /** Max entries in the Overpass response cache (LRU-like, oldest evicted first). */
 const OVERPASS_CACHE_MAX_ENTRIES = 120;
 
@@ -124,6 +138,37 @@ const OVERPASS_AREA_ELEMENT_RE = new RegExp(
 const OVERPASS_BBOX_RE =
   /\(\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*\)/;
 
+/**
+ * Whole-fan-out transport budget for one proxied query (ms).
+ *
+ * Every mirror used to get the full {@link OVERPASS_TIMEOUT_MS}, so a chain of
+ * sick mirrors could hold a caller for `mirrors x 22 s` — 88 s on the shipped
+ * list — while an interactive layer showed an empty map and the user had long
+ * since panned away. The caller already declared how long the work is worth in
+ * the query's own `[timeout:]`; this treats that as the budget for the whole
+ * search rather than the allowance for each attempt. Never longer than the old
+ * worst case, so no query gains patience it did not have.
+ *
+ * @param {number|null|undefined} qlTimeoutSec - Seconds the sanitized query
+ *   asked Overpass to spend, or null when it declared none.
+ * @param {number} [endpointCount] - Mirrors that may be tried.
+ * @returns {number} Budget in milliseconds.
+ */
+function overpassBudgetMs(
+  qlTimeoutSec,
+  endpointCount = OVERPASS_UPSTREAMS.length,
+) {
+  const declared = Number(qlTimeoutSec);
+  const seconds =
+    Number.isFinite(declared) && declared > 0
+      ? Math.min(declared, OVERPASS_MAX_QL_TIMEOUT)
+      : OVERPASS_MAX_QL_TIMEOUT;
+  return Math.min(
+    Math.max(1, endpointCount) * OVERPASS_TIMEOUT_MS,
+    seconds * 1000 + OVERPASS_TRANSFER_ALLOWANCE_MS,
+  );
+}
+
 export {
   OVERPASS_BOUNDARY_DISK_TTL_MS,
   OVERPASS_DISK_TTL_MS,
@@ -145,4 +190,7 @@ export {
   OVERPASS_UPSTREAMS,
   OVERPASS_USER_AGENT,
   OVERPASS_TIMEOUT_MS,
+  OVERPASS_MIN_ATTEMPT_MS,
+  OVERPASS_TRANSFER_ALLOWANCE_MS,
+  overpassBudgetMs,
 };
