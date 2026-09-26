@@ -49,6 +49,7 @@ import { aircraftTrackingTarget } from '../cockpitTracking.js';
 import { ShellFeedback } from './shellFeedback.js';
 
 import { runCctvLayerEnableTransition } from '../cctvFocusPolicy.js';
+import { railScrollerFor, scrollRailTo } from './railScroll.js';
 
 /**
  * Central UI orchestrator for the God's Eye View application.
@@ -1169,8 +1170,41 @@ export class StyleManager extends ShellFacade {
       explicit: panel.closest('#global-context-panel') ? false : true,
       persist: false,
     });
-    panel.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    this._scrollSectionIntoView(panel);
     return true;
+  }
+
+  /**
+   * Bring an opened section to the top of the rail scroller that holds it,
+   * below the sticky group heading that would otherwise cover its header.
+   * Waits a frame so the expansion has laid out before measuring.
+   * @param {HTMLElement} panel
+   */
+  _scrollSectionIntoView(panel) {
+    const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)')
+      ?.matches;
+    requestAnimationFrame(() => {
+      if (this._disposed || !panel.isConnected) return;
+      const scroller = railScrollerFor(panel);
+      if (!scroller) {
+        panel.scrollIntoView?.({
+          block: 'start',
+          behavior: smooth ? 'smooth' : 'auto',
+        });
+        return;
+      }
+      const heading = panel
+        .closest('.context-group')
+        ?.querySelector('.context-group-heading');
+      const covered = heading?.getBoundingClientRect().height || 0;
+      const top =
+        scroller.scrollTop +
+        panel.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top -
+        covered -
+        6;
+      scrollRailTo(scroller, top, { smooth });
+    });
   }
 
   /** A layer row's PANEL › asks, by event, for its Context section to open. */

@@ -1,5 +1,6 @@
 import { bindRadioControls } from './radioBindings.js';
 import { renderRadioState } from './radioPresentation.js';
+import { scrollRailTo } from './railScroll.js';
 
 /** Own Radio DOM, tuner interaction and subscription; receive playback and application actions. */
 export class RadioControls {
@@ -101,10 +102,7 @@ export class RadioControls {
     const reducedMotion = window.matchMedia?.(
       '(prefers-reduced-motion: reduce)',
     )?.matches;
-    scroller.scrollTo({
-      top: next,
-      behavior: reducedMotion ? 'auto' : 'smooth',
-    });
+    scrollRailTo(scroller, next, { smooth: !reducedMotion });
     return true;
   }
 
@@ -151,10 +149,7 @@ export class RadioControls {
       const reducedMotion = window.matchMedia?.(
         '(prefers-reduced-motion: reduce)',
       )?.matches;
-      scroller.scrollTo({
-        top: next,
-        behavior: reducedMotion ? 'auto' : 'smooth',
-      });
+      scrollRailTo(scroller, next, { smooth: !reducedMotion });
     }
     focusTarget?.focus?.({ preventScroll: true });
     return moved;

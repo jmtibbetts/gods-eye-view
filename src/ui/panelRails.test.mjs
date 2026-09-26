@@ -1,5 +1,6 @@
 import { readStylesheet } from '../testSupport/readStylesheet.mjs';
 import { displayPanelScroller } from './displayPanelScroll.js';
+import { scrollRailTo } from './railScroll.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
@@ -528,6 +529,36 @@ test('right rail measuring pass keeps an opted-in scroller position', () => {
   clamp = false;
   f.run();
   assert.equal(writes, 1, 'an unclamped offset is not rewritten');
+});
+
+test('right rail measuring pass lands a smooth scroll in flight on its destination', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = fixture('right');
+  f.expand(f.first, 300);
+  let scrollTop = 120;
+  const body = {
+    get scrollTop() {
+      return scrollTop;
+    },
+    set scrollTop(value) {
+      scrollTop = value;
+    },
+    scrollHeight: 1200,
+    clientHeight: 400,
+    // The smooth scroll starts but has not moved yet when the pass runs.
+    scrollTo() {},
+  };
+  f.stack.querySelectorAll = (selector) =>
+    selector === '[data-rail-scroller]' ? [body] : [];
+  const setAttribute = f.stack.setAttribute;
+  f.stack.setAttribute = (name, value) => {
+    setAttribute(name, value);
+    // Lifting max-height clamps the offset, which cancels the smooth scroll.
+    if (name === 'data-rail-measuring') scrollTop = 0;
+  };
+  scrollRailTo(body, 520);
+  f.run();
+  assert.equal(scrollTop, 520, 'the destination, not the starting offset');
 });
 
 for (const variant of ['minimal', 'full']) {

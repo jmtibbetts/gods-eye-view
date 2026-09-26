@@ -8,6 +8,7 @@ import {
 } from './panelRailGeometry.js';
 
 import { displayPanelScroller } from './displayPanelScroll.js';
+import { pendingRailScroll } from './railScroll.js';
 
 const pendingCollapseRetries = new WeakSet();
 
@@ -154,11 +155,13 @@ export function layoutRightPanelRail({
   );
   const displayScrollTop = readDisplayScrollTop();
   // Measuring lifts each opted-in scroller's max-height, which clamps its
-  // scroll offset; remember the offsets to put back afterwards.
+  // scroll offset; remember the offsets to put back afterwards. A clamp also
+  // cancels a smooth scroll in flight, so a scroller that is on its way
+  // somewhere is put back at its destination, not where it started.
   const scrollers = [
     ...(stack.querySelectorAll?.('[data-rail-scroller]') || []),
   ]
-    .map((node) => [node, node.scrollTop || 0])
+    .map((node) => [node, pendingRailScroll(node) ?? (node.scrollTop || 0)])
     .filter(([, top]) => top > 0);
   const naturalHeights = new Map();
   // Remove live height allocations through a synchronous CSS override. Keeping
@@ -179,7 +182,7 @@ export function layoutRightPanelRail({
   } finally {
     stack.removeAttribute('data-rail-measuring');
     for (const [node, top] of scrollers)
-      if (node.scrollTop !== top) node.scrollTop = top;
+      if (Math.abs(node.scrollTop - top) >= 1) node.scrollTop = top;
   }
   const gap = parseFloat(getComputedStyle(stack).rowGap) || 0;
   const naturalHeight =

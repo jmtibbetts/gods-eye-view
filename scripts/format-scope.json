@@ -920,6 +920,8 @@
   "src/ui/radioTunerModel.js",
   "src/ui/railCards.js",
   "src/ui/railCards.test.mjs",
+  "src/ui/railScroll.js",
+  "src/ui/railScroll.test.mjs",
   "src/ui/railScrollers.test.mjs",
   "src/ui/railTimeline.js",
   "src/ui/railTimeline.test.mjs",

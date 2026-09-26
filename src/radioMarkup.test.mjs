@@ -332,7 +332,8 @@ test('expanded Context routes its Radio icon to the embedded section and keeps c
   const revealMethod = radioControlsSource.slice(revealStart, revealEnd);
   assert.ok(revealStart >= 0 && revealEnd > revealStart, 'embedded Radio reveal helper is missing');
   assert.match(revealMethod, /requestAnimationFrame\(\(\) => requestAnimationFrame/);
-  assert.match(revealMethod, /scroller\.scrollTo\(\{\s*top: next,\s*behavior: reducedMotion \? 'auto' : 'smooth',?\s*\}\)/);
+  // Through the rail helper, so a layout pass mid-scroll lands on `next`.
+  assert.match(revealMethod, /scrollRailTo\(scroller, next, \{ smooth: !reducedMotion \}\)/);
   assert.match(revealMethod, /focus\?\.\(\{ preventScroll: true \}\)/);
   assert.doesNotMatch(revealMethod, /setEnabled|togglePlayback|selectStation|setContextMode/);
 
