@@ -11,7 +11,7 @@ import { mkdir, readFile, writeFile, unlink } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import createViteConfig, { fetchOverpassPayload, overpassPayloadIsData, readOverpassDisk } from '../vite.config.js';
+import createViteConfig, { fetchOverpassPayload, overpassPayloadIsData, readOverpassDisk, sanitizeOverpassBody, overpassBudgetMs, OVERPASS_TIMEOUT_MS, OVERPASS_MIN_ATTEMPT_MS, OVERPASS_UPSTREAMS } from '../vite.config.js';
 
 const ENDPOINTS = ['https://a.example/api', 'https://b.example/api', 'https://c.example/api'];
 
@@ -305,4 +305,71 @@ test('coalesced outage callers both receive last-good data, never a cached refus
       await unlink(file);
     }
   }
+});
+
+// ─── Fan-out budget ────────────────────────────────────────────────────────
+//
+// Every mirror used to get the full per-mirror timeout, so a chain of sick
+// mirrors could hold an interactive layer for 88 s on an empty map. The query
+// already declares how long the work is worth; that is the budget for the
+// whole search, not the allowance for each attempt.
+
+test('a spent budget stops the fan-out instead of asking the next mirror', async () => {
+  const tried = [];
+  let clock = 0;
+  const payload = await fetchOverpassPayload('data=x', 1e6, {
+    endpoints: ENDPOINTS,
+    now: () => clock,
+    fetchImpl: async (url) => { tried.push(url); clock += OVERPASS_TIMEOUT_MS; return { status: 503, headers: { get: () => 'text/html' } }; },
+    readBody: async () => 'upstream down',
+    simplify: (body) => body,
+    budgetMs: OVERPASS_TIMEOUT_MS + 1000,
+  });
+  assert.deepEqual(tried, [ENDPOINTS[0]], 'the second mirror must not be asked once the budget cannot buy an attempt');
+  assert.equal(payload.status, 503, 'the refusal already collected is still what gets reported');
+});
+
+test('the first mirror is always asked, however small the budget', async () => {
+  const tried = [];
+  const payload = await fetchOverpassPayload('data=x', 1e6, {
+    endpoints: ENDPOINTS,
+    now: () => 0,
+    fetchImpl: async (url) => { tried.push(url); return { status: 200, headers: { get: () => 'application/json' } }; },
+    readBody: async () => '{"elements":[]}',
+    simplify: (body) => body,
+    budgetMs: 1,
+  });
+  assert.deepEqual(tried, [ENDPOINTS[0]]);
+  assert.equal(payload.status, 200);
+});
+
+test('a budget that is never spent still reaches every mirror', async () => {
+  const tried = [];
+  const payload = await fetchOverpassPayload('data=x', 1e6, {
+    endpoints: ENDPOINTS,
+    now: () => 0, // a frozen clock spends nothing
+    fetchImpl: async (url) => { tried.push(url); return { status: 503, headers: { get: () => 'text/html' } }; },
+    readBody: async () => 'upstream down',
+    simplify: (body) => body,
+    budgetMs: OVERPASS_TIMEOUT_MS,
+  });
+  assert.deepEqual(tried, ENDPOINTS, 'healthy timing must not shorten the fan-out');
+  assert.equal(payload.status, 503);
+});
+
+test('the budget tracks what the query asked for and never exceeds the old worst case', () => {
+  const worstCase = OVERPASS_UPSTREAMS.length * OVERPASS_TIMEOUT_MS;
+  for (const seconds of [1, 12, 20, 30, 300]) {
+    const budget = overpassBudgetMs(seconds);
+    assert.ok(budget <= worstCase, `[timeout:${seconds}] must not buy more patience than the ${worstCase} ms it used to get`);
+    assert.ok(budget >= OVERPASS_MIN_ATTEMPT_MS, `[timeout:${seconds}] must still buy one real attempt`);
+  }
+  assert.ok(overpassBudgetMs(12) < overpassBudgetMs(30), 'a query asking for less work must wait less');
+  assert.equal(overpassBudgetMs(null), overpassBudgetMs(30), 'a query that declares no timeout gets the clamp ceiling, not unlimited patience');
+});
+
+test('the sanitizer reports the clamped timeout the budget is derived from', () => {
+  const ask = (seconds) => sanitizeOverpassBody('data=' + encodeURIComponent(`[out:json][timeout:${seconds}];(way["highway"~"^motorway$"](51.4,-0.2,51.6,0.0););out geom qt;`));
+  assert.equal(ask(12).qlTimeoutSec, 12, 'the declared timeout is reported as declared');
+  assert.equal(ask(900).qlTimeoutSec, 30, 'an over-long ask is reported at the clamp, not as asked');
 });

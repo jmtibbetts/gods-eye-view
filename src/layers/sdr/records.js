@@ -99,9 +99,112 @@ export function sdrRegionWithoutDirection(stated) {
   return m ? m[1] : null;
 }
 
+/** A bare address is whatever the box's connection happened to have that day. */
+const isAddressLiteral = (hostname) =>
+  /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.startsWith('[');
+
+/** The port a receiver answers on, with the scheme default filled in. */
+function sdrReceiverPort(url) {
+  try {
+    const u = new URL(url);
+    return u.port || (u.protocol === 'https:' ? '443' : '80');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Rank two addresses for the same radio. Lower wins.
+ *  - https first: an http page will not embed beside a secure app.
+ *  - a hostname before a bare IP: the operator maintains the name, and the
+ *    address is whatever their ISP handed out that week.
+ * Ties keep the directory's own order, so the choice is stable between loads.
+ */
+function sdrUrlRank(url) {
+  try {
+    const u = new URL(url);
+    return (
+      (u.protocol === 'https:' ? 0 : 2) + (isAddressLiteral(u.hostname) ? 1 : 0)
+    );
+  } catch {
+    return 9;
+  }
+}
+
+/**
+ * One radio, one entry.
+ *
+ * Operators register the same box more than once — a dynamic-DNS name, the
+ * kiwisdr.com proxy that reaches it from behind a carrier NAT, and the raw IP
+ * all point at one receiver — so the bundled directory carries about 116 rows
+ * more than there are radios and the globe stacks two to four markers on a
+ * single pin.
+ *
+ * Rows fold only when the name, the position AND the port all match. A
+ * different port on the same host is a second receiver instance — a separate
+ * band, or a second box in the same shack — not a second way into the first,
+ * so those stay apart. The addresses that lose are kept on the survivor as
+ * `alternateUrls`: nothing is dropped, the entry just knows every way it can
+ * be reached.
+ *
+ * Where the upstream data is wrong — two receivers in different towns sharing
+ * one pin and one operator-written name — this folds them into one. That takes
+ * nothing away that was visible: they shared a marker and a label before the
+ * fold as well.
+ *
+ * @param {Array<object>} records - Validated receivers, in directory order.
+ * @returns {Array<object>} One record per radio, each carrying its alternates.
+ */
+export function foldSdrDuplicates(records) {
+  const byRadio = new Map();
+  for (const record of records) {
+    const key = [
+      record.name,
+      record.lat,
+      record.lon,
+      sdrReceiverPort(record.url),
+    ].join('\u0000');
+    const held = byRadio.get(key);
+    if (!held) {
+      byRadio.set(key, record);
+      continue;
+    }
+    const [primary, alternate] =
+      sdrUrlRank(record.url) < sdrUrlRank(held.url)
+        ? [record, held]
+        : [held, record];
+    const alternateUrls = [
+      ...(primary.alternateUrls || []),
+      ...(alternate.alternateUrls || []),
+      alternate.url,
+    ].filter(
+      (url, index, all) => url !== primary.url && all.indexOf(url) === index,
+    );
+    // A position warning outlives the fold. `check-sdr-places.mjs` derives the
+    // mark from the name and the pin, which the folded rows share, so a copy
+    // that lacks it was simply never audited — not cleared. Losing the warning
+    // because the unmarked address happened to sort first would quietly turn
+    // "this pin may be wrong" into silence, which is the one direction this
+    // cleanup must not fail in.
+    const marked =
+      (alternate.placeMismatchKm || 0) > (primary.placeMismatchKm || 0)
+        ? alternate
+        : primary;
+    byRadio.set(key, {
+      ...primary,
+      alternateUrls,
+      placeMismatchKm: marked.placeMismatchKm,
+      placeStated: marked.placeStated ?? primary.placeStated,
+    });
+  }
+  return [...byRadio.values()];
+}
+
 /**
  * Validate the bundled receiver directory. Bad rows are dropped one by one
  * (the file is a snapshot, not a feed), but a non-array payload is rejected.
+ * Rows that are the same radio under several addresses are folded by
+ * {@link foldSdrDuplicates} before the directory is returned.
  * @param {unknown} payload Parsed receivers.json.
  * @returns {Array<object>|null}
  */
@@ -181,5 +284,5 @@ export function normalizeSdrDirectory(payload) {
       placeDefault: row.placeDefault === true,
     });
   }
-  return out;
+  return foldSdrDuplicates(out);
 }

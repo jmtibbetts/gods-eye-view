@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as Cesium from 'cesium';
 import {
+  foldSdrDuplicates,
   normalizeSdrDirectory,
   sdrReceiverUrl,
   sdrRegionWithoutDirection,
@@ -541,8 +542,12 @@ test('the audit flags a pin far from its stated place, and the layer carries the
         placeKm: far.km,
       },
       {
+        // A different pin, so this is a second receiver rather than a second
+        // address for the first — an unaudited row must stay unmarked.
         ...misplaced,
         id: 'b',
+        lat: 34.25,
+        lon: -80.6,
         url: 'http://b.example/',
         type: 'kiwisdr',
         placeKm: 0,
@@ -587,4 +592,132 @@ test('the audit flags a pin far from its stated place, and the layer carries the
       receiver: rows[1],
     }).details.some((d) => /unverified/.test(d)),
   );
+});
+
+// ─── One radio, one entry ──────────────────────────────────────────────────
+//
+// Operators register the same box under a dynamic-DNS name, the kiwisdr.com
+// proxy that reaches it from behind a carrier NAT, and its raw IP. The
+// directory then stacks two to four markers on one pin and offers the picker
+// the same radio several times over.
+
+const receiver = (over) => ({
+  id: over.url,
+  name: 'KiwiSDR | Bracknell, UK',
+  lat: 51.4162,
+  lon: -0.7536,
+  type: 'kiwisdr',
+  placeMismatchKm: null,
+  placeStated: null,
+  ...over,
+});
+
+test('the same radio under several addresses folds into one entry that keeps them all', () => {
+  const folded = foldSdrDuplicates([
+    receiver({ url: 'http://bracknell.ddns.net:8073/' }),
+    receiver({ url: 'http://81.2.69.160:8073/' }),
+    receiver({ url: 'http://21400.proxy.kiwisdr.com:8073/' }),
+  ]);
+
+  assert.equal(folded.length, 1, 'three ways into one box is one receiver');
+  assert.equal(
+    folded[0].url,
+    'http://bracknell.ddns.net:8073/',
+    'the name the operator maintains wins over the address their ISP handed out',
+  );
+  assert.deepEqual(folded[0].alternateUrls, [
+    'http://81.2.69.160:8073/',
+    'http://21400.proxy.kiwisdr.com:8073/',
+  ]);
+});
+
+test('https wins the primary address, because an http page will not embed beside a secure app', () => {
+  const folded = foldSdrDuplicates([
+    receiver({ url: 'http://bracknell.ddns.net:443/' }),
+    receiver({ url: 'https://bracknell.example/' }),
+  ]);
+  assert.equal(folded.length, 1);
+  assert.equal(folded[0].url, 'https://bracknell.example/');
+  assert.deepEqual(folded[0].alternateUrls, ['http://bracknell.ddns.net:443/']);
+});
+
+test('a second port on one host is a second receiver, not a second door', () => {
+  const folded = foldSdrDuplicates([
+    receiver({ url: 'http://shack.example:8073/' }),
+    receiver({ url: 'http://shack.example:8074/' }),
+  ]);
+  assert.equal(
+    folded.length,
+    2,
+    'a separate band or a second box in the same shack must keep its own entry',
+  );
+});
+
+test('one name on two pins stays two receivers', () => {
+  const folded = foldSdrDuplicates([
+    receiver({ url: 'http://a.example:8073/' }),
+    receiver({ url: 'http://b.example:8073/', lat: 41.9, lon: 12.5 }),
+  ]);
+  assert.equal(folded.length, 2, 'generic names are common; the pin decides');
+});
+
+test('a position warning survives the fold even when the unmarked address sorts first', () => {
+  const folded = foldSdrDuplicates([
+    receiver({ url: 'https://clean.example/' }),
+    receiver({
+      url: 'http://marked.example:443/',
+      placeMismatchKm: 612,
+      placeStated: 'Camden, South Carolina USA',
+    }),
+  ]);
+  assert.equal(folded.length, 1);
+  assert.equal(folded[0].url, 'https://clean.example/', 'https still leads');
+  assert.equal(
+    folded[0].placeMismatchKm,
+    612,
+    'a cleanup must never quietly turn "this pin may be wrong" into silence',
+  );
+  assert.equal(folded[0].placeStated, 'Camden, South Carolina USA');
+});
+
+test('folding leaves every entry individually addressable', () => {
+  const folded = foldSdrDuplicates([
+    receiver({ url: 'http://one.example:8073/' }),
+    receiver({ url: 'http://two.example:8073/' }),
+    receiver({ url: 'http://three.example:8073/', lat: 41.9, lon: 12.5 }),
+  ]);
+  assert.equal(new Set(folded.map((r) => r.id)).size, folded.length);
+  for (const entry of folded)
+    assert.ok(
+      !entry.alternateUrls?.includes(entry.url),
+      'no entry lists itself as an alternate',
+    );
+});
+
+test('a folded receiver says where else it answers', () => {
+  const [entry] = foldSdrDuplicates([
+    receiver({ url: 'https://bracknell.example/' }),
+    receiver({ url: 'http://81.2.69.160:443/' }),
+  ]);
+  const card = createSdrSelectedOverlayEntry({
+    id: 'sdr:bracknell',
+    position: null,
+    receiver: entry,
+  });
+  assert.ok(
+    card.details.some((d) => /also reachable at 81\.2\.69\.160/.test(d)),
+    card.details.join(' | '),
+  );
+});
+
+test('a receiver with one address says nothing about alternates', () => {
+  const [entry] = foldSdrDuplicates([
+    receiver({ url: 'https://solo.example/' }),
+  ]);
+  const card = createSdrSelectedOverlayEntry({
+    id: 'sdr:solo',
+    position: null,
+    receiver: entry,
+  });
+  assert.ok(!card.details.some((d) => /also reachable/.test(d)));
 });

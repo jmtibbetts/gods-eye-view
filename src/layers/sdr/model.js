@@ -148,6 +148,14 @@ export function createSdrSelectedOverlayEntry({
     );
   }
   details.push(shortHost(receiver.url));
+  // Folded duplicates keep their addresses (see `foldSdrDuplicates`). Naming
+  // them says why one marker stands where the directory listed three, and
+  // gives the operator's other route when the first host is not answering.
+  const alternates = (receiver.alternateUrls || [])
+    .map(shortHost)
+    .filter(Boolean);
+  if (alternates.length)
+    details.push(`also reachable at ${alternates.join(' · ')}`);
   details.push('click again: open receiver · esc: close');
   return {
     id: String(id),

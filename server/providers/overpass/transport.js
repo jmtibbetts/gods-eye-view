@@ -3,6 +3,7 @@ import {
   OVERPASS_UPSTREAMS,
   OVERPASS_USER_AGENT,
   OVERPASS_TIMEOUT_MS,
+  OVERPASS_MIN_ATTEMPT_MS,
 } from './constants.js';
 import { readResponseTextCapped } from '../common/http.js';
 import { simplifyOverpassPayloadBody } from './geometry.js';
@@ -77,15 +78,36 @@ async function fetchOverpassPayload(
     fetchImpl = fetch,
     readBody = readResponseTextCapped,
     simplify = simplifyOverpassPayloadBody,
+    budgetMs = Infinity,
+    now = () => Date.now(),
   } = {},
 ) {
   let lastError = null;
   let lastRateLimitPayload = null;
   let lastRefusalPayload = null;
+  const startedAt = now();
 
-  for (const endpoint of endpoints) {
+  for (const [index, endpoint] of endpoints.entries()) {
+    // One deadline for the whole search, not one per mirror. A sick mirror
+    // chain used to spend the full per-mirror timeout four times over while
+    // the caller waited on nothing; when the budget cannot buy a real attempt
+    // the fan-out stops rather than asking an upstream to do work nobody will
+    // wait for. The first mirror always gets its turn.
+    const remaining = budgetMs - (now() - startedAt);
+    if (index > 0 && remaining < OVERPASS_MIN_ATTEMPT_MS) {
+      lastError =
+        lastError ||
+        new Error(`Overpass budget spent before ${endpoint} was tried`);
+      break;
+    }
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      Math.min(
+        OVERPASS_TIMEOUT_MS,
+        Math.max(OVERPASS_MIN_ATTEMPT_MS, remaining),
+      ),
+    );
 
     try {
       const upstream = await fetchImpl(endpoint, {

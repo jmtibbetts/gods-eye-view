@@ -102,6 +102,13 @@ export { readOverpassDisk } from './overpass/cache.js';
 export { resolveOverpassPreflight } from './overpass/cache.js';
 export { overpassPayloadIsData } from './overpass/transport.js';
 export { fetchOverpassPayload } from './overpass/transport.js';
+export { sanitizeOverpassBody } from './overpass/query.js';
+export {
+  overpassBudgetMs,
+  OVERPASS_TIMEOUT_MS,
+  OVERPASS_MIN_ATTEMPT_MS,
+  OVERPASS_UPSTREAMS,
+} from './overpass/constants.js';
 export { openAiRealtimeProxy } from './openai.js';
 export { MILITARY_INSTALLATION_ELEMENT_CAP } from './military-installations/constants.js';
 export { quantizeMilitaryInstallationBox } from './military-installations/query.js';

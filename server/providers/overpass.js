@@ -3,6 +3,7 @@ import { readRequestBodyCapped } from './common/request.js';
 import {
   OVERPASS_MAX_BODY_BYTES,
   OVERPASS_MAX_CONCURRENT,
+  overpassBudgetMs,
 } from './overpass/constants.js';
 import { sanitizeOverpassBody } from './overpass/query.js';
 import {
@@ -155,7 +156,9 @@ function overpassProxy({ routing = {} } = {}) {
           return;
         }
         _overpassConcurrent += 1;
-        const requestPromise = fetchOverpassPayload(safeBody)
+        const requestPromise = fetchOverpassPayload(safeBody, undefined, {
+          budgetMs: overpassBudgetMs(sanitized.qlTimeoutSec),
+        })
           .then((payload) => {
             // Only a 2xx is data. `< 500` cached every 4xx, so one mirror's
             // refusal was written to memory AND disk — and boundary-class
